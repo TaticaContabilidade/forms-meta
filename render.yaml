@@ -3,15 +3,11 @@ services:
     name: forms-meta
     env: node
     region: ohio
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: ADMIN_TOKEN
         sync: false
-      - key: DB_PATH
-        value: /var/data/metas.db
-    disk:
-      name: forms-meta-data
-      mountPath: /var/data
-      sizeGB: 1
+    # Plano free não suporta Persistent Disk: o SQLite em db/metas.db
+    # é apagado a cada deploy e quando a instância dorme por inatividade.
