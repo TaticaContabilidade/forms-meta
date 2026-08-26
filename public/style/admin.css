@@ -1,0 +1,28 @@
+:root{
+  --paper:#F5F5F1; --ink:#14181F; --ink-soft:#57616F; --line:#DBDBD3;
+  --ok:#1F7A5C; --alert:#A6402F;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--paper); color:var(--ink); font-family: -apple-system, "IBM Plex Sans", sans-serif; padding: 32px 24px 80px; }
+h1{ font-size: 22px; margin: 0 0 4px; }
+p.sub{ color: var(--ink-soft); font-size: 14px; margin: 0 0 24px; }
+.toolbar{ display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+input[type=password], input[type=text]{
+  font-family: monospace; padding: 9px 10px; border: 1px solid var(--line); border-radius: 3px; background: white;
+}
+button{
+  font-family: inherit; font-size: 13.5px; padding: 9px 14px; border-radius: 3px; border: 1px solid var(--line);
+  background: white; cursor: pointer;
+}
+button.primary{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+a.btn{ text-decoration:none; }
+table{ width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--line); font-size: 13px; }
+th, td{ padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th{ background: #FAFAF7; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); position: sticky; top:0; }
+tr:hover td{ background: #FAFAF7; }
+.num{ text-align: right; font-variant-numeric: tabular-nums; }
+.del{ color: var(--alert); cursor:pointer; background:none; border:none; font-size: 13px; }
+.empty, .err{ padding: 40px; text-align:center; color: var(--ink-soft); }
+.err{ color: var(--alert); }
+.scroll{ overflow-x:auto; border-radius: 3px; }
+.count{ font-size: 13px; color: var(--ink-soft); }

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Metas recebidas</title>
+<link rel="stylesheet" href="style/admin.css">
+</head>
+<body>
+  <h1>Metas recebidas</h1>
+  <p class="sub">Painel simples para acompanhar as submissões do treinamento.</p>
+
+  <div class="toolbar">
+    <input type="password" id="token" placeholder="Token de admin">
+    <button class="primary" id="loadBtn">Carregar</button>
+    <a class="btn" id="csvLink" href="#" target="_blank"><button id="csvBtn">Exportar CSV</button></a>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="scroll">
+    <table id="table" style="display:none;">
+      <thead>
+        <tr>
+          <th>Data</th><th>Nome</th><th>Empresa</th>
+          <th class="num">Faturamento</th><th class="num">Meta mensal</th>
+          <th class="num">Contratos/mês</th><th class="num">Contatos necess.</th>
+          <th class="num">Hunter</th><th class="num">Farmer</th>
+          <th>Equipe</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none;">Nenhuma meta recebida ainda.</div>
+    <div class="err" id="err" style="display:none;"></div>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmtBRL = n => (Number(n)||0).toLocaleString('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits:0 });
+
+  function getToken(){ return $('token').value.trim(); }
+
+  $('loadBtn').addEventListener('click', load);
+  $('token').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
+
+  $('csvBtn').addEventListener('click', (e) => {
+    const t = getToken();
+    if (!t) { e.preventDefault(); alert('Informe o token antes de exportar.'); return; }
+    $('csvLink').href = '/api/metas.csv?token=' + encodeURIComponent(t);
+  });
+
+  async function load(){
+    const token = getToken();
+    $('err').style.display = 'none';
+    $('empty').style.display = 'none';
+    $('table').style.display = 'none';
+
+    if (!token) { showErr('Informe o token de admin.'); return; }
+
+    try {
+      const resp = await fetch('/api/metas', { headers: { 'x-admin-token': token } });
+      if (resp.status === 401) { showErr('Token inválido.'); return; }
+      if (!resp.ok) { showErr('Erro ao carregar dados.'); return; }
+      const rows = await resp.json();
+      render(rows);
+    } catch (e) {
+      showErr('Não foi possível conectar ao servidor.');
+    }
+  }
+
+  function showErr(msg){ $('err').textContent = msg; $('err').style.display = 'block'; }
+
+  function render(rows){
+    $('count').textContent = rows.length + ' registro(s)';
+    if (rows.length === 0) { $('empty').style.display = 'block'; return; }
+
+    const tbody = $('tbody');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      const equipeResumo = (r.equipe || []).map(p => `${p.nome || '?'} (${p.tipo}: ${fmtBRL(p.meta)})`).join('; ');
+      tr.innerHTML = `
+        <td>${r.criado_em || ''}</td>
+        <td>${escapeHtml(r.nome_participante)}</td>
+        <td>${escapeHtml(r.empresa)}</td>
+        <td class="num">${fmtBRL(r.faturamento)}</td>
+        <td class="num">${fmtBRL(r.meta_mensal)}</td>
+        <td class="num">${(r.contratos_mes||0).toFixed(1)}</td>
+        <td class="num">${Math.ceil(r.contatos_necessarios||0)}</td>
+        <td class="num">${fmtBRL(r.hunter_valor)}</td>
+        <td class="num">${fmtBRL(r.farmer_valor)}</td>
+        <td>${escapeHtml(equipeResumo) || '—'}</td>
+        <td><button class="del" data-id="${r.id}">remover</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    $('table').style.display = 'table';
+
+    tbody.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remover este registro?')) return;
+        await fetch('/api/metas/' + btn.dataset.id, { method: 'DELETE', headers: { 'x-admin-token': getToken() } });
+        load();
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+</script>
+</body>
+</html>
