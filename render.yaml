@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: forms-meta
+    env: node
+    region: ohio
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: DB_PATH
+        value: /var/data/metas.db
+    disk:
+      name: forms-meta-data
+      mountPath: /var/data
+      sizeGB: 1
