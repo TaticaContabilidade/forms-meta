@@ -1,9 +1,10 @@
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const Database = require('better-sqlite3');
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '123452';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'troque-isto';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'db', 'metas.db');
 
 const app = express();
