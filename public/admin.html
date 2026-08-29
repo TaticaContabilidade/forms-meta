@@ -3,35 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — Metas recebidas</title>
+<title>Admin — Painel de dados</title>
 <link rel="stylesheet" href="style/admin.css">
+
 </head>
 <body>
-  <h1>Metas recebidas</h1>
-  <p class="sub">Painel simples para acompanhar as submissões do treinamento.</p>
+  <h1>Painel de dados</h1>
+  <p class="sub">Metas recebidas e perfis DISC dos participantes.</p>
 
-  <div class="toolbar">
+  <div class="toolbar" style="margin-bottom:16px;">
     <input type="password" id="token" placeholder="Token de admin">
     <button class="primary" id="loadBtn">Carregar</button>
-    <a class="btn" id="csvLink" href="#" target="_blank"><button id="csvBtn">Exportar CSV</button></a>
-    <span class="count" id="count"></span>
+    <span class="count" id="countGlobal"></span>
   </div>
 
-  <div class="scroll">
-    <table id="table" style="display:none;">
-      <thead>
-        <tr>
-          <th>Data</th><th>Nome</th><th>Empresa</th>
-          <th class="num">Faturamento</th><th class="num">Meta mensal</th>
-          <th class="num">Contratos/mês</th><th class="num">Contatos necess.</th>
-          <th class="num">Hunter</th><th class="num">Farmer</th>
-          <th>Equipe</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="empty" id="empty" style="display:none;">Nenhuma meta recebida ainda.</div>
-    <div class="err" id="err" style="display:none;"></div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="metas">Calculadora de Metas</button>
+    <button class="tab-btn" data-tab="disc">Avaliação DISC</button>
+  </div>
+
+  <!-- ABA METAS -->
+  <div class="tab-pane active" id="tab-metas">
+    <div class="toolbar" style="margin-bottom:16px;">
+      <a class="btn" id="csvMetasLink" href="#" target="_blank"><button id="csvMetasBtn">Exportar CSV</button></a>
+      <span class="count" id="countMetas"></span>
+    </div>
+    <div class="scroll">
+      <table id="tableMetas" style="display:none;">
+        <thead>
+          <tr>
+            <th>Data</th><th>Nome</th><th>Empresa</th>
+            <th class="num">Faturamento</th><th class="num">Meta mensal</th>
+            <th class="num">Contratos/mês</th><th class="num">Contatos necess.</th>
+            <th class="num">Hunter</th><th class="num">Farmer</th>
+            <th>Equipe</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbodyMetas"></tbody>
+      </table>
+      <div class="empty" id="emptyMetas" style="display:none;">Nenhuma meta recebida ainda.</div>
+      <div class="err" id="errMetas" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- ABA DISC -->
+  <div class="tab-pane" id="tab-disc">
+    <div class="toolbar" style="margin-bottom:16px;">
+      <a class="btn" id="csvDiscLink" href="#" target="_blank"><button id="csvDiscBtn">Exportar CSV DISC</button></a>
+      <span class="count" id="countDisc"></span>
+    </div>
+    <div class="scroll">
+      <table id="tableDisc" style="display:none;">
+        <thead>
+          <tr>
+            <th>Data</th><th>Nome</th><th>Empresa</th>
+            <th>Perfil dominante</th><th>Arquétipo</th>
+            <th class="num">D nat.</th><th class="num">I nat.</th><th class="num">S nat.</th><th class="num">C nat.</th>
+            <th class="num">D adap.</th><th class="num">I adap.</th><th class="num">S adap.</th><th class="num">C adap.</th>
+            <th class="num">D int.</th><th class="num">I int.</th><th class="num">S int.</th><th class="num">C int.</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbodyDisc"></tbody>
+      </table>
+      <div class="empty" id="emptyDisc" style="display:none;">Nenhum perfil DISC recebido ainda.</div>
+      <div class="err" id="errDisc" style="display:none;"></div>
+    </div>
   </div>
 
 <script>
@@ -40,41 +77,70 @@
 
   function getToken(){ return $('token').value.trim(); }
 
-  $('loadBtn').addEventListener('click', load);
-  $('token').addEventListener('keydown', e => { if (e.key === 'Enter') load(); });
-
-  $('csvBtn').addEventListener('click', (e) => {
-    const t = getToken();
-    if (!t) { e.preventDefault(); alert('Informe o token antes de exportar.'); return; }
-    $('csvLink').href = '/api/metas.csv?token=' + encodeURIComponent(t);
+  // tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      $('tab-' + btn.dataset.tab).classList.add('active');
+    });
   });
 
-  async function load(){
+  $('loadBtn').addEventListener('click', loadAll);
+  $('token').addEventListener('keydown', e => { if (e.key === 'Enter') loadAll(); });
+
+  $('csvMetasBtn').addEventListener('click', (e) => {
+    const t = getToken();
+    if (!t) { e.preventDefault(); alert('Informe o token antes de exportar.'); return; }
+    $('csvMetasLink').href = '/api/metas.csv?token=' + encodeURIComponent(t);
+  });
+
+  $('csvDiscBtn').addEventListener('click', (e) => {
+    const t = getToken();
+    if (!t) { e.preventDefault(); alert('Informe o token antes de exportar.'); return; }
+    $('csvDiscLink').href = '/api/disc.csv?token=' + encodeURIComponent(t);
+  });
+
+  async function loadAll() {
     const token = getToken();
-    $('err').style.display = 'none';
-    $('empty').style.display = 'none';
-    $('table').style.display = 'none';
-
-    if (!token) { showErr('Informe o token de admin.'); return; }
-
-    try {
-      const resp = await fetch('/api/metas', { headers: { 'x-admin-token': token } });
-      if (resp.status === 401) { showErr('Token inválido.'); return; }
-      if (!resp.ok) { showErr('Erro ao carregar dados.'); return; }
-      const rows = await resp.json();
-      render(rows);
-    } catch (e) {
-      showErr('Não foi possível conectar ao servidor.');
-    }
+    if (!token) { showErrMetas('Informe o token de admin.'); return; }
+    await Promise.all([loadMetas(token), loadDisc(token)]);
   }
 
-  function showErr(msg){ $('err').textContent = msg; $('err').style.display = 'block'; }
+  async function loadMetas(token) {
+    $('errMetas').style.display = 'none';
+    $('emptyMetas').style.display = 'none';
+    $('tableMetas').style.display = 'none';
+    try {
+      const resp = await fetch('/api/metas', { headers: { 'x-admin-token': token } });
+      if (resp.status === 401) { showErrMetas('Token inválido.'); return; }
+      if (!resp.ok) { showErrMetas('Erro ao carregar dados.'); return; }
+      const rows = await resp.json();
+      renderMetas(rows);
+    } catch (e) { showErrMetas('Não foi possível conectar ao servidor.'); }
+  }
 
-  function render(rows){
-    $('count').textContent = rows.length + ' registro(s)';
-    if (rows.length === 0) { $('empty').style.display = 'block'; return; }
+  async function loadDisc(token) {
+    $('errDisc').style.display = 'none';
+    $('emptyDisc').style.display = 'none';
+    $('tableDisc').style.display = 'none';
+    try {
+      const resp = await fetch('/api/disc', { headers: { 'x-admin-token': token } });
+      if (resp.status === 401) { showErrDisc('Token inválido.'); return; }
+      if (!resp.ok) { showErrDisc('Erro ao carregar dados.'); return; }
+      const rows = await resp.json();
+      renderDisc(rows);
+    } catch (e) { showErrDisc('Não foi possível conectar ao servidor.'); }
+  }
 
-    const tbody = $('tbody');
+  function showErrMetas(msg){ $('errMetas').textContent = msg; $('errMetas').style.display = 'block'; }
+  function showErrDisc(msg){ $('errDisc').textContent = msg; $('errDisc').style.display = 'block'; }
+
+  function renderMetas(rows) {
+    $('countMetas').textContent = rows.length + ' registro(s)';
+    if (rows.length === 0) { $('emptyMetas').style.display = 'block'; return; }
+    const tbody = $('tbodyMetas');
     tbody.innerHTML = '';
     rows.forEach(r => {
       const tr = document.createElement('tr');
@@ -90,17 +156,55 @@
         <td class="num">${fmtBRL(r.hunter_valor)}</td>
         <td class="num">${fmtBRL(r.farmer_valor)}</td>
         <td>${escapeHtml(equipeResumo) || '—'}</td>
-        <td><button class="del" data-id="${r.id}">remover</button></td>
+        <td><button class="del" data-id="${r.id}" data-tipo="metas">remover</button></td>
       `;
       tbody.appendChild(tr);
     });
-    $('table').style.display = 'table';
+    $('tableMetas').style.display = 'table';
+    bindDelBtns();
+  }
 
-    tbody.querySelectorAll('.del').forEach(btn => {
+  function renderDisc(rows) {
+    $('countDisc').textContent = rows.length + ' registro(s)';
+    if (rows.length === 0) { $('emptyDisc').style.display = 'block'; return; }
+    const tbody = $('tbodyDisc');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      const badge = `<span class="disc-badge badge-${r.perfil_dominante}">${r.perfil_dominante}</span>`;
+      tr.innerHTML = `
+        <td>${r.criado_em || ''}</td>
+        <td>${escapeHtml(r.nome_participante)}</td>
+        <td>${escapeHtml(r.empresa)}</td>
+        <td>${badge}</td>
+        <td>${escapeHtml(r.arquetipo)}</td>
+        <td class="num">${r.d_natural > 0 ? '+' : ''}${r.d_natural}</td>
+        <td class="num">${r.i_natural > 0 ? '+' : ''}${r.i_natural}</td>
+        <td class="num">${r.s_natural > 0 ? '+' : ''}${r.s_natural}</td>
+        <td class="num">${r.c_natural > 0 ? '+' : ''}${r.c_natural}</td>
+        <td class="num">${r.d_adaptado}</td>
+        <td class="num">${r.i_adaptado}</td>
+        <td class="num">${r.s_adaptado}</td>
+        <td class="num">${r.c_adaptado}</td>
+        <td class="num">${(r.d_intensidade||0).toFixed(1)}</td>
+        <td class="num">${(r.i_intensidade||0).toFixed(1)}</td>
+        <td class="num">${(r.s_intensidade||0).toFixed(1)}</td>
+        <td class="num">${(r.c_intensidade||0).toFixed(1)}</td>
+        <td><button class="del" data-id="${r.id}" data-tipo="disc">remover</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    $('tableDisc').style.display = 'table';
+    bindDelBtns();
+  }
+
+  function bindDelBtns() {
+    document.querySelectorAll('.del').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Remover este registro?')) return;
-        await fetch('/api/metas/' + btn.dataset.id, { method: 'DELETE', headers: { 'x-admin-token': getToken() } });
-        load();
+        const tipo = btn.dataset.tipo;
+        await fetch(`/api/${tipo}/${btn.dataset.id}`, { method: 'DELETE', headers: { 'x-admin-token': getToken() } });
+        loadAll();
       });
     });
   }

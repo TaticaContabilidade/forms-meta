@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qual é a sua meta comercial?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style/index.css">
+</head>
+<body>
+<div class="wrap">
+  <div style="padding:16px 0 0; margin-bottom:-16px;"><a href="/" style="font-size:13px; font-weight:600; color:var(--fg-faint); text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color .15s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--fg-faint)'">← Voltar ao menu</a></div>
+
+  <header class="hero">
+    <p class="eyebrow">Exercício prático — treinamento comercial</p>
+    <h1>Qual é a sua meta comercial?</h1>
+    <p>Preencha com os números da sua empresa. No fim, você descobre de quantos contatos por mês precisa — e se a sua meta já nasceu possível ou impossível.</p>
+    <div class="northstar">
+      <span class="label">Meta comercial mensal</span>
+      <span class="value" id="hero-meta">R$ 0</span>
+    </div>
+    <p style="margin-top:18px; font-size:13.5px; color:var(--ink-faint);">
+      Também disponível: <a href="/disc.html" style="color:var(--ink-soft); text-decoration:underline;">Avaliação DISC Profunda →</a>
+    </p>
+
+    <div class="row" style="margin-top:28px; padding-left:0;">
+      <div class="row-label">Seu nome</div>
+      <div class="field" style="margin-bottom:10px;">
+        <input type="text" id="nomeParticipante" placeholder="Nome completo" autocomplete="name">
+      </div>
+      <div class="row-label">Sua empresa</div>
+      <div class="field">
+        <input type="text" id="empresaParticipante" placeholder="Nome da empresa" autocomplete="organization">
+      </div>
+    </div>
+  </header>
+
+  <!-- PARTE 1 -->
+  <section class="part">
+    <div class="part-head">
+      <span class="part-num">Parte 1</span>
+      <h2>A meta da empresa</h2>
+    </div>
+    <p class="part-sub">Você não vende só para crescer — vende também para repor quem sai.</p>
+
+    <div class="ledger">
+
+      <div class="row">
+        <div class="row-num">1</div>
+        <div class="row-label">Quanto sua empresa fatura hoje, por mês?</div>
+        <p class="row-help">Receita recorrente mensal atual. Ex.: R$ 200.000</p>
+        <div class="field">
+          <span class="field-prefix">R$</span>
+          <input type="number" id="faturamento" inputmode="decimal" min="0" step="any" placeholder="200000">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-num">2</div>
+        <div class="row-label">Quanto você quer crescer no ano?</div>
+        <p class="row-help">Decisão dos sócios — não é chute, é escolha. Ex.: 30%</p>
+        <div class="field">
+          <input type="number" id="crescimentoPct" inputmode="decimal" min="0" step="any" placeholder="30">
+          <span class="field-suffix">%</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-num computed">3</div>
+        <div class="row-label">Quanto isso dá em reais?</div>
+        <p class="row-help">Linha 1 × linha 2.</p>
+        <div class="field computed"><span class="output" id="calc3">R$ 0</span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-num">4</div>
+        <div class="row-label">Quanto você perde de base no ano?</div>
+        <p class="row-help">Seu churn. Se não sabe, estime. Ex.: 10%</p>
+        <div class="field">
+          <input type="number" id="churnPct" inputmode="decimal" min="0" step="any" placeholder="10">
+          <span class="field-suffix">%</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-num computed">5</div>
+        <div class="row-label">Quanto isso dá em reais?</div>
+        <p class="row-help">Linha 1 × linha 4.</p>
+        <div class="field computed"><span class="output" id="calc5">R$ 0</span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-num computed">6</div>
+        <div class="row-label">Quanto você precisa vender no ano?</div>
+        <p class="row-help">Linha 3 + linha 5. Esta é a sua <strong>meta corporativa</strong>.</p>
+        <div class="field computed"><span class="output" id="calc6">R$ 0</span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-num computed">7</div>
+        <div class="row-label">Quanto por trimestre?</div>
+        <p class="row-help">Linha 6 ÷ 4. É o que a gestão avalia a cada ciclo.</p>
+        <div class="field computed"><span class="output" id="calc7">R$ 0</span></div>
+      </div>
+
+      <div class="row highlight">
+        <div class="row-num computed">8</div>
+        <div class="row-label">Quanto por mês?</div>
+        <p class="row-help">Linha 6 ÷ 12. Esta é a meta da área comercial.</p>
+        <div class="field computed"><span class="output" id="calc8">R$ 0</span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-num">9</div>
+        <div class="row-label">Qual o seu ticket médio mensal?</div>
+        <p class="row-help">Valor médio de uma mensalidade nova. Ex.: R$ 900</p>
+        <div class="field">
+          <span class="field-prefix">R$</span>
+          <input type="number" id="ticket" inputmode="decimal" min="0" step="any" placeholder="900">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-num computed">10</div>
+        <div class="row-label">Quantos contratos novos por mês?</div>
+        <p class="row-help">Linha 8 ÷ linha 9.</p>
+        <div class="field computed"><span class="output" id="calc10">0 contratos</span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-num">11</div>
+        <div class="row-label">Qual a sua taxa de conversão?</div>
+        <p class="row-help">De cada 100 contatos, quantos fecham. Ex.: 20%</p>
+        <div class="field">
+          <input type="number" id="conversaoPct" inputmode="decimal" min="0.1" step="any" placeholder="20">
+          <span class="field-suffix">%</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-num computed">↳</div>
+        <div class="row-label">Contatos que precisam entrar por mês</div>
+        <p class="row-help">Linha 10 ÷ linha 11.</p>
+        <div class="field computed"><span class="output" id="calcContatos">0 contatos</span></div>
+      </div>
+
+      <div class="row">
+        <div class="row-num">?</div>
+        <div class="row-label">Quantos contatos entraram na sua empresa no mês passado?</div>
+        <p class="row-help">Número real, não a meta.</p>
+        <div class="field">
+          <input type="number" id="contatosPassado" inputmode="decimal" min="0" step="any" placeholder="0">
+        </div>
+        <div class="callout" id="calloutContatos" style="display:none;"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PARTE 2 -->
+  <section class="part">
+    <div class="part-head">
+      <span class="part-num">Parte 2</span>
+      <h2>Da meta da empresa até a meta de cada pessoa</h2>
+    </div>
+    <p class="part-sub">A meta que você acabou de calcular é da empresa. Agora ela precisa virar o pedaço de cada um — senão continua sendo um número que ninguém carrega.</p>
+
+    <div class="ledger">
+      <div class="row">
+        <div class="row-num">12</div>
+        <div class="row-label">Quanto virá de clientes novos? (hunter)</div>
+        <p class="row-help">Parte da linha 8 — quem ainda não é da casa.</p>
+        <div class="field">
+          <span class="field-prefix">R$</span>
+          <input type="number" id="hunterValor" inputmode="decimal" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-num computed">13</div>
+        <div class="row-label">Quanto virá da base? (farmer)</div>
+        <p class="row-help">O resto da linha 8 — upsell e cross-sell em quem já é cliente.</p>
+        <div class="field computed"><span class="output" id="calcFarmer">R$ 0</span></div>
+        <div class="callout state-alert" id="calloutHunter" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div style="height:36px"></div>
+
+    <h2 style="font-size:19px; margin-bottom:6px;">Quem carrega cada pedaço?</h2>
+    <p class="part-sub" style="margin-bottom:20px;">Escreva o nome de cada pessoa que vende hoje na sua empresa — inclusive você, se for você quem vende. A soma das metas individuais tem que fechar com a linha 8.</p>
+
+    <div class="team-wrap">
+      <table class="team" id="teamTable">
+        <thead>
+          <tr>
+            <th style="width:38%">Nome</th>
+            <th style="width:26%">Hunter ou farmer?</th>
+            <th style="width:30%">Meta mensal (R$)</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody id="teamBody"></tbody>
+      </table>
+
+      <div class="team-actions">
+        <button type="button" class="add-btn" id="addRow">+ Adicionar pessoa</button>
+        <span class="badge" id="teamBadge"><span class="dot"></span><span id="teamBadgeText">Some as metas da equipe</span></span>
+      </div>
+    </div>
+
+    <p style="margin-top:18px; color:var(--ink-soft); font-size:14.5px;">Se não fecha, você tem só duas saídas honestas: aumentar o time, ou rever a meta com os sócios. Distribuir um número que ninguém consegue entregar não é uma delas.</p>
+  </section>
+
+  <div class="footer-actions">
+    <button type="button" class="btn-primary" id="sendBtn">Enviar minha meta</button>
+    <button type="button" class="btn-secondary" id="printBtn">Salvar meu resultado (PDF)</button>
+    <button type="button" class="btn-secondary" id="resetBtn">Recomeçar</button>
+  </div>
+  <p class="footer-note" id="sendStatus">Preencha seu nome e clique em "Enviar minha meta" para registrar sua meta com a equipe do treinamento.</p>
+
+</div>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const fmtBRL = (n) => {
+    if (!isFinite(n)) n = 0;
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  };
+  const num = (el) => { const v = parseFloat(el.value); return isNaN(v) ? 0 : v; };
+
+  const els = {
+    faturamento: $('faturamento'),
+    crescimentoPct: $('crescimentoPct'),
+    churnPct: $('churnPct'),
+    ticket: $('ticket'),
+    conversaoPct: $('conversaoPct'),
+    contatosPassado: $('contatosPassado'),
+    hunterValor: $('hunterValor'),
+  };
+
+  let metaMensal = 0; // linha 8, alvo da parte 2 e da tabela de time
+  let lastValues = {}; // snapshot dos últimos cálculos, usado no envio
+
+  function recalc(){
+    const fat = num(els.faturamento);
+    const cresc = num(els.crescimentoPct) / 100;
+    const churn = num(els.churnPct) / 100;
+    const ticket = num(els.ticket);
+    const conv = num(els.conversaoPct) / 100;
+    const contatosPassado = num(els.contatosPassado);
+
+    const l3 = fat * cresc;
+    const l5 = fat * churn;
+    const l6 = l3 + l5;
+    const l7 = l6 / 4;
+    const l8 = l6 / 12;
+    const l10 = ticket > 0 ? l8 / ticket : 0;
+    const contatosNecessarios = conv > 0 ? l10 / conv : 0;
+
+    lastValues = {
+      faturamento: fat,
+      crescimento_pct: num(els.crescimentoPct),
+      churn_pct: num(els.churnPct),
+      meta_anual: l6,
+      meta_trimestral: l7,
+      meta_mensal: l8,
+      ticket: ticket,
+      contratos_mes: l10,
+      conversao_pct: num(els.conversaoPct),
+      contatos_necessarios: contatosNecessarios,
+      contatos_mes_passado: contatosPassado,
+    };
+
+    $('calc3').textContent = fmtBRL(l3);
+    $('calc5').textContent = fmtBRL(l5);
+    $('calc6').textContent = fmtBRL(l6);
+    $('calc7').textContent = fmtBRL(l7);
+    $('calc8').textContent = fmtBRL(l8);
+    $('calc10').textContent = (l10 % 1 === 0 ? l10.toFixed(0) : l10.toFixed(1)) + ' contratos';
+    $('calcContatos').textContent = Math.ceil(contatosNecessarios) + ' contatos';
+    $('hero-meta').textContent = fmtBRL(l8);
+
+    metaMensal = l8;
+
+    // callout comparativo de contatos
+    const calloutC = $('calloutContatos');
+    if (contatosPassado > 0 && contatosNecessarios > 0) {
+      calloutC.style.display = 'block';
+      const razao = contatosPassado / contatosNecessarios;
+      if (razao < 0.7) {
+        calloutC.className = 'callout state-alert';
+        calloutC.innerHTML = '<strong>O problema não é o vendedor.</strong> Você precisa de ' + Math.ceil(contatosNecessarios) + ' contatos por mês e só entraram ' + Math.round(contatosPassado) + '. Essa meta nunca teve chance de acontecer com esse volume de entrada.';
+      } else {
+        calloutC.className = 'callout state-ok';
+        calloutC.innerHTML = 'Entraram ' + Math.round(contatosPassado) + ' de ' + Math.ceil(contatosNecessarios) + ' contatos necessários. O volume de entrada sustenta essa meta.';
+      }
+    } else {
+      calloutC.style.display = 'none';
+    }
+
+    // hunter / farmer
+    const hunter = num(els.hunterValor);
+    const farmer = Math.max(l8 - hunter, 0);
+    $('calcFarmer').textContent = fmtBRL(farmer);
+    lastValues.hunter_valor = hunter;
+    lastValues.farmer_valor = farmer;
+
+    const calloutH = $('calloutHunter');
+    if (hunter > l8 && l8 > 0) {
+      calloutH.style.display = 'block';
+      calloutH.textContent = 'O valor de hunter (' + fmtBRL(hunter) + ') é maior que a meta mensal da área (' + fmtBRL(l8) + '). Revise a linha 12.';
+    } else {
+      calloutH.style.display = 'none';
+    }
+
+    recalcTeam();
+  }
+
+  Object.values(els).forEach(el => el.addEventListener('input', recalc));
+
+  // ---------- team table ----------
+  const teamBody = $('teamBody');
+  let rowCount = 0;
+
+  function addRow(prefill){
+    rowCount++;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><input type="text" placeholder="Nome da pessoa" class="t-name"></td>' +
+      '<td><select class="t-type"><option value="Hunter">Hunter</option><option value="Farmer">Farmer</option></select></td>' +
+      '<td><div class="field" style="max-width:100%; border:none; background:transparent;"><span class="field-prefix" style="padding-left:0;">R$</span><input type="number" class="t-meta" inputmode="decimal" min="0" step="any" placeholder="0"></div></td>' +
+      '<td class="col-del"><button type="button" class="del-btn" aria-label="Remover pessoa">✕</button></td>';
+    teamBody.appendChild(tr);
+
+    tr.querySelector('.t-meta').addEventListener('input', recalcTeam);
+    tr.querySelector('.del-btn').addEventListener('click', () => { tr.remove(); recalcTeam(); });
+  }
+
+  function recalcTeam(){
+    const metaInputs = teamBody.querySelectorAll('.t-meta');
+    let soma = 0;
+    metaInputs.forEach(inp => { const v = parseFloat(inp.value); if (!isNaN(v)) soma += v; });
+
+    const badge = $('teamBadge');
+    const badgeText = $('teamBadgeText');
+    const diff = metaMensal - soma;
+
+    if (metaInputs.length === 0 || metaMensal === 0) {
+      badge.className = 'badge';
+      badgeText.textContent = 'Some as metas da equipe';
+      return;
+    }
+    if (Math.abs(diff) < 1) {
+      badge.className = 'badge ok';
+      badgeText.textContent = 'Fecha: ' + fmtBRL(soma) + ' de ' + fmtBRL(metaMensal);
+    } else if (diff > 0) {
+      badge.className = 'badge alert';
+      badgeText.textContent = 'Falta ' + fmtBRL(diff) + ' para fechar a meta';
+    } else {
+      badge.className = 'badge alert';
+      badgeText.textContent = 'Sobra ' + fmtBRL(Math.abs(diff)) + ' além da meta';
+    }
+  }
+
+  $('addRow').addEventListener('click', () => addRow());
+
+  function coletarEquipe(){
+    const rows = [...teamBody.querySelectorAll('tr')];
+    return rows.map(tr => ({
+      nome: tr.querySelector('.t-name').value.trim(),
+      tipo: tr.querySelector('.t-type').value,
+      meta: parseFloat(tr.querySelector('.t-meta').value) || 0,
+    })).filter(p => p.nome || p.meta);
+  }
+
+  const sendStatus = $('sendStatus');
+  const sendBtn = $('sendBtn');
+
+  sendBtn.addEventListener('click', async () => {
+    const nome = $('nomeParticipante').value.trim();
+    const empresa = $('empresaParticipante').value.trim();
+
+    if (!nome) {
+      sendStatus.textContent = 'Preencha seu nome antes de enviar.';
+      sendStatus.style.color = 'var(--alert)';
+      $('nomeParticipante').focus();
+      return;
+    }
+
+    const payload = {
+      nome_participante: nome,
+      empresa: empresa,
+      ...lastValues,
+      equipe: coletarEquipe(),
+    };
+
+    sendBtn.disabled = true;
+    sendStatus.textContent = 'Enviando...';
+    sendStatus.style.color = 'var(--ink-faint)';
+
+    try {
+      const resp = await fetch('/api/metas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) throw new Error('Falha no envio');
+      sendStatus.textContent = 'Meta enviada com sucesso. Você já pode salvar o PDF, se quiser.';
+      sendStatus.style.color = 'var(--ok)';
+    } catch (err) {
+      sendStatus.textContent = 'Não foi possível enviar agora. Confira sua conexão e tente de novo.';
+      sendStatus.style.color = 'var(--alert)';
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+
+  $('printBtn').addEventListener('click', () => window.print());
+
+  $('resetBtn').addEventListener('click', () => {
+    if (!confirm('Isso limpa todos os campos preenchidos. Continuar?')) return;
+    Object.values(els).forEach(el => el.value = '');
+    teamBody.innerHTML = '';
+    addRow(); addRow();
+    recalc();
+  });
+
+  // start with 2 empty rows
+  addRow();
+  addRow();
+  recalc();
+})();
+</script>
+</body>
+</html>

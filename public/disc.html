@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avaliação DISC | Perfil Comportamental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style/disc.css">
+</head>
+<body>
+<div class="wrap">
+  <div style="padding:16px 0 0; margin-bottom:-16px;"><a href="/" style="font-size:13px; font-weight:600; color:var(--fg-faint); text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color .15s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--fg-faint)'">← Voltar ao menu</a></div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <p class="eyebrow">Treinamento comercial · Perfil comportamental</p>
+    <h1>Avaliação DISC Profunda</h1>
+    <p>Perfil natural × adaptado, intensidade de cada traço e o arquétipo comportamental que explica como você performa de verdade.</p>
+    <div class="how-grid">
+      <div class="how-card">
+        <p class="how-label">Parte A · 28 blocos</p>
+        <p class="how-title">Perfil natural</p>
+        <p>Escolha forçada: o que é MAIS e MENOS parecido com você.</p>
+      </div>
+      <div class="how-card">
+        <p class="how-label">Parte B · 16 situações</p>
+        <p class="how-title">Perfil adaptado</p>
+        <p>Situações reais de trabalho: o que você faria de verdade.</p>
+      </div>
+      <div class="how-card">
+        <p class="how-label">Parte C · 12 afirmações</p>
+        <p class="how-title">Intensidade</p>
+        <p>Escala de 1 a 5 para medir a força de cada traço.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- IDENTIDADE -->
+  <div class="identity-block">
+    <h2>Antes de começar</h2>
+    <div class="identity-fields">
+      <label>Seu nome
+        <input type="text" id="nomeDisc" placeholder="Nome completo" autocomplete="name">
+      </label>
+      <label>Sua empresa
+        <input type="text" id="empresaDisc" placeholder="Nome da empresa" autocomplete="organization">
+      </label>
+    </div>
+  </div>
+
+  <!-- ========== PARTE A ========== -->
+  <div class="part-section active" id="partA">
+    <div class="part-header">
+      <span class="part-badge">Parte A</span>
+      <h2>Perfil natural</h2>
+    </div>
+    <p class="part-desc">Em cada bloco, marque qual palavra é <strong>MAIS</strong> parecida com você e qual é a <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
+
+    <div class="progress-wrap">
+      <div class="progress-label" id="progressLabelA">0 de 28 blocos respondidos</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFillA"></div></div>
+    </div>
+
+    <div class="blocks-list" id="blocksA"></div>
+
+    <div class="nav-actions">
+      <span class="validation-msg" id="validMsgA">Responda todos os blocos antes de continuar.</span>
+      <span></span>
+      <button class="btn-primary" id="btnAtoB">Continuar para Parte B →</button>
+    </div>
+  </div>
+
+  <!-- ========== PARTE B ========== -->
+  <div class="part-section" id="partB">
+    <div class="part-header">
+      <span class="part-badge">Parte B</span>
+      <h2>Perfil adaptado</h2>
+    </div>
+    <p class="part-desc">Para cada situação abaixo, escolha a opção que mais se aproxima do que você faria de verdade no trabalho.</p>
+
+    <div class="progress-wrap">
+      <div class="progress-label" id="progressLabelB">0 de 16 situações respondidas</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFillB"></div></div>
+    </div>
+
+    <div class="situations-list" id="situationsB"></div>
+
+    <div class="nav-actions">
+      <button class="btn-secondary" id="btnBtoA">← Voltar</button>
+      <span class="validation-msg" id="validMsgB">Responda todas as situações antes de continuar.</span>
+      <button class="btn-primary" id="btnBtoC">Continuar para Parte C →</button>
+    </div>
+  </div>
+
+  <!-- ========== PARTE C ========== -->
+  <div class="part-section" id="partC">
+    <div class="part-header">
+      <span class="part-badge">Parte C</span>
+      <h2>Intensidade de cada traço</h2>
+    </div>
+    <p class="part-desc">Para cada afirmação abaixo, dê uma nota de 1 (discordo totalmente) a 5 (concordo totalmente). Vá rápido — a primeira impressão é a mais precisa.</p>
+
+    <div class="intensity-list" id="intensityC"></div>
+
+    <div class="nav-actions" style="margin-top:24px;">
+      <button class="btn-secondary" id="btnCtoB">← Voltar</button>
+      <span class="validation-msg" id="validMsgC">Avalie todas as afirmações antes de finalizar.</span>
+      <button class="btn-primary" id="btnFinish">Ver meu resultado →</button>
+    </div>
+  </div>
+
+  <!-- ========== RESULTADO ========== -->
+  <div id="resultado">
+
+    <div class="result-hero">
+      <p class="eyebrow">Seu perfil comportamental</p>
+      <p class="arquetipo-name" id="resArquetipo">—</p>
+      <p class="perfil-sub" id="resPerfil">—</p>
+    </div>
+
+    <div class="profiles-grid">
+      <div class="profile-card">
+        <p class="profile-card-title">Perfil natural</p>
+        <div class="profile-bars" id="barsNatural"></div>
+      </div>
+      <div class="profile-card">
+        <p class="profile-card-title">Perfil adaptado (trabalho)</p>
+        <div class="profile-bars" id="barsAdaptado"></div>
+      </div>
+    </div>
+
+    <div class="intensity-section">
+      <h3>Intensidade por traço</h3>
+      <div class="intensity-bars" id="barsIntensidade"></div>
+    </div>
+
+    <div class="disc-cards" id="discCards"></div>
+
+    <div class="insight-section">
+      <h3>Como você performa</h3>
+      <div id="insightPerforma"></div>
+    </div>
+
+    <div class="insight-section">
+      <h3>O que pode derrubar sua performance</h3>
+      <div id="insightDerail"></div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-primary" id="btnSend">Enviar meu perfil</button>
+      <button class="btn-secondary" onclick="window.print()">Salvar PDF</button>
+      <button class="btn-secondary" id="btnReset">Refazer avaliação</button>
+    </div>
+    <p class="send-status" id="sendStatus">Preencha seu nome e clique em "Enviar meu perfil" para registrar com a equipe do treinamento.</p>
+
+  </div><!-- /resultado -->
+
+</div><!-- /wrap -->
+
+<script>
+(function(){
+
+// ============================================================
+// BANCO DE QUESTÕES
+// ============================================================
+
+// Parte A — 28 blocos de escolha forçada
+// Cada bloco tem 4 palavras, cada uma associada a um traço DISC
+// O participante marca MAIS e MENOS em cada bloco
+const BLOCOS_A = [
+  { words: [
+    { text: 'Decidido', desc: 'Toma posição rápido', trait: 'D' },
+    { text: 'Entusiasmado', desc: 'Contagia as pessoas', trait: 'I' },
+    { text: 'Leal', desc: 'Mantém o time unido', trait: 'S' },
+    { text: 'Preciso', desc: 'Não aceita meios-termos', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Direto', desc: 'Vai ao ponto sem rodeios', trait: 'D' },
+    { text: 'Persuasivo', desc: 'Convence com facilidade', trait: 'I' },
+    { text: 'Paciente', desc: 'Espera a hora certa', trait: 'S' },
+    { text: 'Analítico', desc: 'Examina antes de agir', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Ousado', desc: 'Arrisca quando necessário', trait: 'D' },
+    { text: 'Otimista', desc: 'Vê o lado positivo', trait: 'I' },
+    { text: 'Confiável', desc: 'Sempre cumpre o que promete', trait: 'S' },
+    { text: 'Cuidadoso', desc: 'Pesa cada detalhe', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Competitivo', desc: 'Quer ganhar e superar', trait: 'D' },
+    { text: 'Expressivo', desc: 'Mostra emoção sem filtro', trait: 'I' },
+    { text: 'Estável', desc: 'Mantém o ritmo constante', trait: 'S' },
+    { text: 'Metódico', desc: 'Segue processo passo a passo', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Independente', desc: 'Prefere decidir sozinho', trait: 'D' },
+    { text: 'Sociável', desc: 'Gosta de estar com pessoas', trait: 'I' },
+    { text: 'Atencioso', desc: 'Cuida das pessoas ao redor', trait: 'S' },
+    { text: 'Sistemático', desc: 'Trabalha com ordem e método', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Determinado', desc: 'Não desiste com facilidade', trait: 'D' },
+    { text: 'Animado', desc: 'Traz energia para o grupo', trait: 'I' },
+    { text: 'Sereno', desc: 'Mantém a calma sob pressão', trait: 'S' },
+    { text: 'Criterioso', desc: 'Avalia com rigor antes de decidir', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Assertivo', desc: 'Defende sua posição', trait: 'D' },
+    { text: 'Inspirador', desc: 'Motiva quem está ao redor', trait: 'I' },
+    { text: 'Cooperativo', desc: 'Trabalha bem em equipe', trait: 'S' },
+    { text: 'Detalhista', desc: 'Não deixa nada passar', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Dominante', desc: 'Assume o controle naturalmente', trait: 'D' },
+    { text: 'Carismático', desc: 'Atrai atenção onde chega', trait: 'I' },
+    { text: 'Consistente', desc: 'Entrega sempre o mesmo padrão', trait: 'S' },
+    { text: 'Exigente', desc: 'Cobra qualidade de si e dos outros', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Corajoso', desc: 'Enfrenta desafios de frente', trait: 'D' },
+    { text: 'Comunicativo', desc: 'Fala bem com qualquer pessoa', trait: 'I' },
+    { text: 'Prestativo', desc: 'Ajuda sem esperar pedido', trait: 'S' },
+    { text: 'Perfeccionista', desc: 'Não entrega nada pela metade', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Resolutivo', desc: 'Resolve, não lamenta', trait: 'D' },
+    { text: 'Entusiasta', desc: 'Vibra com novidades', trait: 'I' },
+    { text: 'Harmonioso', desc: 'Evita conflitos desnecessários', trait: 'S' },
+    { text: 'Organizado', desc: 'Tudo tem lugar e ordem', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Audacioso', desc: 'Vai além do esperado', trait: 'D' },
+    { text: 'Espontâneo', desc: 'Age no impulso', trait: 'I' },
+    { text: 'Previsível', desc: 'Confiável, sem surpresas', trait: 'S' },
+    { text: 'Prudente', desc: 'Mede antes de saltar', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Controlador', desc: 'Gosta de conduzir o processo', trait: 'D' },
+    { text: 'Influente', desc: 'Muda a opinião das pessoas', trait: 'I' },
+    { text: 'Empático', desc: 'Sente o que o outro está vivendo', trait: 'S' },
+    { text: 'Rigoroso', desc: 'Cobra padrões altos', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Focado', desc: 'Não se distrai do objetivo', trait: 'D' },
+    { text: 'Divertido', desc: 'Torna o ambiente leve', trait: 'I' },
+    { text: 'Dedicado', desc: 'Vai até o fim no que assume', trait: 'S' },
+    { text: 'Racional', desc: 'Decide com lógica, não emoção', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Arrojado', desc: 'Toma decisões difíceis sem hesitar', trait: 'D' },
+    { text: 'Alegre', desc: 'Boa energia em qualquer situação', trait: 'I' },
+    { text: 'Protetor', desc: 'Cuida das pessoas da equipe', trait: 'S' },
+    { text: 'Disciplinado', desc: 'Segue regras e processos', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Ambicioso', desc: 'Quer sempre mais', trait: 'D' },
+    { text: 'Relacionável', desc: 'Faz amizade com facilidade', trait: 'I' },
+    { text: 'Tranquilo', desc: 'Raramente perde a paciência', trait: 'S' },
+    { text: 'Lógico', desc: 'Raciocina com clareza', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Imperativo', desc: 'Prefere dar ordens a receber', trait: 'D' },
+    { text: 'Populoso', desc: 'Tem muitos contatos e amigos', trait: 'I' },
+    { text: 'Gentil', desc: 'Trata todos com cuidado', trait: 'S' },
+    { text: 'Cético', desc: 'Questiona antes de aceitar', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Empreendedor', desc: 'Enxerga oportunidade onde outros veem risco', trait: 'D' },
+    { text: 'Criativo', desc: 'Pensa fora do padrão', trait: 'I' },
+    { text: 'Confortável', desc: 'Se adapta bem à rotina', trait: 'S' },
+    { text: 'Formal', desc: 'Respeita hierarquia e protocolo', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Pioneiro', desc: 'Testa o que ninguém testou', trait: 'D' },
+    { text: 'Vibrante', desc: 'Tem presença marcante', trait: 'I' },
+    { text: 'Moderado', desc: 'Evita extremos', trait: 'S' },
+    { text: 'Criterioso', desc: 'Não aprova nada sem verificar', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Impaciente', desc: 'Quer resultado já', trait: 'D' },
+    { text: 'Falante', desc: 'Não falta assunto', trait: 'I' },
+    { text: 'Cauteloso', desc: 'Pensa bem antes de agir', trait: 'S' },
+    { text: 'Econômico', desc: 'Não desperdiça nada', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Executor', desc: 'Coloca em prática sem enrolação', trait: 'D' },
+    { text: 'Animador', desc: 'Levanta o astral do grupo', trait: 'I' },
+    { text: 'Pacificador', desc: 'Resolve conflitos com calma', trait: 'S' },
+    { text: 'Questionador', desc: 'Sempre pergunta o porquê', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Firme', desc: 'Não muda de posição por pressão', trait: 'D' },
+    { text: 'Aberto', desc: 'Aceita bem ideias novas', trait: 'I' },
+    { text: 'Steady', desc: 'Estável em qualquer cenário', trait: 'S' },
+    { text: 'Precavido', desc: 'Se prepara para o pior', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Direto ao ponto', desc: 'Sem rodeios', trait: 'D' },
+    { text: 'Empolgado', desc: 'Se anima com facilidade', trait: 'I' },
+    { text: 'Solidário', desc: 'Está do lado quando precisa', trait: 'S' },
+    { text: 'Minucioso', desc: 'Verifica cada detalhe', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Veloz', desc: 'Prefere ritmo acelerado', trait: 'D' },
+    { text: 'Otimista', desc: 'Raramente pensa no pior', trait: 'I' },
+    { text: 'Estável', desc: 'Pouco muda seu humor', trait: 'S' },
+    { text: 'Exato', desc: 'Gosta de dados e fatos', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Mandão', desc: 'Prefere liderar a seguir', trait: 'D' },
+    { text: 'Sedutor', desc: 'Chama atenção naturalmente', trait: 'I' },
+    { text: 'Apoiador', desc: 'Dá suporte sem esperar reconhecimento', trait: 'S' },
+    { text: 'Cauteloso', desc: 'Evita erros tomando mais tempo', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Resoluto', desc: 'Fecha questões, não reabre', trait: 'D' },
+    { text: 'Festivo', desc: 'Gosta de celebrar', trait: 'I' },
+    { text: 'Acolhedor', desc: 'Faz qualquer um se sentir bem-vindo', trait: 'S' },
+    { text: 'Estruturado', desc: 'Segue plano e processo', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Iniciador', desc: 'Começa o que outros hesitam', trait: 'D' },
+    { text: 'Magnético', desc: 'Atrai as pessoas', trait: 'I' },
+    { text: 'Compreensivo', desc: 'Entende o ponto de vista alheio', trait: 'S' },
+    { text: 'Investigativo', desc: 'Vai fundo antes de concluir', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Incisivo', desc: 'Vai direto ao problema', trait: 'D' },
+    { text: 'Promotor', desc: 'Vende ideias com facilidade', trait: 'I' },
+    { text: 'Seguro', desc: 'Transmite tranquilidade', trait: 'S' },
+    { text: 'Sistemático', desc: 'Trabalha com método', trait: 'C' },
+  ]},
+  { words: [
+    { text: 'Urgente', desc: 'Tudo é para ontem', trait: 'D' },
+    { text: 'Carinhoso', desc: 'Demonstra afeto', trait: 'I' },
+    { text: 'Consistente', desc: 'Mantém o mesmo padrão sempre', trait: 'S' },
+    { text: 'Perfeccionista', desc: 'Só entrega quando está pronto de verdade', trait: 'C' },
+  ]},
+];
+
+// Parte B — 16 situações (perfil adaptado)
+const SITUACOES_B = [
+  {
+    text: 'Você está em uma reunião e o projeto está travado por falta de decisão. O que você faz?',
+    options: [
+      { text: 'Tomo a decisão eu mesmo e sigo em frente.', trait: 'D' },
+      { text: 'Articulo com a equipe e convença todos a escolherem um caminho.', trait: 'I' },
+      { text: 'Espero a pessoa certa tomar a decisão para não gerar conflito.', trait: 'S' },
+      { text: 'Peço mais dados antes de qualquer decisão.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Seu cliente está insatisfeito com um resultado entregue. Como você reage?',
+    options: [
+      { text: 'Assumo a responsabilidade e apresento solução imediata.', trait: 'D' },
+      { text: 'Ouço, empatizo e reconquisto a confiança na conversa.', trait: 'I' },
+      { text: 'Busco entender o que aconteceu e garantir que não se repita.', trait: 'S' },
+      { text: 'Analiso o processo para identificar onde falhou.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Você precisa fechar uma venda importante em 48 horas. O que você prioriza?',
+    options: [
+      { text: 'Pressiono o fechamento com senso de urgência.', trait: 'D' },
+      { text: 'Invisto no relacionamento para criar conexão que facilite o sim.', trait: 'I' },
+      { text: 'Garanto que o cliente se sinta seguro e sem pressa.', trait: 'S' },
+      { text: 'Preparo uma proposta técnica irrefutável com dados.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'A empresa decide mudar um processo que você considera importante. Como você reage?',
+    options: [
+      { text: 'Questiono abertamente e proponho alternativas.', trait: 'D' },
+      { text: 'Converso com a equipe para entender o impacto e influencio a direção.', trait: 'I' },
+      { text: 'Me adapto ao novo processo sem fazer grande alarde.', trait: 'S' },
+      { text: 'Peço justificativa técnica e avalio os riscos da mudança.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Você precisa apresentar um resultado ruim para a diretoria. O que você faz?',
+    options: [
+      { text: 'Apresento os fatos sem rodeios e já com o plano de ação.', trait: 'D' },
+      { text: 'Contextualizo bem, mostro o que foi aprendido e mantenho o moral.', trait: 'I' },
+      { text: 'Explico com cuidado, sem alarmar, e mostro o que vem a seguir.', trait: 'S' },
+      { text: 'Apresento análise detalhada das causas e das ações corretivas.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Você está liderando um projeto e um membro do time não está entregando. O que você faz?',
+    options: [
+      { text: 'Sou direto: dou prazo claro e consequências se não melhorar.', trait: 'D' },
+      { text: 'Converso, busco entender o que está acontecendo com ele.', trait: 'I' },
+      { text: 'Ofereço suporte e ajudo a destravá-lo antes de qualquer confronto.', trait: 'S' },
+      { text: 'Revejo as entregas e processo antes de concluir que é problema da pessoa.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Um colega propõe uma ideia nova e arriscada. Qual é sua reação?',
+    options: [
+      { text: 'Avalio o potencial de resultado e decido rápido se vale testar.', trait: 'D' },
+      { text: 'Me animo com a ideia e ajudo a vendê-la para o time.', trait: 'I' },
+      { text: 'Ouço com atenção mas prefiro pilotar pequeno antes de escalar.', trait: 'S' },
+      { text: 'Peço dados, casos similares e avalio os riscos antes de opinar.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Como você prefere receber feedback sobre seu desempenho?',
+    options: [
+      { text: 'Direto, rápido e objetivo — sem rodeios.', trait: 'D' },
+      { text: 'Num contexto de conversa, com reconhecimento também.', trait: 'I' },
+      { text: 'Com calma, em ambiente seguro e sem julgamentos.', trait: 'S' },
+      { text: 'Com base em dados e exemplos concretos.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Você tem liberdade para definir como vai organizar sua semana. O que você faz?',
+    options: [
+      { text: 'Defino prioridades e ataco os pontos de maior impacto primeiro.', trait: 'D' },
+      { text: 'Organizo com flexibilidade para manter energia e criatividade.', trait: 'I' },
+      { text: 'Sigo uma rotina previsível que me ajuda a manter o ritmo.', trait: 'S' },
+      { text: 'Faço um planejamento detalhado com blocos de tempo e metas claras.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Você discorda da opinião do seu gestor numa decisão importante. O que você faz?',
+    options: [
+      { text: 'Falo diretamente a minha discordância, mesmo que seja desconfortável.', trait: 'D' },
+      { text: 'Busco uma conversa em que consiga influenciar a decisão com bons argumentos.', trait: 'I' },
+      { text: 'Deixo minha opinião mas respeito a decisão final se ele não mudar de ideia.', trait: 'S' },
+      { text: 'Preparo argumentos técnicos sólidos antes de apresentar minha posição.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Quando você tem que trabalhar com alguém muito diferente de você, como age?',
+    options: [
+      { text: 'Defino papéis e responsabilidades logo no início para não ter conflito.', trait: 'D' },
+      { text: 'Invisto no relacionamento e busco o que temos em comum.', trait: 'I' },
+      { text: 'Me adapto ao estilo da outra pessoa para manter harmonia.', trait: 'S' },
+      { text: 'Foco no processo e nos critérios objetivos para não deixar o subjetivo atrapalhar.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Você precisa convencer alguém que resistência alta a comprar um produto. O que você faz?',
+    options: [
+      { text: 'Crio urgência real e mostro o custo da inação.', trait: 'D' },
+      { text: 'Construo confiança e crio uma conexão genuína antes de falar de produto.', trait: 'I' },
+      { text: 'Mostro casos de clientes parecidos e reduz o risco percebido.', trait: 'S' },
+      { text: 'Apresento comparativos, dados e evidências que eliminem dúvidas.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'O projeto está atrasado e você precisa recuperar o tempo. O que você faz?',
+    options: [
+      { text: 'Tomo controle, redistribuo tarefas e imponho prazo inegociável.', trait: 'D' },
+      { text: 'Reuno a equipe, subo o astral e crio momentum coletivo.', trait: 'I' },
+      { text: 'Converso com cada pessoa, entendo os bloqueios e resolvo um por um.', trait: 'S' },
+      { text: 'Replaneejo o cronograma com base no que está de pé e atualizo todas as partes.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Você recebe uma meta agressiva que considera difícil de bater. Como você reage?',
+    options: [
+      { text: 'Aceito o desafio — metas difíceis me energizam.', trait: 'D' },
+      { text: 'Me empolgo com a possibilidade e envolvo o time no propósito.', trait: 'I' },
+      { text: 'Peço mais contexto e quero entender como vou ser apoiado.', trait: 'S' },
+      { text: 'Analiso se a meta é viável e quais as condições para atingi-la.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Qual tipo de reunião você prefere?',
+    options: [
+      { text: 'Rápida, com decisão clara no final.', trait: 'D' },
+      { text: 'Dinâmica, com troca de ideias e muita participação.', trait: 'I' },
+      { text: 'Com pauta definida e espaço para todos falarem sem pressão.', trait: 'S' },
+      { text: 'Bem preparada, com dados e material para análise.', trait: 'C' },
+    ]
+  },
+  {
+    text: 'Como você prefere aprender algo novo no trabalho?',
+    options: [
+      { text: 'Aprender fazendo — mergulhar e ajustar no caminho.', trait: 'D' },
+      { text: 'Trocando experiências e aprendendo com quem já passou por isso.', trait: 'I' },
+      { text: 'Com treinamento estruturado e tempo para praticar com segurança.', trait: 'S' },
+      { text: 'Estudando a teoria e os dados antes de aplicar.', trait: 'C' },
+    ]
+  },
+];
+
+// Parte C — 12 afirmações de intensidade (3 por traço)
+const INTENSIDADE_C = [
+  { text: 'Prefiro tomar decisões rápidas mesmo com informação incompleta.', trait: 'D' },
+  { text: 'Me sinto à vontade sendo o responsável final por resultados importantes.', trait: 'D' },
+  { text: 'Fico entediado quando o ritmo de trabalho é muito lento.', trait: 'D' },
+  { text: 'Me energizo quando apresento ideias e convencer pessoas.', trait: 'I' },
+  { text: 'É fácil para mim criar rapport e fazer as pessoas se sentirem bem-vindas.', trait: 'I' },
+  { text: 'Costumo ser otimista mesmo em situações difíceis.', trait: 'I' },
+  { text: 'Valorizo muito ter uma rotina previsível e estável.', trait: 'S' },
+  { text: 'Prefiro terminar o que comecei antes de começar algo novo.', trait: 'S' },
+  { text: 'Me preocupo com o impacto que minhas ações têm nas pessoas ao redor.', trait: 'S' },
+  { text: 'Antes de agir, preciso entender bem as regras e os processos envolvidos.', trait: 'C' },
+  { text: 'Erros evitáveis me incomodam muito — prefiro fazer certo de primeira.', trait: 'C' },
+  { text: 'Tenho facilidade para identificar falhas e inconsistências nos projetos.', trait: 'C' },
+];
+
+// ============================================================
+// PERFIS / ARQUÉTIPOS
+// ============================================================
+const ARQUETIPO_MAP = {
+  D: {
+    nome: 'O Executor',
+    descricao: 'Perfil dominante — Dominância acima dos demais',
+    performa: 'Você performa melhor em ambientes de alta pressão onde resultado rápido é o que importa. Tem capacidade natural de decidir sob incerteza, mobilizar pessoas para ação imediata e assumir responsabilidades que outros evitam. Funções de liderança direta, vendas consultivas de alta complexidade e qualquer papel que exija coragem para agir sem aprovação de todos são onde você entrega mais.',
+    derail: 'Você pode derrubar sua própria performance ao atropelar pessoas que precisam de mais tempo, ao não ouvir feedback que contradiz sua visão ou ao criar urgência desnecessária que desgasta o time. A impaciência com processos e a tendência de decidir sozinho podem gerar resistência onde você mais precisa de adesão.',
+  },
+  I: {
+    nome: 'O Comunicador',
+    descricao: 'Perfil dominante — Influência acima dos demais',
+    performa: 'Você performa melhor em ambientes que exigem engajamento, construção de relacionamento e capacidade de inspirar pessoas a acreditar em algo. Tem talento natural para criar atmosfera positiva, vender visões e conectar pessoas. Funções de desenvolvimento de negócios, gestão de comunidade, treinamento e vendas relacionais são onde você entrega mais.',
+    derail: 'Você pode derrubar sua performance ao deixar tarefas incompletas por excesso de ideias, ao evitar conversas difíceis para preservar o clima, ou ao superestimar o entusiasmo de outros como compromisso real. A falta de follow-through e o excesso de otimismo podem comprometer sua credibilidade nos momentos críticos.',
+  },
+  S: {
+    nome: 'O Planejador',
+    descricao: 'Perfil dominante — Estabilidade acima dos demais',
+    performa: 'Você performa melhor em ambientes que valorizam consistência, profundidade e confiabilidade. Tem capacidade natural de sustentar ritmo, cuidar de pessoas e garantir que o que foi prometido seja entregue. Funções de customer success, gestão de projetos de longo prazo, atendimento e qualquer papel onde a confiança é o ativo central são onde você entrega mais.',
+    derail: 'Você pode derrubar sua performance ao evitar conflitos necessários, ao resistir a mudanças que seriam boas mas geram desconforto, ou ao se sobrecarregar por dificuldade de dizer não. A tendência de priorizar harmonia pode fazer você segurar feedbacks importantes que precisam ser dados.',
+  },
+  C: {
+    nome: 'O Analista',
+    descricao: 'Perfil dominante — Conformidade acima dos demais',
+    performa: 'Você performa melhor em ambientes que valorizam qualidade, precisão e análise criteriosa. Tem capacidade natural de identificar riscos antes que se tornem problemas, estruturar processos com rigor e garantir que as entregas tenham o padrão esperado. Funções de operações, qualidade, análise de dados, produtos técnicos e consultoria são onde você entrega mais.',
+    derail: 'Você pode derrubar sua performance ao paralisar por excesso de análise, ao rejeitar decisões tomadas com dados insuficientes (mesmo quando o timing exige ação) ou ao criticar sem oferecer alternativas. O perfeccionismo pode gerar atrasos e a exigência de precisão pode tornar a colaboração com perfis mais impulsivos difícil.',
+  },
+};
+
+function getArquetipo(scores) {
+  const max = Math.max(scores.D, scores.I, scores.S, scores.C);
+  if (scores.D === max) return 'D';
+  if (scores.I === max) return 'I';
+  if (scores.S === max) return 'S';
+  return 'C';
+}
+
+// ============================================================
+// ESTADO
+// ============================================================
+let state = {
+  part: 'A',
+  respostasA: {}, // blockIdx -> { mais: wordIdx, menos: wordIdx }
+  respostasB: {}, // sIdx -> optionIdx
+  respostasC: {}, // aIdx -> score (1-5)
+};
+
+function saveState() {
+  try { localStorage.setItem('disc_state', JSON.stringify(state)); } catch(e){}
+}
+function loadState() {
+  try {
+    const s = localStorage.getItem('disc_state');
+    if (s) state = JSON.parse(s);
+  } catch(e){}
+}
+
+// ============================================================
+// RENDER PARTE A
+// ============================================================
+function renderParteA() {
+  const container = document.getElementById('blocksA');
+  container.innerHTML = '';
+  BLOCOS_A.forEach((bloco, bIdx) => {
+    const div = document.createElement('div');
+    div.className = 'choice-block';
+    div.id = 'bloco-' + bIdx;
+
+    const header = `<div class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></div>`;
+    const optionsHtml = bloco.words.map((w, wIdx) => `
+      <div class="choice-option">
+        <span class="choice-option-label">${w.trait}</span>
+        <span class="choice-option-text">${w.text}</span>
+        <span class="choice-option-desc">${w.desc}</span>
+        <div class="choice-radios">
+          <label>
+            <input type="radio" name="a${bIdx}_mais" value="${wIdx}" ${state.respostasA[bIdx]?.mais === wIdx ? 'checked' : ''}>
+            <span>+ Mais</span>
+          </label>
+          <label>
+            <input type="radio" name="a${bIdx}_menos" value="${wIdx}" ${state.respostasA[bIdx]?.menos === wIdx ? 'checked' : ''}>
+            <span>− Menos</span>
+          </label>
+        </div>
+      </div>
+    `).join('');
+
+    div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p>`;
+    container.appendChild(div);
+
+    // listeners
+    div.querySelectorAll(`input[name="a${bIdx}_mais"], input[name="a${bIdx}_menos"]`).forEach(inp => {
+      inp.addEventListener('change', () => updateBlocoA(bIdx));
+    });
+  });
+  updateProgressA();
+}
+
+function updateBlocoA(bIdx) {
+  const maisEl = document.querySelector(`input[name="a${bIdx}_mais"]:checked`);
+  const menosEl = document.querySelector(`input[name="a${bIdx}_menos"]:checked`);
+  const mais = maisEl ? parseInt(maisEl.value) : undefined;
+  const menos = menosEl ? parseInt(menosEl.value) : undefined;
+
+  if (!state.respostasA[bIdx]) state.respostasA[bIdx] = {};
+  state.respostasA[bIdx].mais = mais;
+  state.respostasA[bIdx].menos = menos;
+
+  const bloco = document.getElementById('bloco-' + bIdx);
+  bloco.classList.toggle('conflict', mais !== undefined && menos !== undefined && mais === menos);
+  saveState();
+  updateProgressA();
+}
+
+function updateProgressA() {
+  let done = 0;
+  BLOCOS_A.forEach((_, i) => {
+    const r = state.respostasA[i];
+    if (r && r.mais !== undefined && r.menos !== undefined && r.mais !== r.menos) done++;
+  });
+  const pct = (done / BLOCOS_A.length) * 100;
+  document.getElementById('progressFillA').style.width = pct + '%';
+  document.getElementById('progressLabelA').textContent = done + ' de ' + BLOCOS_A.length + ' blocos respondidos';
+}
+
+// ============================================================
+// RENDER PARTE B
+// ============================================================
+function renderParteB() {
+  const container = document.getElementById('situationsB');
+  container.innerHTML = '';
+  SITUACOES_B.forEach((sit, sIdx) => {
+    const div = document.createElement('div');
+    div.className = 'situation-card';
+    const optsHtml = sit.options.map((opt, oIdx) => `
+      <label>
+        <input type="radio" name="b${sIdx}" value="${oIdx}" data-trait="${opt.trait}" ${state.respostasB[sIdx] === oIdx ? 'checked' : ''}>
+        ${opt.text}
+      </label>
+    `).join('');
+    div.innerHTML = `<p class="situation-num">Situação ${sIdx+1}</p><p class="situation-text">${sit.text}</p><div class="situation-options">${optsHtml}</div>`;
+    container.appendChild(div);
+
+    div.querySelectorAll(`input[name="b${sIdx}"]`).forEach(inp => {
+      inp.addEventListener('change', () => {
+        state.respostasB[sIdx] = parseInt(inp.value);
+        saveState();
+        updateProgressB();
+      });
+    });
+  });
+  updateProgressB();
+}
+
+function updateProgressB() {
+  const done = Object.keys(state.respostasB).length;
+  const pct = (done / SITUACOES_B.length) * 100;
+  document.getElementById('progressFillB').style.width = pct + '%';
+  document.getElementById('progressLabelB').textContent = done + ' de ' + SITUACOES_B.length + ' situações respondidas';
+}
+
+// ============================================================
+// RENDER PARTE C
+// ============================================================
+function renderParteC() {
+  const container = document.getElementById('intensityC');
+  container.innerHTML = '';
+  INTENSIDADE_C.forEach((item, aIdx) => {
+    const div = document.createElement('div');
+    div.className = 'intensity-item';
+    const scaleHtml = [1,2,3,4,5].map(v => `
+      <label>
+        <input type="radio" name="c${aIdx}" value="${v}" data-trait="${item.trait}" ${state.respostasC[aIdx] === v ? 'checked' : ''}>
+        ${v}
+      </label>
+    `).join('');
+    div.innerHTML = `
+      <div>
+        <span class="intensity-disc-tag tag-${item.trait.toLowerCase()}">${item.trait}</span>
+        <p class="intensity-text">${item.text}</p>
+      </div>
+      <div>
+        <div class="intensity-scale">${scaleHtml}</div>
+        <div class="scale-hint"><span>Discordo totalmente</span><span>Concordo totalmente</span></div>
+      </div>
+    `;
+    container.appendChild(div);
+    div.querySelectorAll(`input[name="c${aIdx}"]`).forEach(inp => {
+      inp.addEventListener('change', () => {
+        state.respostasC[aIdx] = parseInt(inp.value);
+        saveState();
+      });
+    });
+  });
+}
+
+// ============================================================
+// CÁLCULO
+// ============================================================
+function calcNatural() {
+  const scores = { D:0, I:0, S:0, C:0 };
+  BLOCOS_A.forEach((bloco, bIdx) => {
+    const r = state.respostasA[bIdx];
+    if (!r || r.mais === undefined || r.menos === undefined || r.mais === r.menos) return;
+    const wMais = bloco.words[r.mais];
+    const wMenos = bloco.words[r.menos];
+    if (wMais) scores[wMais.trait] = (scores[wMais.trait] || 0) + 1;
+    if (wMenos) scores[wMenos.trait] = (scores[wMenos.trait] || 0) - 1;
+  });
+  return scores;
+}
+
+function calcAdaptado() {
+  const scores = { D:0, I:0, S:0, C:0 };
+  SITUACOES_B.forEach((sit, sIdx) => {
+    const sel = state.respostasB[sIdx];
+    if (sel === undefined) return;
+    const trait = sit.options[sel].trait;
+    scores[trait]++;
+  });
+  return scores;
+}
+
+function calcIntensidade() {
+  const scores = { D:0, I:0, S:0, C:0 };
+  const counts = { D:0, I:0, S:0, C:0 };
+  INTENSIDADE_C.forEach((item, aIdx) => {
+    const v = state.respostasC[aIdx];
+    if (v === undefined) return;
+    scores[item.trait] += v;
+    counts[item.trait]++;
+  });
+  // média por traço (3 perguntas cada)
+  Object.keys(scores).forEach(t => {
+    scores[t] = counts[t] > 0 ? parseFloat((scores[t] / counts[t]).toFixed(2)) : 0;
+  });
+  return scores;
+}
+
+// ============================================================
+// RESULTADO
+// ============================================================
+function renderResultado() {
+  const natural = calcNatural();
+  const adaptado = calcAdaptado();
+  const intensidade = calcIntensidade();
+  const arquetipo = getArquetipo(natural);
+  const info = ARQUETIPO_MAP[arquetipo];
+
+  // hero
+  document.getElementById('resArquetipo').textContent = info.nome;
+  document.getElementById('resPerfil').textContent = info.descricao;
+
+  // barras natural
+  renderBars('barsNatural', natural, 28);
+  renderBars('barsAdaptado', adaptado, 16);
+
+  // intensidade
+  const intSection = document.getElementById('barsIntensidade');
+  intSection.innerHTML = '';
+  ['D','I','S','C'].forEach(t => {
+    const pct = (intensidade[t] / 5) * 100;
+    const row = document.createElement('div');
+    row.className = 'intensity-bar-row';
+    row.innerHTML = `
+      <span class="intensity-bar-label" style="color:var(--${t.toLowerCase()}-color)">${t} · ${ARQUETIPO_MAP[t].nome.replace('O ','')}</span>
+      <div class="bar-track"><div class="bar-fill fill-${t.toLowerCase()}" style="width:${pct}%"></div></div>
+      <span class="intensity-bar-value">${intensidade[t].toFixed(1)}</span>
+    `;
+    intSection.appendChild(row);
+  });
+
+  // cartões DISC
+  const cardsEl = document.getElementById('discCards');
+  cardsEl.innerHTML = ['D','I','S','C'].map(t => `
+    <div class="disc-card ${t.toLowerCase()}">
+      <div class="disc-card-header">
+        <span class="disc-card-letter">${t}</span>
+        <span class="disc-card-name">${ARQUETIPO_MAP[t].nome}</span>
+      </div>
+      <p>${ARQUETIPO_MAP[t].descricao}</p>
+    </div>
+  `).join('');
+
+  // insights
+  document.getElementById('insightPerforma').innerHTML = `
+    <div class="insight-block">
+      <h4>${info.nome} em ação</h4>
+      <p>${info.performa}</p>
+    </div>
+  `;
+  document.getElementById('insightDerail').innerHTML = `
+    <div class="insight-block derail">
+      <h4>Atenção: esses padrões derrubam sua performance</h4>
+      <p>${info.derail}</p>
+    </div>
+  `;
+
+  return { natural, adaptado, intensidade, arquetipo, info };
+}
+
+function renderBars(containerId, scores, total) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const maxScore = Math.max(...Object.values(scores).map(Math.abs));
+  const ref = total > 0 ? total : (maxScore > 0 ? maxScore : 1);
+
+  ['D','I','S','C'].forEach(t => {
+    const raw = scores[t] || 0;
+    const pct = Math.max(0, Math.min(100, ((raw + ref) / (2 * ref)) * 100));
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <span class="bar-label lbl-${t.toLowerCase()}">${t}</span>
+      <div class="bar-track"><div class="bar-fill fill-${t.toLowerCase()}" style="width:${pct}%"></div></div>
+      <span class="bar-value">${raw > 0 ? '+' : ''}${raw}</span>
+    `;
+    el.appendChild(row);
+  });
+}
+
+// ============================================================
+// VALIDAÇÕES
+// ============================================================
+function validateA() {
+  let allOk = true;
+  BLOCOS_A.forEach((_, i) => {
+    const r = state.respostasA[i];
+    if (!r || r.mais === undefined || r.menos === undefined || r.mais === r.menos) allOk = false;
+  });
+  return allOk;
+}
+function validateB() {
+  return Object.keys(state.respostasB).length === SITUACOES_B.length;
+}
+function validateC() {
+  return Object.keys(state.respostasC).length === INTENSIDADE_C.length;
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function showPart(part) {
+  document.querySelectorAll('.part-section').forEach(el => el.classList.remove('active'));
+  document.getElementById('resultado').style.display = 'none';
+
+  if (part === 'resultado') {
+    document.getElementById('resultado').style.display = 'block';
+    window.scrollTo(0, 0);
+  } else {
+    document.getElementById('part' + part).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  state.part = part;
+  saveState();
+}
+
+// ============================================================
+// ENVIO
+// ============================================================
+async function sendResultado(data) {
+  const nome = document.getElementById('nomeDisc').value.trim();
+  const empresa = document.getElementById('empresaDisc').value.trim();
+  const statusEl = document.getElementById('sendStatus');
+
+  if (!nome) {
+    statusEl.textContent = 'Preencha seu nome no início do formulário para registrar.';
+    statusEl.style.color = 'var(--alert)';
+    return;
+  }
+
+  document.getElementById('btnSend').disabled = true;
+  statusEl.textContent = 'Enviando...';
+  statusEl.style.color = 'var(--ink-faint)';
+
+  const payload = {
+    nome_participante: nome,
+    empresa: empresa,
+    d_natural: data.natural.D,
+    i_natural: data.natural.I,
+    s_natural: data.natural.S,
+    c_natural: data.natural.C,
+    d_adaptado: data.adaptado.D,
+    i_adaptado: data.adaptado.I,
+    s_adaptado: data.adaptado.S,
+    c_adaptado: data.adaptado.C,
+    d_intensidade: data.intensidade.D,
+    i_intensidade: data.intensidade.I,
+    s_intensidade: data.intensidade.S,
+    c_intensidade: data.intensidade.C,
+    perfil_dominante: data.arquetipo,
+    arquetipo: data.info.nome,
+    respostas: { a: state.respostasA, b: state.respostasB, c: state.respostasC },
+  };
+
+  try {
+    const resp = await fetch('/api/disc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error();
+    statusEl.textContent = 'Perfil enviado com sucesso! Você já pode salvar o PDF.';
+    statusEl.style.color = 'var(--ok)';
+    document.getElementById('btnSend').disabled = true;
+  } catch(e) {
+    statusEl.textContent = 'Não foi possível enviar agora. Confira sua conexão e tente de novo.';
+    statusEl.style.color = 'var(--alert)';
+    document.getElementById('btnSend').disabled = false;
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadState();
+
+renderParteA();
+renderParteB();
+renderParteC();
+
+// Botões
+document.getElementById('btnAtoB').addEventListener('click', () => {
+  if (!validateA()) {
+    document.getElementById('validMsgA').style.display = 'inline';
+    return;
+  }
+  document.getElementById('validMsgA').style.display = 'none';
+  showPart('B');
+});
+
+document.getElementById('btnBtoA').addEventListener('click', () => showPart('A'));
+
+document.getElementById('btnBtoC').addEventListener('click', () => {
+  if (!validateB()) {
+    document.getElementById('validMsgB').style.display = 'inline';
+    return;
+  }
+  document.getElementById('validMsgB').style.display = 'none';
+  showPart('C');
+});
+
+document.getElementById('btnCtoB').addEventListener('click', () => showPart('B'));
+
+let lastResultData = null;
+document.getElementById('btnFinish').addEventListener('click', () => {
+  if (!validateC()) {
+    document.getElementById('validMsgC').style.display = 'inline';
+    return;
+  }
+  document.getElementById('validMsgC').style.display = 'none';
+  lastResultData = renderResultado();
+  showPart('resultado');
+});
+
+document.getElementById('btnSend').addEventListener('click', () => {
+  if (lastResultData) sendResultado(lastResultData);
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (!confirm('Isso apaga todas as suas respostas. Continuar?')) return;
+  state = { part: 'A', respostasA: {}, respostasB: {}, respostasC: {} };
+  saveState();
+  try { localStorage.removeItem('disc_state'); } catch(e){}
+  renderParteA();
+  renderParteB();
+  renderParteC();
+  showPart('A');
+});
+
+// restaura parte salva
+if (state.part && state.part !== 'A') {
+  if (state.part === 'resultado' && lastResultData === null) {
+    // não pode restaurar resultado sem recalcular
+    showPart('A');
+  } else {
+    showPart(state.part);
+  }
+}
+
+})();
+</script>
+</body>
+</html>
