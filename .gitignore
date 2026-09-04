@@ -4,3 +4,9 @@ db/*.db-shm
 db/*.db-wal
 .env
 .vscode/
+
+# Arquivos/diretórios de uso local — nunca versionar (ver CLAUDE.md)
+_*
+
+# PDFs gerados/baixados localmente (relatórios de exemplo, exports) — nunca versionar
+*.pdf

@@ -3,6 +3,11 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const Database = require('better-sqlite3');
 const QRCode = require('qrcode');
+const {
+  generateMetaComercialPdf,
+  metaComercialFilename,
+  contentDispositionFilename,
+} = require('./reports/metaComercialReport');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'troque-isto';
@@ -164,6 +169,39 @@ app.post('/api/metas', (req, res) => {
 
   const info = insertStmt.run(row);
   res.status(201).json({ id: info.lastInsertRowid });
+});
+
+// gera o relatório em PDF da meta comercial preenchida (não salva no banco —
+// o participante pode baixar o relatório mesmo sem ter enviado a meta antes)
+app.post('/api/metas/pdf', (req, res) => {
+  const b = req.body || {};
+
+  const nome_participante = String(b.nome_participante || '').slice(0, 200);
+  const empresa = String(b.empresa || '').slice(0, 200);
+
+  const data = {
+    nome_participante,
+    empresa,
+    faturamento: Number(b.faturamento) || 0,
+    crescimento_pct: Number(b.crescimento_pct) || 0,
+    churn_pct: Number(b.churn_pct) || 0,
+    meta_anual: Number(b.meta_anual) || 0,
+    meta_trimestral: Number(b.meta_trimestral) || 0,
+    meta_mensal: Number(b.meta_mensal) || 0,
+    ticket: Number(b.ticket) || 0,
+    contratos_mes: Number(b.contratos_mes) || 0,
+    conversao_pct: Number(b.conversao_pct) || 0,
+    contatos_necessarios: Number(b.contatos_necessarios) || 0,
+    contatos_mes_passado: Number(b.contatos_mes_passado) || 0,
+    hunter_valor: Number(b.hunter_valor) || 0,
+    farmer_valor: Number(b.farmer_valor) || 0,
+    equipe: Array.isArray(b.equipe) ? b.equipe : [],
+  };
+
+  const filename = metaComercialFilename(empresa);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', contentDispositionFilename(filename));
+  generateMetaComercialPdf(data).pipe(res);
 });
 
 // lista tudo (admin)

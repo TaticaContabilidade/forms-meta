@@ -138,6 +138,43 @@ describe('API /api/metas', () => {
   });
 });
 
+describe('API /api/metas/pdf', () => {
+  test('gera um PDF com o nome de arquivo "${empresa} meta comercial.pdf"', async () => {
+    const res = await request(app)
+      .post('/api/metas/pdf')
+      .send({ nome_participante: 'Fulano', empresa: 'Tática Contabilidade', faturamento: 30000 });
+
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+    assert.match(res.headers['content-disposition'], /^attachment; filename="/);
+    assert.match(
+      res.headers['content-disposition'],
+      /filename\*=UTF-8''T%C3%A1tica%20Contabilidade%20meta%20comercial\.pdf/
+    );
+    assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
+  });
+
+  test('sem empresa, usa "Meta comercial.pdf" como nome de arquivo', async () => {
+    const res = await request(app).post('/api/metas/pdf').send({ nome_participante: 'Fulano' });
+    assert.equal(res.status, 200);
+    assert.match(res.headers['content-disposition'], /filename="Meta comercial\.pdf"/);
+  });
+
+  test('não exige nome_participante (relatório não é salvo no banco)', async () => {
+    const res = await request(app).post('/api/metas/pdf').send({});
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+  });
+
+  test('sanitiza caracteres inválidos de nome de arquivo vindos da empresa', async () => {
+    const res = await request(app)
+      .post('/api/metas/pdf')
+      .send({ nome_participante: 'Fulano', empresa: 'A/B:C*D?E"F<G>H|I' });
+    assert.equal(res.status, 200);
+    assert.match(res.headers['content-disposition'], /filename="ABCDEFGHI meta comercial\.pdf"/);
+  });
+});
+
 describe('API /api/disc', () => {
   let createdId;
 
