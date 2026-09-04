@@ -418,11 +418,11 @@ footer a:hover { color: var(--primary); }
   <!-- SEÇÃO QR CODE -->
   <div class="qr-section">
     <div class="qr-box">
-      <img id="qrImg" src="" alt="QR Code do menu" width="160" height="160">
+      <img id="qrImg" src="" alt="QR Code da Avaliação DISC" width="160" height="160">
     </div>
     <div class="qr-info">
-      <h3>Compartilhe com os participantes</h3>
-      <p>Escaneie o QR code ou envie o link abaixo para que todos acessem as dinâmicas direto do celular.</p>
+      <h3>Envie ao time antes da mentoria</h3>
+      <p>Escaneie o QR code ou envie o link abaixo para o time responder a Avaliação DISC direto do celular. A calculadora de metas é feita ao vivo, com você, durante a mentoria.</p>
       <div class="qr-url" id="qrUrl">—</div>
       <div class="qr-actions">
         <a class="btn-sm btn-primary-sm" id="btnDownloadQR" download="qrcode-treinamento.png" href="#">⬇ Baixar QR Code</a>
@@ -441,7 +441,10 @@ footer a:hover { color: var(--primary); }
 <script>
 (function() {
   const base = window.location.origin;
-  const url = base + '/';
+  // Link enviado ao time antes da mentoria: só a Avaliação DISC.
+  // A calculadora de metas é feita ao vivo, com o facilitador, na mentoria —
+  // por isso não entra no link/QR code compartilhado aqui.
+  const url = base + '/disc.html';
 
   // Preenche a URL exibida
   document.getElementById('qrUrl').textContent = url;
