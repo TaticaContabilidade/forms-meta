@@ -263,8 +263,12 @@ app.delete('/api/disc/:id', requireAdmin, (req, res) => {
   res.status(204).end();
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor no ar em http://localhost:${PORT}`);
-  console.log(`Painel admin em http://localhost:${PORT}/admin.html`);
-  console.log(`QR Code em    http://localhost:${PORT}/api/qr`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Servidor no ar em http://localhost:${PORT}`);
+    console.log(`Painel admin em http://localhost:${PORT}/admin.html`);
+    console.log(`QR Code em    http://localhost:${PORT}/api/qr`);
+  });
+}
+
+module.exports = app;
