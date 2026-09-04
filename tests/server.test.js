@@ -234,3 +234,42 @@ describe('API /api/disc', () => {
     assert.ok(!list.body.some(r => r.id === createdId));
   });
 });
+
+describe('API /api/disc/pdf', () => {
+  const payloadValido = {
+    nome_participante: 'Ciclana Souza',
+    empresa: 'Empresa Y',
+    d_natural: 8, i_natural: 5, s_natural: 3, c_natural: 4,
+    d_adaptado: 7, i_adaptado: 6, s_adaptado: 4, c_adaptado: 3,
+    d_intensidade: 4.3, i_intensidade: 2.1, s_intensidade: 1.7, c_intensidade: 3.3,
+    perfil_dominante: 'D',
+  };
+
+  test('gera um PDF com o nome de arquivo "${nome do participante} perfil disc.pdf"', async () => {
+    const res = await request(app).post('/api/disc/pdf').send(payloadValido);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+    assert.match(res.headers['content-disposition'], /filename="Ciclana Souza perfil disc\.pdf"/);
+    assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
+  });
+
+  test('sem nome_participante, usa "Perfil DISC.pdf" como nome de arquivo', async () => {
+    const res = await request(app).post('/api/disc/pdf').send({ empresa: 'Empresa Y' });
+    assert.equal(res.status, 200);
+    assert.match(res.headers['content-disposition'], /filename="Perfil DISC\.pdf"/);
+  });
+
+  test('não exige nome_participante nem perfil_dominante (relatório não é salvo no banco)', async () => {
+    const res = await request(app).post('/api/disc/pdf').send({});
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+  });
+
+  test('sem perfil_dominante, deduz o arquétipo pelo maior escore natural', async () => {
+    const res = await request(app)
+      .post('/api/disc/pdf')
+      .send({ nome_participante: 'Fulano', i_natural: 20, d_natural: 1, s_natural: 1, c_natural: 1 });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+  });
+});

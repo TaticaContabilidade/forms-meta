@@ -19,15 +19,31 @@ treinamento comercial em `public/`:
 (`require.main === module`), justamente para poder ser importado nos testes
 sem abrir porta.
 
-### Relatório em PDF da meta comercial
+### Relatórios em PDF
 
-`src/reports/metaComercialReport.js` monta, com `pdfkit`, o relatório em PDF
-da calculadora — um documento formatado (cards, tabelas, callouts), não um
-"print" da página HTML. É consumido por `POST /api/metas/pdf` (não grava no
-banco; recebe o mesmo payload de `POST /api/metas`) e pelo botão "Salvar meu
-resultado (PDF)" em `calculadora.html`, que baixa o arquivo via `fetch` +
-blob. O nome do arquivo segue sempre o padrão `${empresa} meta comercial.pdf`
-(`metaComercialFilename()`, com sanitização de caracteres inválidos).
+`src/reports/pdfLayout.js` tem a base compartilhada (com `pdfkit`) usada por
+todo relatório: paleta, margens, paginação/rodapé numerado, faixa de
+cabeçalho, título de seção, callout colorido, sanitização de nome de arquivo
+e `Content-Disposition` com acentos (RFC 5987 + fallback ASCII). Cada
+relatório é um documento formatado de verdade (cards, tabelas, gráficos de
+barra) — nunca um "print" da página HTML.
+
+- `src/reports/metaComercialReport.js` — relatório da calculadora de meta
+  comercial. `POST /api/metas/pdf` (não grava no banco; mesmo payload de
+  `POST /api/metas`) é consumido pelo botão "Salvar meu resultado (PDF)" em
+  `calculadora.html`. Nome do arquivo: `${empresa} meta comercial.pdf`.
+- `src/reports/discReport.js` — relatório da avaliação DISC (arquétipo,
+  barras de perfil natural/adaptado/intensidade, os 4 perfis, insights de
+  performance). Repete localmente o `ARQUETIPO_MAP` de `disc.html` porque o
+  relatório é gerado no servidor e não deve depender do texto que o cliente
+  mandou. `POST /api/disc/pdf` (não grava no banco; mesmo payload de
+  `POST /api/disc`) é consumido pelo botão "Salvar PDF" em `disc.html`. Nome
+  do arquivo: `${nome do participante} perfil disc.pdf` (não usa `empresa` —
+  diferente do relatório de meta comercial).
+
+Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
+arquivo do header `Content-Disposition` da resposta — não usam mais
+`window.print()`.
 
 ## Rodar e testar
 

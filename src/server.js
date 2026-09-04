@@ -8,6 +8,7 @@ const {
   metaComercialFilename,
   contentDispositionFilename,
 } = require('./reports/metaComercialReport');
+const { generateDiscPdf, discFilename } = require('./reports/discReport');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'troque-isto';
@@ -267,6 +268,35 @@ app.post('/api/disc', (req, res) => {
 
   const info = insertDiscStmt.run(row);
   res.status(201).json({ id: info.lastInsertRowid });
+});
+
+// gera o relatório em PDF do perfil DISC (não salva no banco — o
+// participante pode baixar o relatório mesmo sem ter enviado o perfil antes)
+app.post('/api/disc/pdf', (req, res) => {
+  const b = req.body || {};
+
+  const data = {
+    nome_participante: String(b.nome_participante || '').slice(0, 200),
+    empresa: String(b.empresa || '').slice(0, 200),
+    d_natural: Number(b.d_natural) || 0,
+    i_natural: Number(b.i_natural) || 0,
+    s_natural: Number(b.s_natural) || 0,
+    c_natural: Number(b.c_natural) || 0,
+    d_adaptado: Number(b.d_adaptado) || 0,
+    i_adaptado: Number(b.i_adaptado) || 0,
+    s_adaptado: Number(b.s_adaptado) || 0,
+    c_adaptado: Number(b.c_adaptado) || 0,
+    d_intensidade: Number(b.d_intensidade) || 0,
+    i_intensidade: Number(b.i_intensidade) || 0,
+    s_intensidade: Number(b.s_intensidade) || 0,
+    c_intensidade: Number(b.c_intensidade) || 0,
+    perfil_dominante: String(b.perfil_dominante || '').slice(0, 100),
+  };
+
+  const filename = discFilename(data.nome_participante);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', contentDispositionFilename(filename));
+  generateDiscPdf(data).pipe(res);
 });
 
 // lista resultados DISC (admin)

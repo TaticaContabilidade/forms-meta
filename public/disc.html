@@ -150,7 +150,7 @@
 
     <div class="result-actions">
       <button class="btn-primary" id="btnSend">Enviar meu perfil</button>
-      <button class="btn-secondary" onclick="window.print()">Salvar PDF</button>
+      <button class="btn-secondary" id="btnPdf">Salvar PDF</button>
       <button class="btn-secondary" id="btnReset">Refazer avaliação</button>
     </div>
     <p class="send-status" id="sendStatus">Preencha seu nome e clique em "Enviar meu perfil" para registrar com a equipe do treinamento.</p>
@@ -865,22 +865,10 @@ function showPart(part) {
 // ============================================================
 // ENVIO
 // ============================================================
-async function sendResultado(data) {
+function montarPayloadBase(data) {
   const nome = document.getElementById('nomeDisc').value.trim();
   const empresa = document.getElementById('empresaDisc').value.trim();
-  const statusEl = document.getElementById('sendStatus');
-
-  if (!nome) {
-    statusEl.textContent = 'Preencha seu nome no início do formulário para registrar.';
-    statusEl.style.color = 'var(--alert)';
-    return;
-  }
-
-  document.getElementById('btnSend').disabled = true;
-  statusEl.textContent = 'Enviando...';
-  statusEl.style.color = 'var(--ink-faint)';
-
-  const payload = {
+  return {
     nome_participante: nome,
     empresa: empresa,
     d_natural: data.natural.D,
@@ -897,8 +885,24 @@ async function sendResultado(data) {
     c_intensidade: data.intensidade.C,
     perfil_dominante: data.arquetipo,
     arquetipo: data.info.nome,
-    respostas: { a: state.respostasA, b: state.respostasB, c: state.respostasC },
   };
+}
+
+async function sendResultado(data) {
+  const statusEl = document.getElementById('sendStatus');
+  const payload = montarPayloadBase(data);
+
+  if (!payload.nome_participante) {
+    statusEl.textContent = 'Preencha seu nome no início do formulário para registrar.';
+    statusEl.style.color = 'var(--alert)';
+    return;
+  }
+
+  document.getElementById('btnSend').disabled = true;
+  statusEl.textContent = 'Enviando...';
+  statusEl.style.color = 'var(--ink-faint)';
+
+  payload.respostas = { a: state.respostasA, b: state.respostasB, c: state.respostasC };
 
   try {
     const resp = await fetch('/api/disc', {
@@ -914,6 +918,48 @@ async function sendResultado(data) {
     statusEl.textContent = 'Não foi possível enviar agora. Confira sua conexão e tente de novo.';
     statusEl.style.color = 'var(--alert)';
     document.getElementById('btnSend').disabled = false;
+  }
+}
+
+async function baixarPdf(data) {
+  const statusEl = document.getElementById('sendStatus');
+  const payload = montarPayloadBase(data);
+  const btnPdf = document.getElementById('btnPdf');
+  const btnPdfDefaultText = btnPdf.textContent;
+
+  btnPdf.disabled = true;
+  btnPdf.textContent = 'Gerando PDF...';
+
+  try {
+    const resp = await fetch('/api/disc/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error('Falha ao gerar PDF');
+
+    const disposition = resp.headers.get('Content-Disposition') || '';
+    const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/);
+    const asciiMatch = disposition.match(/filename="([^"]+)"/);
+    const filename = utf8Match
+      ? decodeURIComponent(utf8Match[1])
+      : (asciiMatch ? asciiMatch[1] : 'perfil disc.pdf');
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    statusEl.textContent = 'Não foi possível gerar o PDF agora. Tente de novo.';
+    statusEl.style.color = 'var(--alert)';
+  } finally {
+    btnPdf.disabled = false;
+    btnPdf.textContent = btnPdfDefaultText;
   }
 }
 
@@ -962,6 +1008,10 @@ document.getElementById('btnFinish').addEventListener('click', () => {
 
 document.getElementById('btnSend').addEventListener('click', () => {
   if (lastResultData) sendResultado(lastResultData);
+});
+
+document.getElementById('btnPdf').addEventListener('click', () => {
+  if (lastResultData) baixarPdf(lastResultData);
 });
 
 document.getElementById('btnReset').addEventListener('click', () => {
