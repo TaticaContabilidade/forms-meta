@@ -73,3 +73,59 @@ seguem só no histórico do `git log`.
   campos obrigatórios (`validarObrigatorios()`) só estava plugada no
   `sendBtn`. Aplica a mesma checagem no `printBtn`, em
   `public/calculadora.html`.
+- **Auditoria da avaliação DISC verificada e aplicada.** Antes de corrigir,
+  fui achado por achado contra o código real (recalculei 2 contrastes com
+  script — não de cabeça — pra não repetir o erro do PDF vazio). Resultado
+  da verificação:
+  - **D-02 (empate vira dominância falsa) já estava corrigido** — a
+    auditoria testou o site antes do deploy pegar o commit anterior
+    (`resolverPerfilDominante`/`LIMIAR_EMPATE_TRACOS`, já existente).
+  - **D-07 estava parcialmente errado**: `.progress-label` de fato dava
+    3,00:1 (confirmado, corrigido); mas `.block-instruction` usa
+    `--fg-soft`, que recalculei em ~6,6:1–7,4:1 — dentro do padrão. Só a
+    parte do `.progress-label` foi corrigida.
+  - **D-13 (nome de arquivo do PDF inconsistente)**: era decisão explícita
+    anterior do usuário (participante no DISC, empresa na calculadora) —
+    perguntei antes de mexer. Decisão: padronizar por participante nos
+    dois (ver abaixo).
+  - Os outros 10 achados (D-01, D-03 a D-06, D-08 a D-12) bateram com o
+    código e foram todos corrigidos, em `public/disc.html`,
+    `public/style/disc.css` e `src/reports/discReport.js`:
+    - Os 348 radios eram `display:none` (D-01), o que os tirava do
+      teclado/leitor de tela — viram visualmente ocultos mas focáveis, com
+      `outline` de foco em `:has(input:focus-visible)` no `<label>`.
+    - Cada bloco/situação/afirmação virou `<fieldset>`+`<legend>` (era
+      `<div>`), e a frase da opção na Parte A ganhou `aria-labelledby`
+      ligando-a ao chip "+ Mais"/"− Menos" (D-01/D-03).
+    - "Natural × adaptado" agora compara os dois perfis de verdade: acha o
+      traço com maior distância entre eles e comenta a adaptação (D-04).
+    - O laudo de "como você performa" é modulado pela intensidade medida
+      na Parte C (alta/moderada/baixa), e um aviso aparece quando as 4
+      intensidades saem muito parecidas — sinal de respostas pouco
+      diferenciadas (D-05).
+    - Os 4 cards de referência usavam a mesma frase "Perfil dominante — X
+      acima dos demais" pros 4 traços ao mesmo tempo — viraram descrição
+      neutra (`.resumo`), e o card do participante ganhou destaque visual
+      ("Seu perfil"), na tela e no PDF (D-06).
+    - `disc_state` não guardava nome/empresa — quem recarregava no meio
+      recuperava as respostas e perdia a identificação (D-08).
+    - O aviso de nome faltando não levava/focava o campo (D-09).
+    - PDF dizia "escala de 0 a 5" (era 1 a 5) e usava ponto decimal em vez
+      de vírgula (D-10).
+    - `<form>`, `<main>`, `<nav>`, meta description, `name` nos campos de
+      identidade, `aria-live` no contador de progresso (D-11).
+    - `confirm()` nativo no "Refazer avaliação" virou confirmação inline
+      (D-12), no mesmo padrão da calculadora.
+  - **D-13 aplicado**: `metaComercialFilename()` (calculadora) passou a
+    usar `nome_participante` em vez de `empresa`, igual o DISC já fazia —
+    `${nome do participante} meta comercial.pdf` nos dois relatórios agora.
+  - **Achados extras não listados em nenhuma das duas auditorias**:
+    `var(--ink-faint)` era usado em `disc.html` mas nunca definido em
+    `disc.css` (mesmo bug já visto na calculadora); e `var(--alert)` /
+    `var(--ok)` também eram usados sem nunca terem sido definidos —
+    `disc.css` usa `--danger`/`--success`, não `--alert`/`--ok`. Afetava a
+    cor do texto de status em 5 pontos (envio, geração de PDF). Todos
+    corrigidos pros tokens reais.
+  - Adiciona `tests/disc.client.test.js` (novo, com `jsdom`) cobrindo os
+    10 achados corrigidos, preenchendo a avaliação inteira de forma
+    determinística pra chegar na tela de resultado.

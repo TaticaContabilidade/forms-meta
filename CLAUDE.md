@@ -31,15 +31,19 @@ barra) — nunca um "print" da página HTML.
 - `src/reports/metaComercialReport.js` — relatório da calculadora de meta
   comercial. `POST /api/metas/pdf` (não grava no banco; mesmo payload de
   `POST /api/metas`) é consumido pelo botão "Salvar meu resultado (PDF)" em
-  `calculadora.html`. Nome do arquivo: `${empresa} meta comercial.pdf`.
+  `calculadora.html`. Nome do arquivo: `${nome do participante} meta
+  comercial.pdf`.
 - `src/reports/discReport.js` — relatório da avaliação DISC (arquétipo,
   barras de perfil natural/adaptado/intensidade, os 4 perfis, insights de
   performance). Repete localmente o `ARQUETIPO_MAP` de `disc.html` porque o
   relatório é gerado no servidor e não deve depender do texto que o cliente
   mandou. `POST /api/disc/pdf` (não grava no banco; mesmo payload de
   `POST /api/disc`) é consumido pelo botão "Salvar PDF" em `disc.html`. Nome
-  do arquivo: `${nome do participante} perfil disc.pdf` (não usa `empresa` —
-  diferente do relatório de meta comercial).
+  do arquivo: `${nome do participante} perfil disc.pdf`.
+
+  **Nome do arquivo por participante nos dois relatórios** (não por
+  empresa) — decisão explícita, ver CHANGELOG.md (D-13 da auditoria do
+  DISC). Não reverta pra empresa sem confirmar de novo.
 
   **Empate entre traços:** `resolverPerfilDominante(scores)` (duplicada em
   `disc.html` e `discReport.js`, mesmo `LIMIAR_EMPATE_TRACOS = 2`) nunca
@@ -106,6 +110,15 @@ Os testes usam o runner nativo do Node (`node --test`):
   `calculadora.html`, rode esses testes — é a única cobertura automatizada
   que existe da UI (parsing de número, validação, tabela de equipe,
   persistência local).
+- `tests/disc.client.test.js` — mesma ideia pra `disc.html`. Preenche a
+  avaliação inteira de forma determinística (ver comentário no topo do
+  arquivo) pra chegar na tela de resultado e testar arquétipo, comparação
+  natural×adaptado, modulação por intensidade, persistência de nome/empresa
+  e a confirmação inline do "Refazer avaliação". Os dois arquivos de teste
+  usam um `VirtualConsole` próprio (sem `.sendTo(console)`) pra suprimir o
+  aviso "Not implemented" que o `window.scrollTo`/`scrollIntoView` do jsdom
+  imprime a cada chamada — isso não esconde erro de verdade: uma exceção
+  real lançada dentro de um handler ainda propaga pro teste normalmente.
 
 ## Convenção: prefixo `_` = não versionar
 

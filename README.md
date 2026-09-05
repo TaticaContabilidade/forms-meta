@@ -43,6 +43,9 @@ Roda com o test runner nativo do Node (`node --test`):
 - `tests/calculadora.client.test.js` — lógica client-side da calculadora
   num DOM real (`jsdom`): parsing de números no formato pt-BR, validação
   antes do envio, regras da tabela de equipe e persistência local.
+- `tests/disc.client.test.js` — lógica client-side da avaliação DISC num
+  DOM real (`jsdom`): foco/marcação dos radios, comparação natural×adaptado,
+  modulação do laudo pela intensidade, persistência de nome/empresa.
 
 ## Estrutura
 
@@ -57,6 +60,7 @@ forms-meta/
   tests/
     server.test.js           -> testes de API (node --test + supertest)
     calculadora.client.test.js -> testes de UI da calculadora (jsdom)
+    disc.client.test.js       -> testes de UI da avaliação DISC (jsdom)
   public/
     index.html               -> menu com as duas dinâmicas + QR code
     calculadora.html          -> calculadora de meta comercial
