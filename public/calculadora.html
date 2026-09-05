@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Qual é a sua meta comercial?</title>
+<meta name="description" content="Calculadora de meta comercial: transforme o faturamento desejado em meta mensal, número de contratos e volume de contatos necessários, e distribua entre a equipe.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -11,7 +12,12 @@
 </head>
 <body>
 <div class="wrap">
-  <div style="padding:16px 0 0; margin-bottom:-16px;"><a href="/" style="font-size:13px; font-weight:600; color:var(--fg-faint); text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color .15s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--fg-faint)'">← Voltar ao menu</a></div>
+  <nav>
+    <a href="/" style="font-size:13px; font-weight:600; color:var(--fg-faint); text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color .15s; padding:16px 0 0; margin-bottom:-16px;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--fg-faint)'">← Voltar ao menu</a>
+  </nav>
+
+  <main>
+  <form id="metaForm">
 
   <header class="hero">
     <p class="eyebrow">Exercício prático — treinamento comercial</p>
@@ -19,20 +25,20 @@
     <p>Preencha com os números da sua empresa. No fim, você descobre de quantos contatos por mês precisa — e se a sua meta já nasceu possível ou impossível.</p>
     <div class="northstar">
       <span class="label">Meta comercial mensal</span>
-      <span class="value" id="hero-meta">R$ 0</span>
+      <output class="value" id="hero-meta" for="faturamento crescimentoPct churnPct" aria-live="polite">R$ 0</output>
     </div>
-    <p style="margin-top:18px; font-size:13.5px; color:var(--ink-faint);">
-      Também disponível: <a href="/disc.html" style="color:var(--ink-soft); text-decoration:underline;">Avaliação DISC Profunda →</a>
+    <p style="margin-top:18px; font-size:13.5px; color:var(--fg-faint);">
+      Também disponível: <a href="/disc.html" style="color:var(--fg-soft); text-decoration:underline;">Avaliação DISC Profunda →</a>
     </p>
 
     <div class="row" style="margin-top:28px; padding-left:0;">
-      <div class="row-label">Seu nome</div>
+      <label class="row-label" for="nomeParticipante">Seu nome</label>
       <div class="field" style="margin-bottom:10px;">
-        <input type="text" id="nomeParticipante" placeholder="Nome completo" autocomplete="name">
+        <input type="text" id="nomeParticipante" name="nomeParticipante" placeholder="Nome completo" autocomplete="name">
       </div>
-      <div class="row-label">Sua empresa</div>
+      <label class="row-label" for="empresaParticipante">Sua empresa</label>
       <div class="field">
-        <input type="text" id="empresaParticipante" placeholder="Nome da empresa" autocomplete="organization">
+        <input type="text" id="empresaParticipante" name="empresaParticipante" placeholder="Nome da empresa" autocomplete="organization">
       </div>
     </div>
   </header>
@@ -49,111 +55,111 @@
 
       <div class="row">
         <div class="row-num">1</div>
-        <div class="row-label">Quanto sua empresa fatura hoje, por mês?</div>
-        <p class="row-help">Receita recorrente mensal atual. Ex.: R$ 200.000</p>
+        <label class="row-label" for="faturamento">Quanto sua empresa fatura hoje, por mês?</label>
+        <p class="row-help" id="faturamento-help">Receita recorrente mensal atual. Ex.: R$ 200.000</p>
         <div class="field">
           <span class="field-prefix">R$</span>
-          <input type="number" id="faturamento" inputmode="decimal" min="0" step="any" placeholder="200000">
+          <input type="text" inputmode="decimal" id="faturamento" name="faturamento" placeholder="200000" aria-describedby="faturamento-help">
         </div>
       </div>
 
       <div class="row">
         <div class="row-num">2</div>
-        <div class="row-label">Quanto você quer crescer no ano?</div>
-        <p class="row-help">Decisão dos sócios — não é chute, é escolha. Ex.: 30%</p>
+        <label class="row-label" for="crescimentoPct">Quanto você quer crescer no ano?</label>
+        <p class="row-help" id="crescimentoPct-help">Decisão dos sócios — não é chute, é escolha. Ex.: 30%</p>
         <div class="field">
-          <input type="number" id="crescimentoPct" inputmode="decimal" min="0" step="any" placeholder="30">
+          <input type="text" inputmode="decimal" id="crescimentoPct" name="crescimentoPct" placeholder="30" aria-describedby="crescimentoPct-help">
           <span class="field-suffix">%</span>
         </div>
       </div>
 
       <div class="row">
         <div class="row-num computed">3</div>
-        <div class="row-label">Quanto isso dá em reais?</div>
+        <label class="row-label" for="calc3">Quanto isso dá em reais?</label>
         <p class="row-help">Linha 1 × linha 2.</p>
-        <div class="field computed"><span class="output" id="calc3">R$ 0</span></div>
+        <div class="field computed"><output class="output" id="calc3" for="faturamento crescimentoPct" aria-live="polite">R$ 0</output></div>
       </div>
 
       <div class="row">
         <div class="row-num">4</div>
-        <div class="row-label">Quanto você perde de base no ano?</div>
-        <p class="row-help">Seu churn. Se não sabe, estime. Ex.: 10%</p>
+        <label class="row-label" for="churnPct">Quanto você perde de base no ano?</label>
+        <p class="row-help" id="churnPct-help">Seu churn. Se não sabe, estime. Ex.: 10%</p>
         <div class="field">
-          <input type="number" id="churnPct" inputmode="decimal" min="0" step="any" placeholder="10">
+          <input type="text" inputmode="decimal" id="churnPct" name="churnPct" placeholder="10" aria-describedby="churnPct-help">
           <span class="field-suffix">%</span>
         </div>
       </div>
 
       <div class="row">
         <div class="row-num computed">5</div>
-        <div class="row-label">Quanto isso dá em reais?</div>
+        <label class="row-label" for="calc5">Quanto isso dá em reais?</label>
         <p class="row-help">Linha 1 × linha 4.</p>
-        <div class="field computed"><span class="output" id="calc5">R$ 0</span></div>
+        <div class="field computed"><output class="output" id="calc5" for="faturamento churnPct" aria-live="polite">R$ 0</output></div>
       </div>
 
       <div class="row">
         <div class="row-num computed">6</div>
-        <div class="row-label">Quanto você precisa vender no ano?</div>
-        <p class="row-help">Linha 3 + linha 5. Esta é a sua <strong>meta corporativa</strong>.</p>
-        <div class="field computed"><span class="output" id="calc6">R$ 0</span></div>
+        <label class="row-label" for="calc6">Quanta receita recorrente nova você precisa conquistar no ano?</label>
+        <p class="row-help">Linha 3 + linha 5 — crescimento mais reposição do churn. Esta é a sua <strong>meta corporativa</strong> (não é o faturamento total do ano).</p>
+        <div class="field computed"><output class="output" id="calc6" for="calc3 calc5" aria-live="polite">R$ 0</output></div>
       </div>
 
       <div class="row">
         <div class="row-num computed">7</div>
-        <div class="row-label">Quanto por trimestre?</div>
-        <p class="row-help">Linha 6 ÷ 4. É o que a gestão avalia a cada ciclo.</p>
-        <div class="field computed"><span class="output" id="calc7">R$ 0</span></div>
+        <label class="row-label" for="calc7">Quanto por trimestre?</label>
+        <p class="row-help">Linha 6 ÷ 4 — receita recorrente nova por ciclo. É o que a gestão avalia a cada trimestre.</p>
+        <div class="field computed"><output class="output" id="calc7" for="calc6" aria-live="polite">R$ 0</output></div>
       </div>
 
       <div class="row highlight">
         <div class="row-num computed">8</div>
-        <div class="row-label">Quanto por mês?</div>
-        <p class="row-help">Linha 6 ÷ 12. Esta é a meta da área comercial.</p>
-        <div class="field computed"><span class="output" id="calc8">R$ 0</span></div>
+        <label class="row-label" for="calc8">Quanto por mês?</label>
+        <p class="row-help">Linha 6 ÷ 12 — receita recorrente nova por mês. Esta é a meta da área comercial.</p>
+        <div class="field computed"><output class="output" id="calc8" for="calc6" aria-live="polite">R$ 0</output></div>
       </div>
 
       <div class="row">
         <div class="row-num">9</div>
-        <div class="row-label">Qual o seu ticket médio mensal?</div>
-        <p class="row-help">Valor médio de uma mensalidade nova. Ex.: R$ 900</p>
+        <label class="row-label" for="ticket">Qual o seu ticket médio mensal?</label>
+        <p class="row-help" id="ticket-help">Valor médio de uma mensalidade nova. Ex.: R$ 900</p>
         <div class="field">
           <span class="field-prefix">R$</span>
-          <input type="number" id="ticket" inputmode="decimal" min="0" step="any" placeholder="900">
+          <input type="text" inputmode="decimal" id="ticket" name="ticket" placeholder="900" aria-describedby="ticket-help">
         </div>
       </div>
 
       <div class="row">
         <div class="row-num computed">10</div>
-        <div class="row-label">Quantos contratos novos por mês?</div>
+        <label class="row-label" for="calc10">Quantos contratos novos por mês?</label>
         <p class="row-help">Linha 8 ÷ linha 9.</p>
-        <div class="field computed"><span class="output" id="calc10">0 contratos</span></div>
+        <div class="field computed"><output class="output" id="calc10" for="calc8 ticket" aria-live="polite">0 contratos</output></div>
       </div>
 
       <div class="row">
         <div class="row-num">11</div>
-        <div class="row-label">Qual a sua taxa de conversão?</div>
-        <p class="row-help">De cada 100 contatos, quantos fecham. Ex.: 20%</p>
+        <label class="row-label" for="conversaoPct">Qual a sua taxa de conversão?</label>
+        <p class="row-help" id="conversaoPct-help">De cada 100 contatos, quantos fecham. Ex.: 20%</p>
         <div class="field">
-          <input type="number" id="conversaoPct" inputmode="decimal" min="0.1" step="any" placeholder="20">
+          <input type="text" inputmode="decimal" id="conversaoPct" name="conversaoPct" placeholder="20" aria-describedby="conversaoPct-help">
           <span class="field-suffix">%</span>
         </div>
       </div>
 
       <div class="row">
         <div class="row-num computed">↳</div>
-        <div class="row-label">Contatos que precisam entrar por mês</div>
+        <label class="row-label" for="calcContatos">Contatos que precisam entrar por mês</label>
         <p class="row-help">Linha 10 ÷ linha 11.</p>
-        <div class="field computed"><span class="output" id="calcContatos">0 contatos</span></div>
+        <div class="field computed"><output class="output" id="calcContatos" for="calc10 conversaoPct" aria-live="polite">0 contatos</output></div>
       </div>
 
       <div class="row">
         <div class="row-num">?</div>
-        <div class="row-label">Quantos contatos entraram na sua empresa no mês passado?</div>
-        <p class="row-help">Número real, não a meta.</p>
+        <label class="row-label" for="contatosPassado">Quantos contatos entraram na sua empresa no mês passado?</label>
+        <p class="row-help" id="contatosPassado-help">Número real, não a meta.</p>
         <div class="field">
-          <input type="number" id="contatosPassado" inputmode="decimal" min="0" step="any" placeholder="0">
+          <input type="text" inputmode="decimal" id="contatosPassado" name="contatosPassado" placeholder="0" aria-describedby="contatosPassado-help">
         </div>
-        <div class="callout" id="calloutContatos" style="display:none;"></div>
+        <div class="callout" id="calloutContatos" role="status" style="display:none;"></div>
       </div>
 
     </div>
@@ -170,36 +176,38 @@
     <div class="ledger">
       <div class="row">
         <div class="row-num">12</div>
-        <div class="row-label">Quanto virá de clientes novos? (hunter)</div>
-        <p class="row-help">Parte da linha 8 — quem ainda não é da casa.</p>
+        <label class="row-label" for="hunterValor">Quanto virá de clientes novos? (hunter)</label>
+        <p class="row-help" id="hunterValor-help">Parte da linha 8 — quem ainda não é da casa.</p>
         <div class="field">
           <span class="field-prefix">R$</span>
-          <input type="number" id="hunterValor" inputmode="decimal" min="0" step="any" placeholder="0">
+          <input type="text" inputmode="decimal" id="hunterValor" name="hunterValor" placeholder="0" aria-describedby="hunterValor-help">
         </div>
       </div>
 
       <div class="row">
         <div class="row-num computed">13</div>
-        <div class="row-label">Quanto virá da base? (farmer)</div>
+        <label class="row-label" for="calcFarmer">Quanto virá da base? (farmer)</label>
         <p class="row-help">O resto da linha 8 — upsell e cross-sell em quem já é cliente.</p>
-        <div class="field computed"><span class="output" id="calcFarmer">R$ 0</span></div>
-        <div class="callout state-alert" id="calloutHunter" style="display:none;"></div>
+        <div class="field computed"><output class="output" id="calcFarmer" for="calc8 hunterValor" aria-live="polite">R$ 0</output></div>
+        <div class="callout state-alert" id="calloutHunter" role="status" style="display:none;"></div>
       </div>
     </div>
 
+    <div class="callout state-alert" id="calloutPapel" role="status" style="display:none; margin-top:16px;"></div>
+
     <div style="height:36px"></div>
 
-    <h2 style="font-size:19px; margin-bottom:6px;">Quem carrega cada pedaço?</h2>
+    <h3 style="font-size:19px; margin-bottom:6px;">Quem carrega cada pedaço?</h3>
     <p class="part-sub" style="margin-bottom:20px;">Escreva o nome de cada pessoa que vende hoje na sua empresa — inclusive você, se for você quem vende. A soma das metas individuais tem que fechar com a linha 8.</p>
 
     <div class="team-wrap">
       <table class="team" id="teamTable">
         <thead>
           <tr>
-            <th style="width:38%">Nome</th>
-            <th style="width:26%">Hunter ou farmer?</th>
-            <th style="width:30%">Meta mensal (R$)</th>
-            <th class="col-del"></th>
+            <th scope="col" style="width:38%">Nome</th>
+            <th scope="col" style="width:26%">Hunter ou farmer?</th>
+            <th scope="col" style="width:30%">Meta mensal (R$)</th>
+            <td class="col-del"></td>
           </tr>
         </thead>
         <tbody id="teamBody"></tbody>
@@ -207,19 +215,30 @@
 
       <div class="team-actions">
         <button type="button" class="add-btn" id="addRow">+ Adicionar pessoa</button>
-        <span class="badge" id="teamBadge"><span class="dot"></span><span id="teamBadgeText">Some as metas da equipe</span></span>
+        <span class="badge" id="teamBadge" role="status"><span class="dot"></span><span id="teamBadgeText">Some as metas da equipe</span></span>
       </div>
     </div>
 
-    <p style="margin-top:18px; color:var(--ink-soft); font-size:14.5px;">Se não fecha, você tem só duas saídas honestas: aumentar o time, ou rever a meta com os sócios. Distribuir um número que ninguém consegue entregar não é uma delas.</p>
+    <p style="margin-top:18px; color:var(--fg-soft); font-size:14.5px;">Se não fecha, você tem só duas saídas honestas: aumentar o time, ou rever a meta com os sócios. Distribuir um número que ninguém consegue entregar não é uma delas.</p>
   </section>
 
   <div class="footer-actions">
-    <button type="button" class="btn-primary" id="sendBtn">Enviar minha meta</button>
+    <button type="submit" class="btn-primary" id="sendBtn">Enviar minha meta</button>
     <button type="button" class="btn-secondary" id="printBtn">Salvar meu resultado (PDF)</button>
     <button type="button" class="btn-secondary" id="resetBtn">Recomeçar</button>
   </div>
-  <p class="footer-note" id="sendStatus">Preencha seu nome e clique em "Enviar minha meta" para registrar sua meta com a equipe do treinamento.</p>
+  <p class="footer-note" id="sendStatus" role="status">Preencha seu nome e clique em "Enviar minha meta" para registrar sua meta com a equipe do treinamento.</p>
+
+  <div class="callout" id="confirmReset" role="alertdialog" aria-label="Confirmar reinício" style="display:none; margin-top:14px;">
+    <p style="margin:0 0 10px;">Isso limpa todos os campos preenchidos. Continuar?</p>
+    <div style="display:flex; gap:8px;">
+      <button type="button" class="btn-secondary" id="confirmResetYes">Sim, recomeçar</button>
+      <button type="button" class="btn-secondary" id="confirmResetNo">Cancelar</button>
+    </div>
+  </div>
+
+  </form>
+  </main>
 
 </div>
 
@@ -230,9 +249,39 @@
     if (!isFinite(n)) n = 0;
     return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
   };
-  const num = (el) => { const v = parseFloat(el.value); return isNaN(v) ? 0 : v; };
+  const fmtQtd = (n, singular, plural) => {
+    const v = isFinite(n) ? n : 0;
+    const casas = Number.isInteger(v) ? 0 : 1;
+    const texto = v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+    return texto + ' ' + (Math.abs(v) === 1 ? singular : plural);
+  };
 
   const STORAGE_KEY = 'calculadora_meta_state';
+
+  // F-01/F-02 da auditoria: os campos eram type="number". Digitar "200.000"
+  // (separador de milhar) virava o número 200 sem nenhum aviso, e rolar a
+  // página com o cursor sobre um campo em foco incrementava/decrementava o
+  // valor em vez de rolar. Os campos agora são type="text" + inputmode
+  // decimal, e a leitura segue a convenção pt-BR: "." é sempre separador de
+  // milhar, "," é sempre separador decimal.
+  function parseBRNumber(str) {
+    if (str === null || str === undefined) return 0;
+    const s = String(str).trim();
+    if (!s) return 0;
+    const normalizado = s.replace(/\./g, '').replace(',', '.');
+    const v = parseFloat(normalizado);
+    return isNaN(v) ? 0 : v;
+  }
+
+  // F-06: nada aqui deveria ser negativo — min="0" no HTML não tinha efeito
+  // nenhum sem um <form> validando, então o clamp agora é feito na leitura.
+  // F-05: percentuais acima de 100% produziam metas/contatos impossíveis.
+  function lerCampo(el, { max } = {}) {
+    let v = parseBRNumber(el.value);
+    if (v < 0) v = 0;
+    if (max !== undefined && v > max) v = max;
+    return v;
+  }
 
   const els = {
     faturamento: $('faturamento'),
@@ -243,36 +292,47 @@
     contatosPassado: $('contatosPassado'),
     hunterValor: $('hunterValor'),
   };
+  const PERCENTUAIS = new Set(['crescimentoPct', 'churnPct', 'conversaoPct']);
 
   let metaMensal = 0; // linha 8, alvo da parte 2 e da tabela de time
   let lastValues = {}; // snapshot dos últimos cálculos, usado no envio
 
   function recalc(){
-    const fat = num(els.faturamento);
-    const cresc = num(els.crescimentoPct) / 100;
-    const churn = num(els.churnPct) / 100;
-    const ticket = num(els.ticket);
-    const conv = num(els.conversaoPct) / 100;
-    const contatosPassado = num(els.contatosPassado);
+    const fat = lerCampo(els.faturamento);
+    const crescPctRaw = lerCampo(els.crescimentoPct, { max: 100 });
+    const churnPctRaw = lerCampo(els.churnPct, { max: 100 });
+    const cresc = crescPctRaw / 100;
+    const churn = churnPctRaw / 100;
+    const ticket = lerCampo(els.ticket);
+    const convPctRaw = lerCampo(els.conversaoPct, { max: 100 });
+    const conv = convPctRaw / 100;
+    const contatosPassado = lerCampo(els.contatosPassado);
 
     const l3 = fat * cresc;
     const l5 = fat * churn;
     const l6 = l3 + l5;
     const l7 = l6 / 4;
     const l8 = l6 / 12;
-    const l10 = ticket > 0 ? l8 / ticket : 0;
-    const contatosNecessarios = conv > 0 ? l10 / conv : 0;
+    const l10raw = ticket > 0 ? l8 / ticket : 0;
+    const contatosNecessariosRaw = conv > 0 ? l10raw / conv : 0;
+
+    // F-04: o arredondamento só era aplicado na hora de escrever na tela —
+    // o payload (e por consequência o banco e uma leitura do PDF) levava o
+    // valor cru, com 15 casas decimais. Arredonda uma vez só, aqui, e usa
+    // esse valor arredondado em todo lugar: tela, payload e PDF.
+    const l10 = Math.round(l10raw * 10) / 10;
+    const contatosNecessarios = Math.ceil(contatosNecessariosRaw);
 
     lastValues = {
       faturamento: fat,
-      crescimento_pct: num(els.crescimentoPct),
-      churn_pct: num(els.churnPct),
+      crescimento_pct: crescPctRaw,
+      churn_pct: churnPctRaw,
       meta_anual: l6,
       meta_trimestral: l7,
       meta_mensal: l8,
       ticket: ticket,
       contratos_mes: l10,
-      conversao_pct: num(els.conversaoPct),
+      conversao_pct: convPctRaw,
       contatos_necessarios: contatosNecessarios,
       contatos_mes_passado: contatosPassado,
     };
@@ -282,8 +342,8 @@
     $('calc6').textContent = fmtBRL(l6);
     $('calc7').textContent = fmtBRL(l7);
     $('calc8').textContent = fmtBRL(l8);
-    $('calc10').textContent = (l10 % 1 === 0 ? l10.toFixed(0) : l10.toFixed(1)) + ' contratos';
-    $('calcContatos').textContent = Math.ceil(contatosNecessarios) + ' contatos';
+    $('calc10').textContent = fmtQtd(l10, 'contrato', 'contratos');
+    $('calcContatos').textContent = fmtQtd(contatosNecessarios, 'contato', 'contatos');
     $('hero-meta').textContent = fmtBRL(l8);
 
     metaMensal = l8;
@@ -295,17 +355,17 @@
       const razao = contatosPassado / contatosNecessarios;
       if (razao < 0.7) {
         calloutC.className = 'callout state-alert';
-        calloutC.innerHTML = '<strong>O problema não é o vendedor.</strong> Você precisa de ' + Math.ceil(contatosNecessarios) + ' contatos por mês e só entraram ' + Math.round(contatosPassado) + '. Essa meta nunca teve chance de acontecer com esse volume de entrada.';
+        calloutC.innerHTML = '<strong>O problema não é o vendedor.</strong> Você precisa de ' + fmtQtd(contatosNecessarios, 'contato', 'contatos') + ' por mês e só entraram ' + Math.round(contatosPassado) + '. Essa meta nunca teve chance de acontecer com esse volume de entrada.';
       } else {
         calloutC.className = 'callout state-ok';
-        calloutC.innerHTML = 'Entraram ' + Math.round(contatosPassado) + ' de ' + Math.ceil(contatosNecessarios) + ' contatos necessários. O volume de entrada sustenta essa meta.';
+        calloutC.innerHTML = 'Entraram ' + Math.round(contatosPassado) + ' de ' + fmtQtd(contatosNecessarios, 'contato', 'contatos') + ' necessários. O volume de entrada sustenta essa meta.';
       }
     } else {
       calloutC.style.display = 'none';
     }
 
     // hunter / farmer
-    const hunter = num(els.hunterValor);
+    const hunter = lerCampo(els.hunterValor);
     const farmer = Math.max(l8 - hunter, 0);
     $('calcFarmer').textContent = fmtBRL(farmer);
     lastValues.hunter_valor = hunter;
@@ -332,11 +392,12 @@
 
   function addRow(prefill){
     rowCount++;
+    const idx = rowCount;
     const tr = document.createElement('tr');
     tr.innerHTML =
-      '<td><input type="text" placeholder="Nome da pessoa" class="t-name"></td>' +
-      '<td><select class="t-type"><option value="Hunter">Hunter</option><option value="Farmer">Farmer</option></select></td>' +
-      '<td><div class="field" style="max-width:100%; border:none; background:transparent;"><span class="field-prefix" style="padding-left:0;">R$</span><input type="number" class="t-meta" inputmode="decimal" min="0" step="any" placeholder="0"></div></td>' +
+      '<td><label class="sr-only" for="t-name-' + idx + '">Nome da pessoa</label><input type="text" id="t-name-' + idx + '" name="t-name-' + idx + '" placeholder="Nome da pessoa" class="t-name"></td>' +
+      '<td><label class="sr-only" for="t-type-' + idx + '">Hunter ou farmer</label><select id="t-type-' + idx + '" name="t-type-' + idx + '" class="t-type"><option value="Hunter">Hunter</option><option value="Farmer">Farmer</option></select></td>' +
+      '<td><div class="field" style="max-width:100%; border:none; background:transparent;"><span class="field-prefix" style="padding-left:0;">R$</span><label class="sr-only" for="t-meta-' + idx + '">Meta mensal em reais</label><input type="text" inputmode="decimal" id="t-meta-' + idx + '" name="t-meta-' + idx + '" class="t-meta" placeholder="0"></div></td>' +
       '<td class="col-del"><button type="button" class="del-btn" aria-label="Remover pessoa">✕</button></td>';
     teamBody.appendChild(tr);
 
@@ -349,25 +410,46 @@
     tr.querySelector('.t-name').addEventListener('input', recalcTeam);
     tr.querySelector('.t-type').addEventListener('change', recalcTeam);
     tr.querySelector('.t-meta').addEventListener('input', recalcTeam);
-    tr.querySelector('.del-btn').addEventListener('click', () => { tr.remove(); recalcTeam(); });
+    // F-14: não deixa apagar a última linha — a seção não pode ficar só
+    // com o cabeçalho da tabela, sem nenhum lugar para digitar.
+    tr.querySelector('.del-btn').addEventListener('click', () => {
+      if (teamBody.querySelectorAll('tr').length <= 1) return;
+      tr.remove();
+      recalcTeam();
+    });
+  }
+
+  // F-08: uma linha sem nome não deveria contar na soma nem ser enviada —
+  // "meta tem que ter dono". Marca a linha como incompleta visualmente.
+  function linhasValidas(){
+    return [...teamBody.querySelectorAll('tr')].filter(tr => tr.querySelector('.t-name').value.trim());
   }
 
   function recalcTeam(){
-    const metaInputs = teamBody.querySelectorAll('.t-meta');
+    const todasLinhas = [...teamBody.querySelectorAll('tr')];
     let soma = 0;
-    metaInputs.forEach(inp => { const v = parseFloat(inp.value); if (!isNaN(v)) soma += v; });
+    const somaPorTipo = { Hunter: 0, Farmer: 0 };
+
+    todasLinhas.forEach(tr => {
+      const nome = tr.querySelector('.t-name').value.trim();
+      const v = parseBRNumber(tr.querySelector('.t-meta').value);
+      const incompleta = !nome && v > 0;
+      tr.classList.toggle('incompleta', incompleta);
+      if (!nome) return; // F-08: sem nome não entra na soma
+      soma += v;
+      const tipo = tr.querySelector('.t-type').value;
+      somaPorTipo[tipo] = (somaPorTipo[tipo] || 0) + v;
+    });
 
     const badge = $('teamBadge');
     const badgeText = $('teamBadgeText');
     const diff = metaMensal - soma;
+    const metaInputsCount = linhasValidas().length;
 
-    if (metaInputs.length === 0 || metaMensal === 0) {
+    if (metaInputsCount === 0 || metaMensal === 0) {
       badge.className = 'badge';
       badgeText.textContent = 'Some as metas da equipe';
-      saveState();
-      return;
-    }
-    if (Math.abs(diff) < 1) {
+    } else if (Math.abs(diff) < 1) {
       badge.className = 'badge ok';
       badgeText.textContent = 'Fecha: ' + fmtBRL(soma) + ' de ' + fmtBRL(metaMensal);
     } else if (diff > 0) {
@@ -377,22 +459,47 @@
       badge.className = 'badge alert';
       badgeText.textContent = 'Sobra ' + fmtBRL(Math.abs(diff)) + ' além da meta';
     }
+
+    // F-07: a divisão hunter/farmer da linha 12/13 não conversava com os
+    // papéis atribuídos na tabela — dava para declarar qualquer coisa nos
+    // dois lugares e a página fechava em verde do mesmo jeito.
+    const calloutPapel = $('calloutPapel');
+    const hunterDecl = lastValues.hunter_valor || 0;
+    const farmerDecl = lastValues.farmer_valor || 0;
+    const diffHunter = somaPorTipo.Hunter - hunterDecl;
+    const diffFarmer = somaPorTipo.Farmer - farmerDecl;
+    if (metaInputsCount === 0 || metaMensal === 0) {
+      calloutPapel.style.display = 'none';
+    } else if (Math.abs(diffHunter) < 1 && Math.abs(diffFarmer) < 1) {
+      calloutPapel.style.display = 'none';
+    } else {
+      calloutPapel.style.display = 'block';
+      calloutPapel.className = 'callout state-alert';
+      calloutPapel.textContent = 'A equipe tem ' + fmtBRL(somaPorTipo.Hunter) + ' em metas de hunter e ' + fmtBRL(somaPorTipo.Farmer) + ' de farmer, mas a linha 12/13 declara ' + fmtBRL(hunterDecl) + ' de hunter e ' + fmtBRL(farmerDecl) + ' de farmer. Ajuste um dos dois.';
+    }
+
     saveState();
   }
 
   $('addRow').addEventListener('click', () => addRow());
 
   function coletarEquipe(){
-    const rows = [...teamBody.querySelectorAll('tr')];
-    return rows.map(tr => ({
+    // F-08: linha sem nome não vai para o banco, mesmo que tenha meta.
+    return linhasValidas().map(tr => ({
       nome: tr.querySelector('.t-name').value.trim(),
       tipo: tr.querySelector('.t-type').value,
-      meta: parseFloat(tr.querySelector('.t-meta').value) || 0,
-    })).filter(p => p.nome || p.meta);
+      meta: parseBRNumber(tr.querySelector('.t-meta').value),
+    }));
   }
 
   // ---------- persistência local (sobrevive a sair/voltar na página) ----------
+  // F-17: o reset chamava removeItem() e, na sequência, recalc() ->
+  // recalcTeam() -> saveState() regravava a chave (agora vazia). Esse flag
+  // suprime esse salvamento redundante durante o reset.
+  let suprimirSave = false;
+
   function saveState(){
+    if (suprimirSave) return;
     try {
       const state = {
         nomeParticipante: $('nomeParticipante').value,
@@ -444,6 +551,25 @@
   const sendStatus = $('sendStatus');
   const sendBtn = $('sendBtn');
 
+  // F-03: a única validação no envio era o nome. Com o nome preenchido e o
+  // resto em branco, o registro ia gravado zerado e a tela dizia sucesso.
+  const CAMPOS_OBRIGATORIOS = [
+    { el: els.faturamento, linha: 1, rotulo: 'Quanto sua empresa fatura hoje, por mês (linha 1)' },
+    { el: els.crescimentoPct, linha: 2, rotulo: 'Quanto você quer crescer no ano (linha 2)' },
+    { el: els.churnPct, linha: 4, rotulo: 'Quanto você perde de base no ano (linha 4)' },
+    { el: els.ticket, linha: 9, rotulo: 'Seu ticket médio mensal (linha 9)' },
+    { el: els.conversaoPct, linha: 11, rotulo: 'Sua taxa de conversão (linha 11)' },
+  ];
+
+  function validarObrigatorios(){
+    for (const campo of CAMPOS_OBRIGATORIOS) {
+      if (lerCampo(campo.el) <= 0) return campo;
+    }
+    return null;
+  }
+
+  $('metaForm').addEventListener('submit', (e) => e.preventDefault());
+
   sendBtn.addEventListener('click', async () => {
     const nome = $('nomeParticipante').value.trim();
     const empresa = $('empresaParticipante').value.trim();
@@ -452,6 +578,14 @@
       sendStatus.textContent = 'Preencha seu nome antes de enviar.';
       sendStatus.style.color = 'var(--alert)';
       $('nomeParticipante').focus();
+      return;
+    }
+
+    const faltando = validarObrigatorios();
+    if (faltando) {
+      sendStatus.textContent = 'Preencha "' + faltando.rotulo + '" antes de enviar — sem esse número a meta não fecha.';
+      sendStatus.style.color = 'var(--alert)';
+      faltando.el.focus();
       return;
     }
 
@@ -530,8 +664,12 @@
     }
   });
 
-  $('resetBtn').addEventListener('click', () => {
-    if (!confirm('Isso limpa todos os campos preenchidos. Continuar?')) return;
+  // F-15: confirm() nativo travava a página com uma caixa fora do design.
+  // Confirmação inline no lugar, escondida por padrão.
+  const confirmReset = $('confirmReset');
+
+  function executarReset(){
+    suprimirSave = true;
     $('nomeParticipante').value = '';
     $('empresaParticipante').value = '';
     Object.values(els).forEach(el => el.value = '');
@@ -539,6 +677,17 @@
     addRow(); addRow();
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     recalc();
+    suprimirSave = false;
+  }
+
+  $('resetBtn').addEventListener('click', () => {
+    confirmReset.style.display = 'block';
+    if (confirmReset.scrollIntoView) confirmReset.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  $('confirmResetNo').addEventListener('click', () => { confirmReset.style.display = 'none'; });
+  $('confirmResetYes').addEventListener('click', () => {
+    confirmReset.style.display = 'none';
+    executarReset();
   });
 
   // restaura o que o usuário já tinha preenchido (se houver); senão começa com 2 linhas vazias

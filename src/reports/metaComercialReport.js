@@ -1,6 +1,7 @@
 const {
   BASE_PALETTE,
   PAGE_MARGIN,
+  FOOTER_RESERVE,
   sanitizeForFilename,
   contentDispositionFilename,
   createReportDocument,
@@ -93,7 +94,48 @@ function drawTeamTable(doc, equipe, metaMensal) {
   const colMeta = width * 0.34;
   const rowPad = 8;
 
-  ensureSpace(doc, 30);
+  // F-13 da auditoria: com só 2 pessoas cadastradas, a tabela partia no
+  // meio — a 1ª pessoa fechava a página 1 e a 2ª abria a página 2 sozinha,
+  // com o total e o rodapé, deixando quase uma folha em branco. Mede a
+  // altura da tabela inteira (cabeçalho + linhas + total) antes de
+  // desenhar; se ela cabe inteira numa página e só não cabe no que resta
+  // da atual, empurra o bloco inteiro para a próxima — sem isso, times
+  // grandes continuam paginando linha a linha normalmente.
+  const soma = equipe.reduce((acc, pessoa) => acc + (Number(pessoa.meta) || 0), 0);
+  const diff = metaMensal - soma;
+  let statusTexto = null;
+  let tone;
+  if (equipe.length > 0 && metaMensal !== 0) {
+    if (Math.abs(diff) < 1) {
+      statusTexto = `Fecha: ${fmtBRL(soma)} de ${fmtBRL(metaMensal)} distribuídos entre a equipe.`;
+      tone = 'ok';
+    } else if (diff > 0) {
+      statusTexto = `Falta distribuir ${fmtBRL(diff)} para fechar a meta mensal da área (${fmtBRL(metaMensal)}).`;
+      tone = 'alert';
+    } else {
+      statusTexto = `A soma das metas individuais está ${fmtBRL(Math.abs(diff))} acima da meta mensal da área (${fmtBRL(metaMensal)}).`;
+      tone = 'alert';
+    }
+  }
+
+  const headerHeight = 26;
+  const totalRowHeight = 28;
+  doc.font('Helvetica').fontSize(10);
+  const rowsHeight = equipe.reduce((acc, pessoa, i) => {
+    const nome = pessoa.nome || `Pessoa ${i + 1}`;
+    return acc + Math.max(24, doc.heightOfString(nome, { width: colNome - 12 }) + rowPad * 2);
+  }, 0);
+  const calloutHeight = statusTexto
+    ? doc.heightOfString(statusTexto, { width: width - 32 }) + 24 + 16
+    : 0;
+  const tabelaHeightTotal = headerHeight + rowsHeight + totalRowHeight + calloutHeight;
+  const alturaUtilPagina = doc.page.height - doc.page.margins.top - doc.page.margins.bottom - FOOTER_RESERVE;
+  if (tabelaHeightTotal <= alturaUtilPagina) {
+    ensureSpace(doc, tabelaHeightTotal);
+  } else {
+    ensureSpace(doc, 30);
+  }
+
   const headerY = doc.y;
   doc.rect(PAGE_MARGIN, headerY, width, 26).fill(PALETTE.ink);
   doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
@@ -104,12 +146,10 @@ function drawTeamTable(doc, equipe, metaMensal) {
   });
   doc.y = headerY + 26;
 
-  let soma = 0;
   equipe.forEach((pessoa, i) => {
     const nome = pessoa.nome || `Pessoa ${i + 1}`;
     const tipo = pessoa.tipo || '—';
     const meta = Number(pessoa.meta) || 0;
-    soma += meta;
 
     doc.font('Helvetica').fontSize(10);
     const rowHeight = Math.max(24, doc.heightOfString(nome, { width: colNome - 12 }) + rowPad * 2);
@@ -144,22 +184,7 @@ function drawTeamTable(doc, equipe, metaMensal) {
   });
   doc.y = totalY + 24;
 
-  const diff = metaMensal - soma;
-  let statusTexto;
-  let tone;
-  if (equipe.length === 0 || metaMensal === 0) {
-    return;
-  } else if (Math.abs(diff) < 1) {
-    statusTexto = `Fecha: ${fmtBRL(soma)} de ${fmtBRL(metaMensal)} distribuídos entre a equipe.`;
-    tone = 'ok';
-  } else if (diff > 0) {
-    statusTexto = `Falta distribuir ${fmtBRL(diff)} para fechar a meta mensal da área (${fmtBRL(metaMensal)}).`;
-    tone = 'alert';
-  } else {
-    statusTexto = `A soma das metas individuais está ${fmtBRL(Math.abs(diff))} acima da meta mensal da área (${fmtBRL(metaMensal)}).`;
-    tone = 'alert';
-  }
-  drawCallout(doc, statusTexto, tone);
+  if (statusTexto) drawCallout(doc, statusTexto, tone);
 }
 
 /**

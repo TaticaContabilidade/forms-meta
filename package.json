@@ -21,6 +21,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "jsdom": "^30.0.1",
     "supertest": "^7.2.2"
   }
 }
