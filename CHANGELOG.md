@@ -180,3 +180,18 @@ seguem só no histórico do `git log`.
     também acende o alerta de **todos** os campos obrigatórios pendentes
     de uma vez, não só o primeiro.
   - 5 testes novos cobrindo os cenários acima.
+- **Favicon adicionado ao site.** A imagem inserida no projeto
+  (`Logo Tática - Logo Tática_page-0001.jpg`) era o logo completo em
+  resolução de impressão (2084×2084px, 150 DPI) — símbolo + "Tática" +
+  "Gestão Contábil" — e ficava ilegível quando reduzido direto pros
+  tamanhos de favicon (16/32px), como mostrou uma comparação lado a lado
+  gerada pra confirmar antes de aplicar. Em vez de recortar esse raster,
+  usei o arquivo vetorial original (`Logo Tática.ai`, Illustrator, 7
+  páginas de variações do logo) e extraí em alta resolução (600 DPI, com
+  transparência real) só a página com o símbolo isolado — fica nítido em
+  todos os tamanhos.
+  - Novos `public/favicon.ico` (16/32/48, gerado com Pillow) e
+    `public/img/favicon-{16,32,192}.png`, `apple-touch-icon.png` (180px),
+    `logo-simbolo-512.png`.
+  - `<link rel="icon">`/`apple-touch-icon` no `<head>` dos 4 HTML
+    (`index.html`, `calculadora.html`, `disc.html`, `admin.html`).
