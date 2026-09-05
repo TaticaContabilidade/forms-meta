@@ -74,6 +74,19 @@ Sempre que o usuário pedir para commitar (ex.: "comita", "pode commitar",
    automático (nada a fazer).
 4. **Atualizar o remoto** — `git push origin main`.
 
+## Relato de mudanças em CHANGELOG.md
+
+Além de responder na conversa, toda mudança feita no repositório também é
+registrada em `CHANGELOG.md`, organizado por branch: sempre que a branch de
+trabalho mudar em relação à entrada anterior, abra um novo cabeçalho
+`## Alterações branch <nome>` antes de registrar a mudança (fica fácil
+localizar no tempo o que foi feito em cada trabalho). Dentro de uma mesma
+branch, novas entradas vão em ordem cronológica (mais recente por último),
+com a data (`### AAAA-MM-DD`). Escreva o registro do ponto de vista do que
+mudou e por quê — não é changelog de usuário final, é um diário de bordo
+técnico para quem (humano ou não) precisar entender depois o que foi feito
+e quando.
+
 ## Rodar e testar
 
 ```bash
@@ -82,9 +95,17 @@ npm start          # sobe em http://localhost:3000
 npm test           # node --test — roda tests/*.test.js
 ```
 
-Os testes usam o runner nativo do Node (`node --test`) + `supertest`. Cada
-execução aponta `DB_PATH` para um SQLite temporário em `os.tmpdir()` e limpa
-o arquivo no `after()` — nunca escrevem em `db/metas.db`.
+Os testes usam o runner nativo do Node (`node --test`):
+
+- `tests/server.test.js` — API (`supertest`). Cada execução aponta `DB_PATH`
+  para um SQLite temporário em `os.tmpdir()` e limpa o arquivo no `after()`
+  — nunca escreve em `db/metas.db`.
+- `tests/calculadora.client.test.js` — lógica client-side de
+  `calculadora.html` num DOM real (`jsdom`), carregando o HTML de verdade e
+  disparando eventos reais (`input`/`change`/`click`). Se mexer em
+  `calculadora.html`, rode esses testes — é a única cobertura automatizada
+  que existe da UI (parsing de número, validação, tabela de equipe,
+  persistência local).
 
 ## Convenção: prefixo `_` = não versionar
 
