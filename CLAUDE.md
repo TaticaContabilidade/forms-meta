@@ -61,6 +61,21 @@ Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
 arquivo do header `Content-Disposition` da resposta — não usam mais
 `window.print()`.
 
+### Identidade visual (favicon)
+
+`public/favicon.ico` e `public/img/favicon-{16,32}.png` /
+`apple-touch-icon.png` vêm do símbolo (seta) isolado do logo oficial da
+Tática, extraído em vetor da página 5 de `Logo Tática.ai` (Illustrator,
+1000×1000pt/página, 7 páginas com variações do logo) — não do arquivo
+`.jpg`/`.pdf` de exportação, que é o logo completo (símbolo + "Tática" +
+"Gestão Contábil") e vira ilegível/borrado quando reduzido a 16–32px. Os
+quatro HTML em `public/` (`index.html`, `calculadora.html`, `disc.html`,
+`admin.html`) linkam os quatro tamanhos no `<head>`. Se o logo for
+atualizado, repita o processo a partir do `.ai`/`.pdf` vetorial (nunca a
+partir de um raster), isolando só o símbolo antes de gerar os tamanhos —
+`pdftocairo -png -r 600 -transp` preserva o alpha; um `pdftoppm` comum não
+tem essa flag nesta versão do poppler.
+
 ## Fluxo de commit
 
 Sempre que o usuário pedir para commitar (ex.: "comita", "pode commitar",
