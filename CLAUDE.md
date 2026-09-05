@@ -64,19 +64,24 @@ arquivo do header `Content-Disposition` da resposta — não usam mais
 ## Fluxo de commit
 
 Sempre que o usuário pedir para commitar (ex.: "comita", "pode commitar",
-"suba isso"), siga esta sequência, nesta ordem:
+"suba isso"), siga esta sequência, nesta ordem. **Toda alteração vive numa
+branch — nunca commitar direto na `main`.**
 
 1. **Rodar os testes**, se existirem (`npm test`) — não commitar com teste
    quebrado. Se não houver testes cobrindo a mudança, siga em frente.
-2. **Criar commits atômicos** — um commit por mudança logicamente coesa (não
-   misture, por exemplo, uma feature nova com um refactor não relacionado).
-   Nunca incluir `*.pdf` nem arquivos/diretórios com prefixo `_` (ver
-   convenção abaixo) — confira `git status` antes de `git add`.
-3. **Mergiar com a `main`** — se o trabalho estiver numa branch separada,
-   faça `git checkout main && git merge <branch>` (fast-forward quando
-   possível) antes do passo seguinte. Se já estiver na `main`, este passo é
-   automático (nada a fazer).
-4. **Atualizar o remoto** — `git push origin main`.
+2. **Criar (ou reaproveitar) uma branch** para a mudança — `git checkout -b
+   <tipo>/<nome-curto>` (ex.: `fix/validacao-por-campo`,
+   `feat/relatorio-pdf`). Se já estiver numa branch de trabalho aberta para
+   o mesmo assunto, reaproveite-a em vez de criar outra.
+3. **Criar commits atômicos** nessa branch — um commit por mudança
+   logicamente coesa (não misture, por exemplo, uma feature nova com um
+   refactor não relacionado). Nunca incluir `*.pdf` nem arquivos/diretórios
+   com prefixo `_` (ver convenção abaixo) — confira `git status` antes de
+   `git add`.
+4. **Mergiar a branch na `main`** — `git checkout main && git merge
+   <branch>` (fast-forward quando possível).
+5. **Atualizar o remoto** — `git push origin main` **e** `git push origin
+   <branch>` (mantém a branch publicada, rastreável).
 
 ## Relato de mudanças em CHANGELOG.md
 
