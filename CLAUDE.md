@@ -41,9 +41,38 @@ barra) — nunca um "print" da página HTML.
   do arquivo: `${nome do participante} perfil disc.pdf` (não usa `empresa` —
   diferente do relatório de meta comercial).
 
+  **Empate entre traços:** `resolverPerfilDominante(scores)` (duplicada em
+  `disc.html` e `discReport.js`, mesmo `LIMIAR_EMPATE_TRACOS = 2`) nunca
+  atribui dominância a um traço só porque `Math.max` com ordem fixa D,I,S,C
+  desempataria por posição. Se a diferença entre o 1º e o 2º traço for menor
+  que o limiar, o resultado vira um perfil combinado (`traits` com 2
+  elementos, ex. `"D+I"`) — hero, insights e `perfil_dominante`/`arquetipo`
+  salvos no banco todos refletem os dois traços, nunca um só. `POST
+  /api/disc` e `generateDiscPdf` sempre recalculam a partir dos escores
+  brutos (`d_natural`, `i_natural`, ...) — nunca confiam num
+  `perfil_dominante`/`arquetipo` que o cliente mandou, para não persistir um
+  resultado calculado por uma versão desatualizada/cacheada do `disc.html`.
+
 Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
 arquivo do header `Content-Disposition` da resposta — não usam mais
 `window.print()`.
+
+## Fluxo de commit
+
+Sempre que o usuário pedir para commitar (ex.: "comita", "pode commitar",
+"suba isso"), siga esta sequência, nesta ordem:
+
+1. **Rodar os testes**, se existirem (`npm test`) — não commitar com teste
+   quebrado. Se não houver testes cobrindo a mudança, siga em frente.
+2. **Criar commits atômicos** — um commit por mudança logicamente coesa (não
+   misture, por exemplo, uma feature nova com um refactor não relacionado).
+   Nunca incluir `*.pdf` nem arquivos/diretórios com prefixo `_` (ver
+   convenção abaixo) — confira `git status` antes de `git add`.
+3. **Mergiar com a `main`** — se o trabalho estiver numa branch separada,
+   faça `git checkout main && git merge <branch>` (fast-forward quando
+   possível) antes do passo seguinte. Se já estiver na `main`, este passo é
+   automático (nada a fazer).
+4. **Atualizar o remoto** — `git push origin main`.
 
 ## Rodar e testar
 

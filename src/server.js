@@ -8,7 +8,12 @@ const {
   metaComercialFilename,
   contentDispositionFilename,
 } = require('./reports/metaComercialReport');
-const { generateDiscPdf, discFilename } = require('./reports/discReport');
+const {
+  generateDiscPdf,
+  discFilename,
+  resolverPerfilDominante,
+  ARQUETIPO_MAP,
+} = require('./reports/discReport');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'troque-isto';
@@ -242,13 +247,28 @@ app.delete('/api/metas/:id', requireAdmin, (req, res) => {
 app.post('/api/disc', (req, res) => {
   const b = req.body || {};
 
+  const natural = {
+    D: Number(b.d_natural) || 0,
+    I: Number(b.i_natural) || 0,
+    S: Number(b.s_natural) || 0,
+    C: Number(b.c_natural) || 0,
+  };
+
+  // perfil_dominante e arquetipo são sempre recalculados a partir dos
+  // escores brutos — nunca gravamos o que o cliente mandou nesses dois
+  // campos, para não persistir um resultado calculado por uma versão
+  // desatualizada/cacheada do disc.html (ex.: o bug de empate sempre
+  // caindo em D por ordem de checagem, e não por resultado real).
+  const perfil = resolverPerfilDominante(natural);
+  const infos = perfil.traits.map((t) => ARQUETIPO_MAP[t]);
+
   const row = {
     nome_participante: String(b.nome_participante || '').slice(0, 200),
     empresa: String(b.empresa || '').slice(0, 200),
-    d_natural: Number(b.d_natural) || 0,
-    i_natural: Number(b.i_natural) || 0,
-    s_natural: Number(b.s_natural) || 0,
-    c_natural: Number(b.c_natural) || 0,
+    d_natural: natural.D,
+    i_natural: natural.I,
+    s_natural: natural.S,
+    c_natural: natural.C,
     d_adaptado: Number(b.d_adaptado) || 0,
     i_adaptado: Number(b.i_adaptado) || 0,
     s_adaptado: Number(b.s_adaptado) || 0,
@@ -257,8 +277,8 @@ app.post('/api/disc', (req, res) => {
     i_intensidade: Number(b.i_intensidade) || 0,
     s_intensidade: Number(b.s_intensidade) || 0,
     c_intensidade: Number(b.c_intensidade) || 0,
-    perfil_dominante: String(b.perfil_dominante || '').slice(0, 100),
-    arquetipo: String(b.arquetipo || '').slice(0, 100),
+    perfil_dominante: perfil.traits.join('+'),
+    arquetipo: infos.map((info) => info.nome).join(' + '),
     respostas_json: JSON.stringify(b.respostas || {}),
   };
 

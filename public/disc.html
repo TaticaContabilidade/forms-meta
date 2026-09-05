@@ -534,12 +534,21 @@ const ARQUETIPO_MAP = {
   },
 };
 
-function getArquetipo(scores) {
-  const max = Math.max(scores.D, scores.I, scores.S, scores.C);
-  if (scores.D === max) return 'D';
-  if (scores.I === max) return 'I';
-  if (scores.S === max) return 'S';
-  return 'C';
+// Pontos mínimos de separação entre o 1º e o 2º traço para considerar que
+// há um traço realmente dominante. Abaixo disso é empate técnico — nunca
+// atribua dominância só porque a ordem de checagem D,I,S,C desempata sozinha.
+const LIMIAR_EMPATE_TRACOS = 2;
+
+function resolverPerfilDominante(scores) {
+  const ordem = ['D', 'I', 'S', 'C'];
+  const ranking = [...ordem].sort((a, b) => scores[b] - scores[a]);
+  const gap = scores[ranking[0]] - scores[ranking[1]];
+  const empatado = gap < LIMIAR_EMPATE_TRACOS;
+  return {
+    traits: empatado ? [ranking[0], ranking[1]] : [ranking[0]],
+    gap,
+    empatado,
+  };
 }
 
 // ============================================================
@@ -749,12 +758,19 @@ function renderResultado() {
   const natural = calcNatural();
   const adaptado = calcAdaptado();
   const intensidade = calcIntensidade();
-  const arquetipo = getArquetipo(natural);
-  const info = ARQUETIPO_MAP[arquetipo];
+  const perfil = resolverPerfilDominante(natural);
+  const infos = perfil.traits.map(t => ARQUETIPO_MAP[t]);
 
   // hero
-  document.getElementById('resArquetipo').textContent = info.nome;
-  document.getElementById('resPerfil').textContent = info.descricao;
+  if (!perfil.empatado) {
+    document.getElementById('resArquetipo').textContent = infos[0].nome;
+    document.getElementById('resPerfil').textContent = infos[0].descricao;
+  } else {
+    const [tA, tB] = perfil.traits;
+    document.getElementById('resArquetipo').textContent = `${infos[0].nome} + ${infos[1].nome}`;
+    document.getElementById('resPerfil').textContent =
+      `Empate técnico entre ${tA} e ${tB} — diferença de só ${perfil.gap} ponto${perfil.gap === 1 ? '' : 's'} no perfil natural. Considere as duas descrições abaixo, não apenas uma.`;
+  }
 
   // barras natural
   renderBars('barsNatural', natural, 28);
@@ -787,21 +803,21 @@ function renderResultado() {
     </div>
   `).join('');
 
-  // insights
-  document.getElementById('insightPerforma').innerHTML = `
+  // insights (um bloco por traço — dois blocos quando há empate)
+  document.getElementById('insightPerforma').innerHTML = infos.map(info => `
     <div class="insight-block">
       <h4>${info.nome} em ação</h4>
       <p>${info.performa}</p>
     </div>
-  `;
-  document.getElementById('insightDerail').innerHTML = `
+  `).join('');
+  document.getElementById('insightDerail').innerHTML = infos.map(info => `
     <div class="insight-block derail">
-      <h4>Atenção: esses padrões derrubam sua performance</h4>
+      <h4>Atenção: o que pode derrubar sua performance (${info.nome})</h4>
       <p>${info.derail}</p>
     </div>
-  `;
+  `).join('');
 
-  return { natural, adaptado, intensidade, arquetipo, info };
+  return { natural, adaptado, intensidade, perfil, infos };
 }
 
 function renderBars(containerId, scores, total) {
@@ -881,8 +897,8 @@ function montarPayloadBase(data) {
     i_intensidade: data.intensidade.I,
     s_intensidade: data.intensidade.S,
     c_intensidade: data.intensidade.C,
-    perfil_dominante: data.arquetipo,
-    arquetipo: data.info.nome,
+    perfil_dominante: data.perfil.traits.join('+'), // "D" (claro) ou "D+I" (empate técnico)
+    arquetipo: data.infos.map(i => i.nome).join(' + '),
   };
 }
 

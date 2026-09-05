@@ -22,7 +22,7 @@ const TRAIT_LABELS = { D: 'Dominância', I: 'Influência', S: 'Estabilidade', C:
 
 // Mesmo conteúdo de public/disc.html (ARQUETIPO_MAP) — mantido aqui porque o
 // relatório é gerado no servidor e não deve depender do texto que o cliente
-// enviou (só dos números e da letra do perfil dominante).
+// enviou, só dos escores brutos (d_natural, i_natural, ...).
 const ARQUETIPO_MAP = {
   D: {
     nome: 'O Executor',
@@ -50,9 +50,21 @@ const ARQUETIPO_MAP = {
   },
 };
 
-function getArquetipoLetra(scores) {
-  const max = Math.max(scores.D, scores.I, scores.S, scores.C);
-  return TRAITS.find((t) => scores[t] === max) || 'D';
+// Pontos mínimos de separação entre o 1º e o 2º traço para considerar que
+// há um traço realmente dominante. Abaixo disso é empate técnico — nunca
+// atribua dominância só porque a ordem de checagem D,I,S,C desempata sozinha.
+// Mesmo limiar usado em public/disc.html (LIMIAR_EMPATE_TRACOS).
+const LIMIAR_EMPATE_TRACOS = 2;
+
+function resolverPerfilDominante(scores) {
+  const ranking = [...TRAITS].sort((a, b) => scores[b] - scores[a]);
+  const gap = scores[ranking[0]] - scores[ranking[1]];
+  const empatado = gap < LIMIAR_EMPATE_TRACOS;
+  return {
+    traits: empatado ? [ranking[0], ranking[1]] : [ranking[0]],
+    gap,
+    empatado,
+  };
 }
 
 // nome do arquivo: "${nome do participante} perfil disc.pdf"
@@ -141,20 +153,32 @@ function drawTraitCards(doc) {
   }
 }
 
-function drawArchetypeHero(doc, trait, nome, descricao) {
+// traits: 1 elemento (perfil claramente dominante) ou 2 (empate técnico)
+function drawArchetypeHero(doc, traits, infos, descricao) {
   const width = contentWidth(doc);
   ensureSpace(doc, 90);
   const y = doc.y;
   const height = 78;
+  const empatado = traits.length > 1;
+  const bg = empatado ? '#F1F2F6' : TRAIT_BG[traits[0]];
 
-  doc.roundedRect(PAGE_MARGIN, y, width, height, 8)
-    .fillAndStroke(TRAIT_BG[trait], PALETTE.border);
-  doc.rect(PAGE_MARGIN, y, 6, height).fill(TRAIT_COLORS[trait]);
+  doc.roundedRect(PAGE_MARGIN, y, width, height, 8).fillAndStroke(bg, PALETTE.border);
+  // uma faixa de destaque por traço (2 faixas finas quando empatado)
+  const barW = 6 / traits.length;
+  traits.forEach((t, i) => {
+    doc.rect(PAGE_MARGIN + i * barW, y, barW, height).fill(TRAIT_COLORS[t]);
+  });
 
   doc.fillColor(PALETTE.inkFaint).font('Helvetica-Bold').fontSize(8)
     .text('SEU PERFIL COMPORTAMENTAL', PAGE_MARGIN + 24, y + 16, { characterSpacing: 0.4 });
-  doc.fillColor(TRAIT_COLORS[trait]).font('Helvetica-Bold').fontSize(20)
-    .text(nome, PAGE_MARGIN + 24, y + 30, { width: width - 48 });
+
+  if (!empatado) {
+    doc.fillColor(TRAIT_COLORS[traits[0]]).font('Helvetica-Bold').fontSize(20)
+      .text(infos[0].nome, PAGE_MARGIN + 24, y + 30, { width: width - 48 });
+  } else {
+    doc.fillColor(PALETTE.ink).font('Helvetica-Bold').fontSize(17)
+      .text(infos.map((i) => i.nome).join(' + '), PAGE_MARGIN + 24, y + 30, { width: width - 48 });
+  }
   doc.fillColor(PALETTE.inkSoft).font('Helvetica').fontSize(10)
     .text(descricao, PAGE_MARGIN + 24, y + 56, { width: width - 48 });
 
@@ -189,10 +213,11 @@ function generateDiscPdf(data) {
     C: Number(data.c_intensidade) || 0,
   };
 
-  const trait = TRAITS.includes(data.perfil_dominante)
-    ? data.perfil_dominante
-    : getArquetipoLetra(natural);
-  const info = ARQUETIPO_MAP[trait];
+  // Sempre recalculado a partir dos escores brutos — nunca confia num
+  // perfil_dominante já salvo, que pode ter sido gravado por uma versão
+  // anterior (com o bug de empate sempre caindo em D).
+  const perfil = resolverPerfilDominante(natural);
+  const infos = perfil.traits.map((t) => ARQUETIPO_MAP[t]);
 
   const dataFormatada = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -205,7 +230,10 @@ function generateDiscPdf(data) {
       : `Gerado em ${dataFormatada}`,
   });
 
-  drawArchetypeHero(doc, trait, info.nome, info.descricao);
+  const heroDescricao = !perfil.empatado
+    ? infos[0].descricao
+    : `Empate técnico entre ${perfil.traits[0]} e ${perfil.traits[1]} — diferença de só ${perfil.gap} ponto${perfil.gap === 1 ? '' : 's'} no perfil natural. Considere as duas descrições abaixo, não apenas uma.`;
+  drawArchetypeHero(doc, perfil.traits, infos, heroDescricao);
 
   sectionTitle(doc, 'Perfil natural', 'O que é mais parecido com você — como você é, não como gostaria de ser.');
   drawSignedBarSection(doc, natural, 28);
@@ -219,11 +247,15 @@ function generateDiscPdf(data) {
   sectionTitle(doc, 'Os quatro perfis DISC');
   drawTraitCards(doc);
 
-  sectionTitle(doc, 'Como você performa');
-  drawCallout(doc, info.performa, 'ok');
+  infos.forEach((info) => {
+    sectionTitle(doc, `${info.nome} em ação`);
+    drawCallout(doc, info.performa, 'ok');
+  });
 
-  sectionTitle(doc, 'O que pode derrubar sua performance');
-  drawCallout(doc, info.derail, 'alert');
+  infos.forEach((info) => {
+    sectionTitle(doc, `O que pode derrubar a performance de ${info.nome}`);
+    drawCallout(doc, info.derail, 'alert');
+  });
 
   return finalizeReport(doc, 'Gerado automaticamente pela avaliação DISC');
 }
@@ -232,4 +264,6 @@ module.exports = {
   generateDiscPdf,
   discFilename,
   contentDispositionFilename,
+  resolverPerfilDominante,
+  ARQUETIPO_MAP,
 };

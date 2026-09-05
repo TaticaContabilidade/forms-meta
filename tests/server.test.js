@@ -184,8 +184,10 @@ describe('API /api/disc', () => {
     d_natural: 8, i_natural: 5, s_natural: 3, c_natural: 4,
     d_adaptado: 7, i_adaptado: 6, s_adaptado: 4, c_adaptado: 3,
     d_intensidade: 1, i_intensidade: -1, s_intensidade: 1, c_intensidade: -1,
-    perfil_dominante: 'D',
-    arquetipo: 'Executor',
+    // valores propositalmente "errados" — o servidor deve ignorá-los e
+    // recalcular perfil_dominante/arquetipo a partir dos escores brutos
+    perfil_dominante: 'C',
+    arquetipo: 'valor que o cliente não deveria conseguir forçar',
     respostas: { bloco1: ['a', 'b'] },
   };
 
@@ -207,13 +209,13 @@ describe('API /api/disc', () => {
     assert.equal(res.status, 401);
   });
 
-  test('GET com token lista os registros e mantém respostas_json serializado', async () => {
+  test('GET com token lista os registros e recalcula perfil_dominante/arquetipo no servidor (ignora o valor enviado pelo cliente)', async () => {
     const res = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
     assert.equal(res.status, 200);
     const row = res.body.find(r => r.id === createdId);
     assert.ok(row);
-    assert.equal(row.perfil_dominante, 'D');
-    assert.equal(row.arquetipo, 'Executor');
+    assert.equal(row.perfil_dominante, 'D'); // maior escore natural é D=8, não o 'C' enviado
+    assert.equal(row.arquetipo, 'O Executor');
     assert.deepEqual(JSON.parse(row.respostas_json), payloadValido.respostas);
   });
 
@@ -232,6 +234,24 @@ describe('API /api/disc', () => {
 
     const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
     assert.ok(!list.body.some(r => r.id === createdId));
+  });
+
+  test('empate técnico entre dois traços vira perfil combinado, nunca dominância falsa de um só', async () => {
+    // D e I empatados em 14, S bem abaixo — antes desse fix, Math.max com
+    // ordem fixa D,I,S,C fazia o empate cair sempre em D "por posição".
+    const create = await request(app).post('/api/disc').send({
+      nome_participante: 'Empate Teste',
+      d_natural: 14, i_natural: 14, s_natural: -28, c_natural: 0,
+    });
+    assert.equal(create.status, 201);
+
+    const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    const row = list.body.find(r => r.id === create.body.id);
+    assert.ok(row);
+    assert.equal(row.perfil_dominante, 'D+I');
+    assert.equal(row.arquetipo, 'O Executor + O Comunicador');
+
+    await request(app).delete(`/api/disc/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 
@@ -271,5 +291,22 @@ describe('API /api/disc/pdf', () => {
       .send({ nome_participante: 'Fulano', i_natural: 20, d_natural: 1, s_natural: 1, c_natural: 1 });
     assert.equal(res.status, 200);
     assert.equal(res.headers['content-type'], 'application/pdf');
+  });
+
+  test('empate técnico entre traços não quebra a geração do PDF (nunca dominância falsa)', async () => {
+    // Mesmo caso do bug crítico D-02: D e I empatados, S bem abaixo.
+    // O PDF sempre recalcula a partir dos escores brutos, então nem precisa
+    // enviar perfil_dominante — e mesmo enviando um valor de traço único
+    // "errado", o relatório deve reconhecer o empate.
+    const res = await request(app)
+      .post('/api/disc/pdf')
+      .send({
+        nome_participante: 'Empate Teste',
+        d_natural: 14, i_natural: 14, s_natural: -28, c_natural: 0,
+        perfil_dominante: 'D',
+      });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+    assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
   });
 });
