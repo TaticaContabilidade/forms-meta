@@ -34,11 +34,11 @@
     <div class="row" style="margin-top:28px; padding-left:0;">
       <label class="row-label" for="nomeParticipante">Seu nome</label>
       <div class="field" style="margin-bottom:10px;">
-        <input type="text" id="nomeParticipante" name="nomeParticipante" placeholder="Nome completo" autocomplete="name">
+        <input type="text" id="nomeParticipante" name="nomeParticipante" placeholder="Nome completo" autocomplete="name" maxlength="80">
       </div>
       <label class="row-label" for="empresaParticipante">Sua empresa</label>
       <div class="field">
-        <input type="text" id="empresaParticipante" name="empresaParticipante" placeholder="Nome da empresa" autocomplete="organization">
+        <input type="text" id="empresaParticipante" name="empresaParticipante" placeholder="Nome da empresa" autocomplete="organization" maxlength="80">
       </div>
     </div>
   </header>
@@ -283,6 +283,15 @@
     return v;
   }
 
+  // Auditoria 2: type="text" (necessário pro parsing pt-BR do F-01) não
+  // bloqueia letra/símbolo como type="number" bloqueava. Filtra em tempo
+  // real o que não é dígito, ".", "," ou "-" — sem impedir estados
+  // intermediários válidos de digitação (ex.: "-" sozinho, "1.234,").
+  function filtrarDigitacaoNumerica(el){
+    const filtrado = el.value.replace(/[^0-9.,-]/g, '');
+    if (filtrado !== el.value) el.value = filtrado;
+  }
+
   const els = {
     faturamento: $('faturamento'),
     crescimentoPct: $('crescimentoPct'),
@@ -292,14 +301,16 @@
     contatosPassado: $('contatosPassado'),
     hunterValor: $('hunterValor'),
   };
-  const PERCENTUAIS = new Set(['crescimentoPct', 'churnPct', 'conversaoPct']);
 
   let metaMensal = 0; // linha 8, alvo da parte 2 e da tabela de time
   let lastValues = {}; // snapshot dos últimos cálculos, usado no envio
 
   function recalc(){
     const fat = lerCampo(els.faturamento);
-    const crescPctRaw = lerCampo(els.crescimentoPct, { max: 100 });
+    // Auditoria 2: crescimento pode legitimamente passar de 100% (meta
+    // agressiva de dobrar/triplicar o faturamento) — diferente de churn e
+    // conversão, que não fazem sentido acima de 100% por definição.
+    const crescPctRaw = lerCampo(els.crescimentoPct, { max: 500 });
     const churnPctRaw = lerCampo(els.churnPct, { max: 100 });
     const cresc = crescPctRaw / 100;
     const churn = churnPctRaw / 100;
@@ -382,7 +393,7 @@
     recalcTeam();
   }
 
-  Object.values(els).forEach(el => el.addEventListener('input', recalc));
+  Object.values(els).forEach(el => el.addEventListener('input', () => { filtrarDigitacaoNumerica(el); recalc(); }));
   $('nomeParticipante').addEventListener('input', saveState);
   $('empresaParticipante').addEventListener('input', saveState);
 
@@ -395,7 +406,7 @@
     const idx = rowCount;
     const tr = document.createElement('tr');
     tr.innerHTML =
-      '<td><label class="sr-only" for="t-name-' + idx + '">Nome da pessoa</label><input type="text" id="t-name-' + idx + '" name="t-name-' + idx + '" placeholder="Nome da pessoa" class="t-name"></td>' +
+      '<td><label class="sr-only" for="t-name-' + idx + '">Nome da pessoa</label><input type="text" id="t-name-' + idx + '" name="t-name-' + idx + '" placeholder="Nome da pessoa" class="t-name" maxlength="60"></td>' +
       '<td><label class="sr-only" for="t-type-' + idx + '">Hunter ou farmer</label><select id="t-type-' + idx + '" name="t-type-' + idx + '" class="t-type"><option value="Hunter">Hunter</option><option value="Farmer">Farmer</option></select></td>' +
       '<td><div class="field" style="max-width:100%; border:none; background:transparent;"><span class="field-prefix" style="padding-left:0;">R$</span><label class="sr-only" for="t-meta-' + idx + '">Meta mensal em reais</label><input type="text" inputmode="decimal" id="t-meta-' + idx + '" name="t-meta-' + idx + '" class="t-meta" placeholder="0"></div></td>' +
       '<td class="col-del"><button type="button" class="del-btn" aria-label="Remover pessoa">✕</button></td>';
@@ -407,9 +418,10 @@
       if (prefill.meta) tr.querySelector('.t-meta').value = prefill.meta;
     }
 
+    const tMeta = tr.querySelector('.t-meta');
     tr.querySelector('.t-name').addEventListener('input', recalcTeam);
     tr.querySelector('.t-type').addEventListener('change', recalcTeam);
-    tr.querySelector('.t-meta').addEventListener('input', recalcTeam);
+    tMeta.addEventListener('input', () => { filtrarDigitacaoNumerica(tMeta); recalcTeam(); });
     // F-14: não deixa apagar a última linha — a seção não pode ficar só
     // com o cabeçalho da tabela, sem nenhum lugar para digitar.
     tr.querySelector('.del-btn').addEventListener('click', () => {

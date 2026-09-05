@@ -90,6 +90,31 @@ describe('calculadora.html — cadeia de cálculo e parsing pt-BR (F-01, F-05, F
     assert.match(texto(win, 'calc6'), /R\$\s*0\b/);
   });
 
+  test('auditoria 2: crescimento pode passar de 100% (meta agressiva legítima), até 500%', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'faturamento', '100000');
+    setVal(win, 'crescimentoPct', '200'); // sem travar em 100%: 200.000 de crescimento
+    setVal(win, 'churnPct', '0');
+    assert.match(texto(win, 'calc6'), /200\.000/);
+
+    setVal(win, 'crescimentoPct', '999'); // acima do teto de 500% -> trava em 500%
+    assert.match(texto(win, 'calc6'), /500\.000/);
+  });
+
+  test('auditoria 2: churn e conversão continuam travados em 100% (diferente de crescimento)', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'faturamento', '100000');
+    setVal(win, 'crescimentoPct', '0');
+    setVal(win, 'churnPct', '999');
+    assert.match(texto(win, 'calc6'), /100\.000/); // travado em 100%, não 999%
+  });
+
+  test('auditoria 2: filtro de digitação bloqueia letras nos campos numéricos', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'faturamento', 'abc200000xyz');
+    assert.equal(win.document.getElementById('faturamento').value, '200000');
+  });
+
   test('F-12: contrato no singular e formatação decimal pt-BR (vírgula, não ponto)', () => {
     const { window: win } = criarPagina();
     setVal(win, 'faturamento', '12000');
@@ -101,6 +126,15 @@ describe('calculadora.html — cadeia de cálculo e parsing pt-BR (F-01, F-05, F
     setVal(win, 'ticket', '135'); // 1000/135 = 7,407... -> "7,4 contratos"
     assert.equal(texto(win, 'calc10'), '7,4 contratos');
     assert.ok(!texto(win, 'calc10').includes('.'), 'não deve usar ponto como separador decimal');
+  });
+
+  test('auditoria 2: campos de texto têm limite de tamanho (nome, empresa, equipe)', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    assert.equal(doc.getElementById('nomeParticipante').maxLength, 80);
+    assert.equal(doc.getElementById('empresaParticipante').maxLength, 80);
+    const [row1] = doc.querySelectorAll('#teamBody tr');
+    assert.equal(row1.querySelector('.t-name').maxLength, 60);
   });
 });
 

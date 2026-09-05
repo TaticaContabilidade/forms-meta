@@ -129,3 +129,38 @@ seguem só no histórico do `git log`.
   - Adiciona `tests/disc.client.test.js` (novo, com `jsdom`) cobrindo os
     10 achados corrigidos, preenchendo a avaliação inteira de forma
     determinística pra chegar na tela de resultado.
+- **Segunda auditoria da calculadora verificada** (`auditoria-calculadora-
+  metas-2.md` — feita por inspeção remota, sem DevTools; o próprio
+  documento admite essa limitação). Resultado: 3 achados válidos e
+  corrigidos, os outros 5 já estavam corretos (2 desde antes de qualquer
+  correção minha) e a auditoria errou por não conseguir executar o
+  JavaScript da página:
+  - **Campos numéricos aceitam qualquer texto**: real — `type="text"` não
+    bloqueia letra como `type="number"` bloqueava (voltar pra
+    `type="number"` reintroduziria o F-01/F-02 da 1ª auditoria). Adiciona
+    `filtrarDigitacaoNumerica()`: filtro em tempo real que só deixa
+    dígito, `.`, `,` e `-` passarem, em todos os campos monetários/
+    percentuais, incluindo a meta da equipe.
+  - **Percentuais sem limite coerente**: crescimento estava travado em
+    100% igual churn/conversão — mas crescer 150%/200% é meta agressiva
+    legítima, diferente de churn/conversão (que não fazem sentido acima
+    de 100%). Sobe o teto de `crescimentoPct` pra 500%, mantém churn e
+    conversão em 100%.
+  - **Campos de texto sem limite de tamanho**: real, sem `maxlength`.
+    Adiciona 80 caracteres (nome/empresa) e 60 (nome da pessoa na
+    equipe).
+  - **Divisão por zero**, **soma da equipe vs. meta total** e **hunter/
+    farmer sempre com um valor selecionado**: já corretos — os dois
+    primeiros desde antes de qualquer correção minha (guard `ticket > 0
+    ? ... : 0` e o badge "Fecha/Falta/Sobra", ambos JS que a auditoria
+    remota não executa); o terceiro porque o `<select>` só tem as 2
+    opções, sem opção em branco possível.
+  - "Enviar minha meta" pedir confirmação (parte do achado positivo) é
+    impreciso — só "Recomeçar" pede; "Enviar" só valida e envia direto.
+  - Sugestão de bloquear hunter > meta mensal como erro obrigatório não
+    foi aplicada de propósito: o padrão já estabelecido na página é
+    avisar (callout) em vez de bloquear em inconsistências de negócio
+    (equipe vs. meta, hunter/farmer vs. papéis) — quem resolve é o
+    facilitador, não uma trava de JS. Mantido consistente.
+  - 4 testes novos em `tests/calculadora.client.test.js` cobrindo os 3
+    achados corrigidos.
