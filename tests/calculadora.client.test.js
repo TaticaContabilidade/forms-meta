@@ -115,6 +115,16 @@ describe('validação e equipe (F-03, F-07, F-08, F-14)', () => {
     assert.doesNotMatch(status, /Enviando|sucesso/);
   });
 
+  test('F-03: geração de PDF também é bloqueada com o formulário vazio (reproduzido ao vivo no site)', () => {
+    const { window: win } = criarPagina();
+    // nenhum campo preenchido — nem nome é exigido aqui, só os 5 da conta
+    win.document.getElementById('printBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    const status = texto(win, 'sendStatus');
+    assert.match(status, /linha 1/);
+    assert.doesNotMatch(status, /Gerando/);
+    assert.equal(win.document.getElementById('printBtn').disabled, false);
+  });
+
   test('F-07: equipe com papéis que não batem com a linha 12/13 mostra alerta', () => {
     const { window: win } = criarPagina();
     setVal(win, 'faturamento', '12000');

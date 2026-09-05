@@ -621,6 +621,16 @@
   const printBtnDefaultText = printBtn.textContent;
 
   printBtn.addEventListener('click', async () => {
+    // Mesma validação do envio (F-03 da auditoria): sem os 5 campos que
+    // sustentam a conta, o PDF sai com tudo zerado e sem nenhum aviso.
+    const faltando = validarObrigatorios();
+    if (faltando) {
+      sendStatus.textContent = 'Preencha "' + faltando.rotulo + '" antes de gerar o PDF — sem esse número a meta não fecha.';
+      sendStatus.style.color = 'var(--alert)';
+      faltando.el.focus();
+      return;
+    }
+
     const payload = {
       nome_participante: $('nomeParticipante').value.trim(),
       empresa: $('empresaParticipante').value.trim(),

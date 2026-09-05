@@ -67,3 +67,9 @@ seguem só no histórico do `git log`.
 - **CLAUDE.md**: nova seção "Fluxo de commit" (testar → commits atômicos →
   merge com a main → push sempre que um commit for pedido) e este próprio
   `CHANGELOG.md` como convenção de relato de mudanças.
+- **F-03 também valia pro botão de PDF, não só pro envio.** O usuário
+  reproduziu ao vivo no site: dava pra clicar "Salvar meu resultado (PDF)"
+  com o formulário vazio e baixar um PDF todo zerado — a validação dos 5
+  campos obrigatórios (`validarObrigatorios()`) só estava plugada no
+  `sendBtn`. Aplica a mesma checagem no `printBtn`, em
+  `public/calculadora.html`.
