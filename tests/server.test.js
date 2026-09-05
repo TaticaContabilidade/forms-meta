@@ -139,10 +139,10 @@ describe('API /api/metas', () => {
 });
 
 describe('API /api/metas/pdf', () => {
-  test('gera um PDF com o nome de arquivo "${empresa} meta comercial.pdf"', async () => {
+  test('gera um PDF com o nome de arquivo "${nome do participante} meta comercial.pdf"', async () => {
     const res = await request(app)
       .post('/api/metas/pdf')
-      .send({ nome_participante: 'Fulano', empresa: 'Tática Contabilidade', faturamento: 30000 });
+      .send({ nome_participante: 'Tática Contabilidade', empresa: 'Empresa Y', faturamento: 30000 });
 
     assert.equal(res.status, 200);
     assert.equal(res.headers['content-type'], 'application/pdf');
@@ -154,8 +154,8 @@ describe('API /api/metas/pdf', () => {
     assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
   });
 
-  test('sem empresa, usa "Meta comercial.pdf" como nome de arquivo', async () => {
-    const res = await request(app).post('/api/metas/pdf').send({ nome_participante: 'Fulano' });
+  test('sem nome_participante, usa "Meta comercial.pdf" como nome de arquivo', async () => {
+    const res = await request(app).post('/api/metas/pdf').send({ empresa: 'Empresa Y' });
     assert.equal(res.status, 200);
     assert.match(res.headers['content-disposition'], /filename="Meta comercial\.pdf"/);
   });
@@ -166,10 +166,10 @@ describe('API /api/metas/pdf', () => {
     assert.equal(res.headers['content-type'], 'application/pdf');
   });
 
-  test('sanitiza caracteres inválidos de nome de arquivo vindos da empresa', async () => {
+  test('sanitiza caracteres inválidos de nome de arquivo vindos do participante', async () => {
     const res = await request(app)
       .post('/api/metas/pdf')
-      .send({ nome_participante: 'Fulano', empresa: 'A/B:C*D?E"F<G>H|I' });
+      .send({ nome_participante: 'A/B:C*D?E"F<G>H|I' });
     assert.equal(res.status, 200);
     assert.match(res.headers['content-disposition'], /filename="ABCDEFGHI meta comercial\.pdf"/);
   });

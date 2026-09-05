@@ -34,10 +34,14 @@ function fmtQtd(n, unidade) {
   return `${v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })} ${unidade}`;
 }
 
-// nome do arquivo pedido: "${empresa} meta comercial.pdf"
-function metaComercialFilename(empresa) {
-  const nomeEmpresa = sanitizeForFilename(empresa);
-  const base = nomeEmpresa ? `${nomeEmpresa} meta comercial` : 'Meta comercial';
+// D-13 da auditoria do DISC: os dois PDFs nomeavam o arquivo por convenções
+// diferentes (participante vs. empresa) — quem fazia as duas dinâmicas no
+// mesmo treinamento acabava com dois arquivos inconsistentes na pasta de
+// downloads. Padronizado por participante nos dois.
+// nome do arquivo: "${nome do participante} meta comercial.pdf"
+function metaComercialFilename(nomeParticipante) {
+  const nome = sanitizeForFilename(nomeParticipante);
+  const base = nome ? `${nome} meta comercial` : 'Meta comercial';
   return `${base}.pdf`;
 }
 

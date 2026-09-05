@@ -204,7 +204,7 @@ app.post('/api/metas/pdf', (req, res) => {
     equipe: Array.isArray(b.equipe) ? b.equipe : [],
   };
 
-  const filename = metaComercialFilename(empresa);
+  const filename = metaComercialFilename(nome_participante);
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', contentDispositionFilename(filename));
   generateMetaComercialPdf(data).pipe(res);
