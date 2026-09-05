@@ -1,8 +1,21 @@
-# Calculadora de Meta Comercial — com backend
+# Practice to Create — Calculadora de Meta + Avaliação DISC
 
-Backend em Node.js (Express) + banco SQLite (`better-sqlite3`) que recebe as
-respostas da calculadora e guarda tudo num arquivo `db/metas.db`. Inclui um
-painel `/admin.html` para ver e exportar (CSV) as metas de todo mundo.
+Backend em Node.js (Express) + banco SQLite (`better-sqlite3`) para duas
+dinâmicas de treinamento comercial:
+
+- **Calculadora de meta comercial** (`calculadora.html`) — transforma o
+  faturamento desejado em meta mensal, número de contratos e volume de
+  contatos necessários, e distribui a meta entre a equipe.
+- **Avaliação DISC Profunda** (`disc.html`) — 56 perguntas em 3 partes que
+  revelam o perfil natural, o comportamento sob pressão e a intensidade de
+  cada traço (D/I/S/C).
+
+`index.html` é o menu com as duas dinâmicas, QR code e link para compartilhar
+com o time. Inclui um painel `/admin.html` para ver e exportar (CSV) as
+respostas de ambas.
+
+Ambas as dinâmicas geram um **relatório em PDF de verdade** (não é print da
+página) — veja `CLAUDE.md` para os detalhes de arquitetura.
 
 ## Rodar na sua máquina
 
@@ -17,21 +30,45 @@ Abre em `http://localhost:3000`. O painel admin fica em
 **Token de admin:** por padrão é `troque-isto`. Mude isso antes de usar de
 verdade — veja "Variáveis de ambiente" abaixo.
 
+## Testes
+
+```bash
+npm test
+```
+
+Roda com o test runner nativo do Node (`node --test`):
+
+- `tests/server.test.js` — API do backend (`supertest`), incluindo geração
+  dos PDFs.
+- `tests/calculadora.client.test.js` — lógica client-side da calculadora
+  num DOM real (`jsdom`): parsing de números no formato pt-BR, validação
+  antes do envio, regras da tabela de equipe e persistência local.
+
 ## Estrutura
 
 ```
-meta-backend/
+forms-meta/
   src/
-    server.js          -> servidor Express + rotas da API
-  package.json
+    server.js               -> servidor Express + rotas da API
+    reports/
+      pdfLayout.js           -> base compartilhada dos relatórios em PDF
+      metaComercialReport.js -> relatório da calculadora de meta
+      discReport.js          -> relatório da avaliação DISC
+  tests/
+    server.test.js           -> testes de API (node --test + supertest)
+    calculadora.client.test.js -> testes de UI da calculadora (jsdom)
   public/
-    index.html        -> a calculadora (o que os 240 participantes acessam)
-    admin.html         -> painel para você ver/exportar as respostas
+    index.html               -> menu com as duas dinâmicas + QR code
+    calculadora.html          -> calculadora de meta comercial
+    disc.html                 -> avaliação DISC
+    admin.html                 -> painel para ver/exportar as respostas
     style/
-      index.css        -> estilos da calculadora
-      admin.css        -> estilos do painel admin
+      index.css               -> estilos do menu e da calculadora
+      disc.css                -> estilos da avaliação DISC
+      admin.css                -> estilos do painel admin
   db/
-    metas.db           -> criado automaticamente na primeira execução
+    metas.db                  -> criado automaticamente na primeira execução
+  CLAUDE.md                   -> convenções do repositório (leia antes de mexer)
 ```
 
 ## Rotas da API
@@ -42,6 +79,14 @@ meta-backend/
 | `/api/metas` | `GET` | lista tudo — precisa do header `x-admin-token` |
 | `/api/metas.csv` | `GET` | exporta CSV — `x-admin-token` ou `?token=` |
 | `/api/metas/:id` | `DELETE` | remove um registro — precisa do token |
+| `/api/metas/pdf` | `POST` | gera o relatório em PDF da meta (não grava no banco) |
+| `/api/disc` | `POST` | a avaliação DISC envia o perfil calculado |
+| `/api/disc` | `GET` | lista tudo — precisa do header `x-admin-token` |
+| `/api/disc.csv` | `GET` | exporta CSV — `x-admin-token` ou `?token=` |
+| `/api/disc/:id` | `DELETE` | remove um registro — precisa do token |
+| `/api/disc/pdf` | `POST` | gera o relatório em PDF do perfil DISC (não grava no banco) |
+| `/api/qr` | `GET` | PNG do QR code (`?url=`, senão aponta pro próprio host) |
+| `/api/qr/download` | `GET` | mesmo QR code, forçando download |
 
 ## Variáveis de ambiente
 
@@ -68,7 +113,8 @@ um serviço que rode Node continuamente. Opções gratuitas e rápidas:
   temporário — se o serviço reiniciar ou "dormir" por inatividade, o
   `metas.db` pode ser resetado. Pra um evento ao vivo de algumas horas isso
   normalmente não chega a acontecer, mas exporte o CSV **logo depois do
-  treinamento**, não deixe pra depois.
+  treinamento**, não deixe pra depois. Se quiser persistência de verdade,
+  precisa de um plano pago com Persistent Disk anexado (o free não suporta).
 - **Railway.app**: também sobe direto do GitHub, tem uma cota grátis mensal
   pequena — dá pra testar e rodar o evento.
 - **Fly.io**: free tier permite anexar um volume persistente de verdade, é a
@@ -80,9 +126,11 @@ um serviço que rode Node continuamente. Opções gratuitas e rápidas:
 2. Em render.com → New → Web Service → conecte o repositório.
 3. Build command: `npm install`. Start command: `npm start`.
 4. Em "Environment", adicione `ADMIN_TOKEN` com uma senha sua.
-5. Deploy. Você recebe um link tipo `https://sua-calculadora.onrender.com` —
-   é esse link que vai para as 240 pessoas.
-6. Depois do treinamento, acesse `/admin.html` no mesmo domínio, entre com o
+5. Deploy. Você recebe um link tipo `https://sua-calculadora.onrender.com`.
+6. O link que vai para o time **antes** da mentoria é o `/disc.html` desse
+   domínio — a calculadora de metas é feita ao vivo, com o facilitador,
+   durante o encontro (ver a seção "QR code" em `index.html`).
+7. Depois do treinamento, acesse `/admin.html` no mesmo domínio, entre com o
    token, e clique em "Exportar CSV" para guardar tudo numa planilha.
 
 ## Backup dos dados
