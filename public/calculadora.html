@@ -59,8 +59,9 @@
         <p class="row-help" id="faturamento-help">Receita recorrente mensal atual. Ex.: R$ 200.000</p>
         <div class="field">
           <span class="field-prefix">R$</span>
-          <input type="text" inputmode="decimal" id="faturamento" name="faturamento" placeholder="200000" aria-describedby="faturamento-help">
+          <input type="text" inputmode="decimal" id="faturamento" name="faturamento" placeholder="200000" aria-describedby="faturamento-help faturamento-alert">
         </div>
+        <p class="field-alert" id="faturamento-alert" role="alert"></p>
       </div>
 
       <div class="row">
@@ -68,9 +69,10 @@
         <label class="row-label" for="crescimentoPct">Quanto você quer crescer no ano?</label>
         <p class="row-help" id="crescimentoPct-help">Decisão dos sócios — não é chute, é escolha. Ex.: 30%</p>
         <div class="field">
-          <input type="text" inputmode="decimal" id="crescimentoPct" name="crescimentoPct" placeholder="30" aria-describedby="crescimentoPct-help">
+          <input type="text" inputmode="decimal" id="crescimentoPct" name="crescimentoPct" placeholder="30" aria-describedby="crescimentoPct-help crescimentoPct-alert">
           <span class="field-suffix">%</span>
         </div>
+        <p class="field-alert" id="crescimentoPct-alert" role="alert"></p>
       </div>
 
       <div class="row">
@@ -85,9 +87,10 @@
         <label class="row-label" for="churnPct">Quanto você perde de base no ano?</label>
         <p class="row-help" id="churnPct-help">Seu churn. Se não sabe, estime. Ex.: 10%</p>
         <div class="field">
-          <input type="text" inputmode="decimal" id="churnPct" name="churnPct" placeholder="10" aria-describedby="churnPct-help">
+          <input type="text" inputmode="decimal" id="churnPct" name="churnPct" placeholder="10" aria-describedby="churnPct-help churnPct-alert">
           <span class="field-suffix">%</span>
         </div>
+        <p class="field-alert" id="churnPct-alert" role="alert"></p>
       </div>
 
       <div class="row">
@@ -124,8 +127,9 @@
         <p class="row-help" id="ticket-help">Valor médio de uma mensalidade nova. Ex.: R$ 900</p>
         <div class="field">
           <span class="field-prefix">R$</span>
-          <input type="text" inputmode="decimal" id="ticket" name="ticket" placeholder="900" aria-describedby="ticket-help">
+          <input type="text" inputmode="decimal" id="ticket" name="ticket" placeholder="900" aria-describedby="ticket-help ticket-alert">
         </div>
+        <p class="field-alert" id="ticket-alert" role="alert"></p>
       </div>
 
       <div class="row">
@@ -140,9 +144,10 @@
         <label class="row-label" for="conversaoPct">Qual a sua taxa de conversão?</label>
         <p class="row-help" id="conversaoPct-help">De cada 100 contatos, quantos fecham. Ex.: 20%</p>
         <div class="field">
-          <input type="text" inputmode="decimal" id="conversaoPct" name="conversaoPct" placeholder="20" aria-describedby="conversaoPct-help">
+          <input type="text" inputmode="decimal" id="conversaoPct" name="conversaoPct" placeholder="20" aria-describedby="conversaoPct-help conversaoPct-alert">
           <span class="field-suffix">%</span>
         </div>
+        <p class="field-alert" id="conversaoPct-alert" role="alert"></p>
       </div>
 
       <div class="row">
@@ -157,8 +162,9 @@
         <label class="row-label" for="contatosPassado">Quantos contatos entraram na sua empresa no mês passado?</label>
         <p class="row-help" id="contatosPassado-help">Número real, não a meta.</p>
         <div class="field">
-          <input type="text" inputmode="decimal" id="contatosPassado" name="contatosPassado" placeholder="0" aria-describedby="contatosPassado-help">
+          <input type="text" inputmode="decimal" id="contatosPassado" name="contatosPassado" placeholder="0" aria-describedby="contatosPassado-help contatosPassado-alert">
         </div>
+        <p class="field-alert" id="contatosPassado-alert" role="alert"></p>
         <div class="callout" id="calloutContatos" role="status" style="display:none;"></div>
       </div>
 
@@ -180,8 +186,9 @@
         <p class="row-help" id="hunterValor-help">Parte da linha 8 — quem ainda não é da casa.</p>
         <div class="field">
           <span class="field-prefix">R$</span>
-          <input type="text" inputmode="decimal" id="hunterValor" name="hunterValor" placeholder="0" aria-describedby="hunterValor-help">
+          <input type="text" inputmode="decimal" id="hunterValor" name="hunterValor" placeholder="0" aria-describedby="hunterValor-help hunterValor-alert">
         </div>
+        <p class="field-alert" id="hunterValor-alert" role="alert"></p>
       </div>
 
       <div class="row">
@@ -302,6 +309,53 @@
     hunterValor: $('hunterValor'),
   };
 
+  // Auditoria 3: negativo virava 0 e percentual acima do teto travava só
+  // no cálculo — o campo continuava mostrando o valor digitado, sem
+  // nenhum aviso ali, e "obrigatório" só era checado ao clicar em Enviar/
+  // Salvar PDF. Cada regra abaixo é checada por campo, ao vivo (não só no
+  // clique do botão), com mensagem inline em '#<id>-alert'.
+  const REGRAS_CAMPO = {
+    faturamento:     { obrigatorio: true,  maiorQueZero: true },
+    crescimentoPct:  { obrigatorio: true,  max: 500, percentual: true },
+    churnPct:        { obrigatorio: true,  max: 100, percentual: true },
+    ticket:          { obrigatorio: true,  maiorQueZero: true },
+    conversaoPct:    { obrigatorio: true,  max: 100, percentual: true, maiorQueZero: true },
+    contatosPassado: { obrigatorio: false },
+    hunterValor:     { obrigatorio: false },
+  };
+
+  // mostrarObrigatorio: só liga a mensagem de "campo vazio" no blur — não
+  // faz sentido reclamar de vazio a cada tecla digitada.
+  function validarCampo(id, { mostrarObrigatorio } = {}) {
+    const el = els[id];
+    const regra = REGRAS_CAMPO[id];
+    const alertaEl = $(id + '-alert');
+    if (!el || !regra || !alertaEl) return;
+
+    const bruto = el.value.trim();
+    const unidade = regra.percentual ? '%' : '';
+    let mensagem = '';
+
+    if (!bruto) {
+      if (regra.obrigatorio && mostrarObrigatorio) {
+        mensagem = 'Obrigatório para calcular a meta.';
+      }
+    } else {
+      const valor = parseBRNumber(el.value);
+      if (valor < 0) {
+        mensagem = 'Não aceita valor negativo — usamos 0 no cálculo.';
+      } else if (regra.max !== undefined && valor > regra.max) {
+        mensagem = 'Máximo é ' + regra.max + unidade + ' — usamos esse limite no cálculo.';
+      } else if (regra.maiorQueZero && valor === 0) {
+        mensagem = 'Precisa ser maior que zero para calcular a meta.';
+      }
+    }
+
+    alertaEl.textContent = mensagem;
+    alertaEl.style.display = mensagem ? 'block' : 'none';
+    el.closest('.field').classList.toggle('tem-alerta', !!mensagem);
+  }
+
   let metaMensal = 0; // linha 8, alvo da parte 2 e da tabela de time
   let lastValues = {}; // snapshot dos últimos cálculos, usado no envio
 
@@ -393,7 +447,14 @@
     recalcTeam();
   }
 
-  Object.values(els).forEach(el => el.addEventListener('input', () => { filtrarDigitacaoNumerica(el); recalc(); }));
+  Object.entries(els).forEach(([id, el]) => {
+    el.addEventListener('input', () => {
+      filtrarDigitacaoNumerica(el);
+      recalc();
+      validarCampo(id, { mostrarObrigatorio: false });
+    });
+    el.addEventListener('blur', () => validarCampo(id, { mostrarObrigatorio: true }));
+  });
   $('nomeParticipante').addEventListener('input', saveState);
   $('empresaParticipante').addEventListener('input', saveState);
 
@@ -566,14 +627,18 @@
   // F-03: a única validação no envio era o nome. Com o nome preenchido e o
   // resto em branco, o registro ia gravado zerado e a tela dizia sucesso.
   const CAMPOS_OBRIGATORIOS = [
-    { el: els.faturamento, linha: 1, rotulo: 'Quanto sua empresa fatura hoje, por mês (linha 1)' },
-    { el: els.crescimentoPct, linha: 2, rotulo: 'Quanto você quer crescer no ano (linha 2)' },
-    { el: els.churnPct, linha: 4, rotulo: 'Quanto você perde de base no ano (linha 4)' },
-    { el: els.ticket, linha: 9, rotulo: 'Seu ticket médio mensal (linha 9)' },
-    { el: els.conversaoPct, linha: 11, rotulo: 'Sua taxa de conversão (linha 11)' },
+    { id: 'faturamento', el: els.faturamento, linha: 1, rotulo: 'Quanto sua empresa fatura hoje, por mês (linha 1)' },
+    { id: 'crescimentoPct', el: els.crescimentoPct, linha: 2, rotulo: 'Quanto você quer crescer no ano (linha 2)' },
+    { id: 'churnPct', el: els.churnPct, linha: 4, rotulo: 'Quanto você perde de base no ano (linha 4)' },
+    { id: 'ticket', el: els.ticket, linha: 9, rotulo: 'Seu ticket médio mensal (linha 9)' },
+    { id: 'conversaoPct', el: els.conversaoPct, linha: 11, rotulo: 'Sua taxa de conversão (linha 11)' },
   ];
 
   function validarObrigatorios(){
+    // mostra o alerta em TODOS os campos obrigatórios pendentes de uma vez
+    // (não só no primeiro) — dá o quadro completo já na primeira tentativa
+    // de envio, em vez de descobrir um de cada vez a cada novo clique.
+    CAMPOS_OBRIGATORIOS.forEach(campo => validarCampo(campo.id, { mostrarObrigatorio: true }));
     for (const campo of CAMPOS_OBRIGATORIOS) {
       if (lerCampo(campo.el) <= 0) return campo;
     }

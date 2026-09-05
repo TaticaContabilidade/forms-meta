@@ -164,3 +164,19 @@ seguem só no histórico do `git log`.
     facilitador, não uma trava de JS. Mantido consistente.
   - 4 testes novos em `tests/calculadora.client.test.js` cobrindo os 3
     achados corrigidos.
+- **Validação passa a viver no campo, não só no clique dos botões.** O
+  usuário notou o problema de raiz: negativo virava 0 e percentual acima
+  do teto travava só dentro do cálculo — o campo continuava mostrando o
+  valor errado digitado, sem nenhum aviso ali, e "obrigatório" só era
+  checado ao clicar em Enviar/Salvar PDF.
+  - Nova `REGRAS_CAMPO` (uma entrada por campo: obrigatório, `max`,
+    `maiorQueZero`) e `validarCampo(id, {mostrarObrigatorio})` em
+    `public/calculadora.html`: mensagem inline em `#<id>-alert` logo
+    abaixo do campo, borda do campo fica vermelha (`.tem-alerta`) — tudo
+    em `public/style/index.css`.
+  - Roda no `input` (negativo, acima do teto, `=0` em campo que exige
+    `>0`) e no `blur` (campo obrigatório vazio) — não fica esperando o
+    clique no botão. `validarObrigatorios()` (chamada pelos botões) agora
+    também acende o alerta de **todos** os campos obrigatórios pendentes
+    de uma vez, não só o primeiro.
+  - 5 testes novos cobrindo os cenários acima.

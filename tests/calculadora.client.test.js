@@ -34,6 +34,10 @@ function texto(win, id) {
   return win.document.getElementById(id).textContent;
 }
 
+function blur(win, id) {
+  win.document.getElementById(id).dispatchEvent(new win.Event('blur', { bubbles: true }));
+}
+
 function teamRows(win) {
   return [...win.document.querySelectorAll('#teamBody tr')];
 }
@@ -135,6 +139,53 @@ describe('calculadora.html — cadeia de cálculo e parsing pt-BR (F-01, F-05, F
     assert.equal(doc.getElementById('empresaParticipante').maxLength, 80);
     const [row1] = doc.querySelectorAll('#teamBody tr');
     assert.equal(row1.querySelector('.t-name').maxLength, 60);
+  });
+});
+
+describe('auditoria 3: validação inline por campo (não só nos botões)', () => {
+  test('percentual acima do teto mostra alerta no próprio campo, ao vivo (não só ao enviar)', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'crescimentoPct', '999');
+    assert.equal(texto(win, 'crescimentoPct-alert'), 'Máximo é 500% — usamos esse limite no cálculo.');
+    assert.equal(win.document.getElementById('crescimentoPct-alert').style.display, 'block');
+    assert.ok(win.document.getElementById('crescimentoPct').closest('.field').classList.contains('tem-alerta'));
+  });
+
+  test('valor negativo mostra alerta no campo, e ele some ao corrigir', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'churnPct', '-50');
+    assert.match(texto(win, 'churnPct-alert'), /Não aceita valor negativo/);
+
+    setVal(win, 'churnPct', '10');
+    assert.equal(texto(win, 'churnPct-alert'), '');
+    assert.equal(win.document.getElementById('churnPct-alert').style.display, 'none');
+    assert.ok(!win.document.getElementById('churnPct').closest('.field').classList.contains('tem-alerta'));
+  });
+
+  test('campo que só aceita >0 (ticket) avisa quando preenchido com zero', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'ticket', '0');
+    assert.match(texto(win, 'ticket-alert'), /maior que zero/);
+  });
+
+  test('campo obrigatório vazio só avisa no blur, não a cada tecla', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'ticket', '5');
+    setVal(win, 'ticket', ''); // apagou tudo, ainda digitando (sem blur)
+    assert.equal(win.document.getElementById('ticket-alert').style.display, 'none');
+
+    blur(win, 'ticket');
+    assert.match(texto(win, 'ticket-alert'), /Obrigatório/);
+  });
+
+  test('enviar com campo obrigatório vazio acende o alerta de todos os pendentes de uma vez', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'nomeParticipante', 'Fulano');
+    win.document.getElementById('sendBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    // nenhum dos 5 campos obrigatórios foi preenchido
+    assert.match(texto(win, 'faturamento-alert'), /Obrigatório/);
+    assert.match(texto(win, 'ticket-alert'), /Obrigatório/);
+    assert.match(texto(win, 'conversaoPct-alert'), /Obrigatório/);
   });
 });
 
