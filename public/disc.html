@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Avaliação DISC | Perfil Comportamental</title>
+<meta name="description" content="Avaliação DISC Profunda: 56 perguntas em 3 partes que revelam seu perfil natural, comportamento sob pressão e a intensidade de cada traço D/I/S/C.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -11,7 +12,12 @@
 </head>
 <body>
 <div class="wrap">
-  <div style="padding:16px 0 0; margin-bottom:-16px;"><a href="/" style="font-size:13px; font-weight:600; color:var(--fg-faint); text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color .15s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--fg-faint)'">← Voltar ao menu</a></div>
+  <nav>
+    <a href="/" style="font-size:13px; font-weight:600; color:var(--fg-faint); text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color .15s; padding:16px 0 0; margin-bottom:-16px;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--fg-faint)'">← Voltar ao menu</a>
+  </nav>
+
+  <main>
+  <form id="discForm">
 
   <!-- HERO -->
   <header class="hero">
@@ -42,10 +48,10 @@
     <h2>Antes de começar</h2>
     <div class="identity-fields">
       <label>Seu nome
-        <input type="text" id="nomeDisc" placeholder="Nome completo" autocomplete="name">
+        <input type="text" id="nomeDisc" name="nomeDisc" placeholder="Nome completo" autocomplete="name">
       </label>
       <label>Sua empresa
-        <input type="text" id="empresaDisc" placeholder="Nome da empresa" autocomplete="organization">
+        <input type="text" id="empresaDisc" name="empresaDisc" placeholder="Nome da empresa" autocomplete="organization">
       </label>
     </div>
   </div>
@@ -59,7 +65,7 @@
     <p class="part-desc">Em cada bloco, marque qual palavra é <strong>MAIS</strong> parecida com você e qual é a <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
 
     <div class="progress-wrap">
-      <div class="progress-label" id="progressLabelA">0 de 28 blocos respondidos</div>
+      <div class="progress-label" id="progressLabelA" aria-live="polite">0 de 28 blocos respondidos</div>
       <div class="progress-bar"><div class="progress-fill" id="progressFillA"></div></div>
     </div>
 
@@ -68,7 +74,7 @@
     <div class="nav-actions">
       <span class="validation-msg" id="validMsgA">Responda todos os blocos antes de continuar.</span>
       <span></span>
-      <button class="btn-primary" id="btnAtoB">Continuar para Parte B →</button>
+      <button type="button" class="btn-primary" id="btnAtoB">Continuar para Parte B →</button>
     </div>
   </div>
 
@@ -81,16 +87,16 @@
     <p class="part-desc">Para cada situação abaixo, escolha a opção que mais se aproxima do que você faria de verdade no trabalho.</p>
 
     <div class="progress-wrap">
-      <div class="progress-label" id="progressLabelB">0 de 16 situações respondidas</div>
+      <div class="progress-label" id="progressLabelB" aria-live="polite">0 de 16 situações respondidas</div>
       <div class="progress-bar"><div class="progress-fill" id="progressFillB"></div></div>
     </div>
 
     <div class="situations-list" id="situationsB"></div>
 
     <div class="nav-actions">
-      <button class="btn-secondary" id="btnBtoA">← Voltar</button>
+      <button type="button" class="btn-secondary" id="btnBtoA">← Voltar</button>
       <span class="validation-msg" id="validMsgB">Responda todas as situações antes de continuar.</span>
-      <button class="btn-primary" id="btnBtoC">Continuar para Parte C →</button>
+      <button type="button" class="btn-primary" id="btnBtoC">Continuar para Parte C →</button>
     </div>
   </div>
 
@@ -105,9 +111,9 @@
     <div class="intensity-list" id="intensityC"></div>
 
     <div class="nav-actions" style="margin-top:24px;">
-      <button class="btn-secondary" id="btnCtoB">← Voltar</button>
+      <button type="button" class="btn-secondary" id="btnCtoB">← Voltar</button>
       <span class="validation-msg" id="validMsgC">Avalie todas as afirmações antes de finalizar.</span>
-      <button class="btn-primary" id="btnFinish">Ver meu resultado →</button>
+      <button type="button" class="btn-primary" id="btnFinish">Ver meu resultado →</button>
     </div>
   </div>
 
@@ -131,9 +137,16 @@
       </div>
     </div>
 
+    <!-- D-04 da auditoria: o subtítulo promete "natural x adaptado" mas
+         ninguém comparava os dois — só duas barras lado a lado. -->
+    <div class="insight-block" id="adaptacaoDelta" style="display:none;"></div>
+
     <div class="intensity-section">
       <h3>Intensidade por traço</h3>
       <div class="intensity-bars" id="barsIntensidade"></div>
+      <!-- D-05: aviso quando as 4 intensidades saem muito parecidas —
+           sinal de respostas pouco diferenciadas na Parte C. -->
+      <div class="insight-block" id="intensidadeAviso" style="display:none; margin-top:12px;"></div>
     </div>
 
     <div class="disc-cards" id="discCards"></div>
@@ -149,13 +162,24 @@
     </div>
 
     <div class="result-actions">
-      <button class="btn-primary" id="btnSend">Enviar meu perfil</button>
-      <button class="btn-secondary" id="btnPdf">Salvar PDF</button>
-      <button class="btn-secondary" id="btnReset">Refazer avaliação</button>
+      <button type="button" class="btn-primary" id="btnSend">Enviar meu perfil</button>
+      <button type="button" class="btn-secondary" id="btnPdf">Salvar PDF</button>
+      <button type="button" class="btn-secondary" id="btnReset">Refazer avaliação</button>
     </div>
     <p class="send-status" id="sendStatus">Preencha seu nome e clique em "Enviar meu perfil" para registrar com a equipe do treinamento.</p>
 
+    <div class="confirm-box" id="confirmReset" role="alertdialog" aria-label="Confirmar reinício" style="display:none;">
+      <p style="margin:0 0 10px;">Isso apaga todas as suas respostas. Continuar?</p>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn-secondary" id="confirmResetYes">Sim, refazer</button>
+        <button type="button" class="btn-secondary" id="confirmResetNo">Cancelar</button>
+      </div>
+    </div>
+
   </div><!-- /resultado -->
+
+  </form>
+  </main>
 
 </div><!-- /wrap -->
 
@@ -511,28 +535,38 @@ const ARQUETIPO_MAP = {
   D: {
     nome: 'O Executor',
     descricao: 'Perfil dominante — Dominância acima dos demais',
+    // D-06 da auditoria: os 4 cards de referência usavam .descricao (que
+    // afirma "perfil dominante") pros 4 traços ao mesmo tempo — o leitor
+    // via a mesma alegação 4 vezes, contradizendo a de cima. .resumo é
+    // neutro e serve só pra descrever o traço, não pra afirmar dominância.
+    resumo: 'Foco em resultado rápido: decide sob pressão, mobiliza gente e assume responsabilidade sem esperar aprovação.',
     performa: 'Você performa melhor em ambientes de alta pressão onde resultado rápido é o que importa. Tem capacidade natural de decidir sob incerteza, mobilizar pessoas para ação imediata e assumir responsabilidades que outros evitam. Funções de liderança direta, vendas consultivas de alta complexidade e qualquer papel que exija coragem para agir sem aprovação de todos são onde você entrega mais.',
     derail: 'Você pode derrubar sua própria performance ao atropelar pessoas que precisam de mais tempo, ao não ouvir feedback que contradiz sua visão ou ao criar urgência desnecessária que desgasta o time. A impaciência com processos e a tendência de decidir sozinho podem gerar resistência onde você mais precisa de adesão.',
   },
   I: {
     nome: 'O Comunicador',
     descricao: 'Perfil dominante — Influência acima dos demais',
+    resumo: 'Foco em relacionamento: engaja, entusiasma e vende visões com facilidade natural para conectar pessoas.',
     performa: 'Você performa melhor em ambientes que exigem engajamento, construção de relacionamento e capacidade de inspirar pessoas a acreditar em algo. Tem talento natural para criar atmosfera positiva, vender visões e conectar pessoas. Funções de desenvolvimento de negócios, gestão de comunidade, treinamento e vendas relacionais são onde você entrega mais.',
     derail: 'Você pode derrubar sua performance ao deixar tarefas incompletas por excesso de ideias, ao evitar conversas difíceis para preservar o clima, ou ao superestimar o entusiasmo de outros como compromisso real. A falta de follow-through e o excesso de otimismo podem comprometer sua credibilidade nos momentos críticos.',
   },
   S: {
     nome: 'O Planejador',
     descricao: 'Perfil dominante — Estabilidade acima dos demais',
+    resumo: 'Foco em consistência: sustenta ritmo, cuida das pessoas ao redor e garante que o combinado seja entregue.',
     performa: 'Você performa melhor em ambientes que valorizam consistência, profundidade e confiabilidade. Tem capacidade natural de sustentar ritmo, cuidar de pessoas e garantir que o que foi prometido seja entregue. Funções de customer success, gestão de projetos de longo prazo, atendimento e qualquer papel onde a confiança é o ativo central são onde você entrega mais.',
     derail: 'Você pode derrubar sua performance ao evitar conflitos necessários, ao resistir a mudanças que seriam boas mas geram desconforto, ou ao se sobrecarregar por dificuldade de dizer não. A tendência de priorizar harmonia pode fazer você segurar feedbacks importantes que precisam ser dados.',
   },
   C: {
     nome: 'O Analista',
     descricao: 'Perfil dominante — Conformidade acima dos demais',
+    resumo: 'Foco em precisão: analisa risco antes de agir, estrutura processo com rigor e busca o padrão de qualidade certo.',
     performa: 'Você performa melhor em ambientes que valorizam qualidade, precisão e análise criteriosa. Tem capacidade natural de identificar riscos antes que se tornem problemas, estruturar processos com rigor e garantir que as entregas tenham o padrão esperado. Funções de operações, qualidade, análise de dados, produtos técnicos e consultoria são onde você entrega mais.',
     derail: 'Você pode derrubar sua performance ao paralisar por excesso de análise, ao rejeitar decisões tomadas com dados insuficientes (mesmo quando o timing exige ação) ou ao criticar sem oferecer alternativas. O perfeccionismo pode gerar atrasos e a exigência de precisão pode tornar a colaboração com perfis mais impulsivos difícil.',
   },
 };
+
+const TRAIT_LABELS = { D: 'Dominância', I: 'Influência', S: 'Estabilidade', C: 'Conformidade' };
 
 // Pontos mínimos de separação entre o 1º e o 2º traço para considerar que
 // há um traço realmente dominante. Abaixo disso é empate técnico — nunca
@@ -561,13 +595,34 @@ let state = {
   respostasC: {}, // aIdx -> score (1-5)
 };
 
+// D-08 da auditoria: o disc_state guardava a parte atual e as três listas
+// de respostas, mas não a identificação — quem recarregava no meio
+// recuperava as escolhas e perdia o nome. Salva/restaura os dois campos
+// junto (a calculadora já faz isso pro dela).
 function saveState() {
-  try { localStorage.setItem('disc_state', JSON.stringify(state)); } catch(e){}
+  try {
+    const toSave = {
+      ...state,
+      nomeDisc: document.getElementById('nomeDisc').value,
+      empresaDisc: document.getElementById('empresaDisc').value,
+    };
+    localStorage.setItem('disc_state', JSON.stringify(toSave));
+  } catch(e){}
 }
 function loadState() {
   try {
     const s = localStorage.getItem('disc_state');
-    if (s) state = JSON.parse(s);
+    if (s) {
+      const parsed = JSON.parse(s);
+      state = {
+        part: parsed.part || 'A',
+        respostasA: parsed.respostasA || {},
+        respostasB: parsed.respostasB || {},
+        respostasC: parsed.respostasC || {},
+      };
+      if (parsed.nomeDisc) document.getElementById('nomeDisc').value = parsed.nomeDisc;
+      if (parsed.empresaDisc) document.getElementById('empresaDisc').value = parsed.empresaDisc;
+    }
   } catch(e){}
 }
 
@@ -578,26 +633,36 @@ function renderParteA() {
   const container = document.getElementById('blocksA');
   container.innerHTML = '';
   BLOCOS_A.forEach((bloco, bIdx) => {
-    const div = document.createElement('div');
+    // D-01/D-03 da auditoria: fieldset+legend agrupa as 4 opções pro
+    // leitor de tela (era <div>), e aria-labelledby liga a frase da opção
+    // (que fica fora do <label>, por causa dos 2 radios MAIS/MENOS
+    // compartilhados) ao nome acessível de cada radio — sem isso, o radio
+    // só se anunciava como "+ Mais" ou "− Menos", sem dizer de qual frase.
+    const div = document.createElement('fieldset');
     div.className = 'choice-block';
     div.id = 'bloco-' + bIdx;
 
-    const header = `<div class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></div>`;
-    const optionsHtml = bloco.words.map((w, wIdx) => `
+    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></legend>`;
+    const optionsHtml = bloco.words.map((w, wIdx) => {
+      const textId = `optText-${bIdx}-${wIdx}`;
+      const maisId = `optMais-${bIdx}-${wIdx}`;
+      const menosId = `optMenos-${bIdx}-${wIdx}`;
+      return `
       <div class="choice-option">
-        <span class="choice-option-text">${w.text}</span>
+        <span class="choice-option-text" id="${textId}">${w.text}</span>
         <div class="choice-radios">
           <label>
-            <input type="radio" name="a${bIdx}_mais" value="${wIdx}" ${state.respostasA[bIdx]?.mais === wIdx ? 'checked' : ''}>
-            <span>+ Mais</span>
+            <input type="radio" name="a${bIdx}_mais" value="${wIdx}" aria-labelledby="${textId} ${maisId}" ${state.respostasA[bIdx]?.mais === wIdx ? 'checked' : ''}>
+            <span id="${maisId}">+ Mais</span>
           </label>
           <label>
-            <input type="radio" name="a${bIdx}_menos" value="${wIdx}" ${state.respostasA[bIdx]?.menos === wIdx ? 'checked' : ''}>
-            <span>− Menos</span>
+            <input type="radio" name="a${bIdx}_menos" value="${wIdx}" aria-labelledby="${textId} ${menosId}" ${state.respostasA[bIdx]?.menos === wIdx ? 'checked' : ''}>
+            <span id="${menosId}">− Menos</span>
           </label>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p>`;
     container.appendChild(div);
@@ -644,7 +709,10 @@ function renderParteB() {
   const container = document.getElementById('situationsB');
   container.innerHTML = '';
   SITUACOES_B.forEach((sit, sIdx) => {
-    const div = document.createElement('div');
+    // D-01: fieldset+legend agrupa as 4 opções (era <div>); aqui o texto da
+    // opção já ficava dentro do <label>, então o nome acessível de cada
+    // radio já era a frase inteira — só faltava mesmo o agrupamento.
+    const div = document.createElement('fieldset');
     div.className = 'situation-card';
     const optsHtml = sit.options.map((opt, oIdx) => `
       <label>
@@ -652,7 +720,7 @@ function renderParteB() {
         ${opt.text}
       </label>
     `).join('');
-    div.innerHTML = `<p class="situation-num">Situação ${sIdx+1}</p><p class="situation-text">${sit.text}</p><div class="situation-options">${optsHtml}</div>`;
+    div.innerHTML = `<legend><span class="situation-num">Situação ${sIdx+1}</span><span class="situation-text">${sit.text}</span></legend><div class="situation-options">${optsHtml}</div>`;
     container.appendChild(div);
 
     div.querySelectorAll(`input[name="b${sIdx}"]`).forEach(inp => {
@@ -680,7 +748,10 @@ function renderParteC() {
   const container = document.getElementById('intensityC');
   container.innerHTML = '';
   INTENSIDADE_C.forEach((item, aIdx) => {
-    const div = document.createElement('div');
+    // D-01: fieldset+legend agrupa a escala de 1 a 5 (era <div>); a
+    // afirmação vira a legend, dando contexto pro leitor de tela antes de
+    // navegar pelas 5 opções.
+    const div = document.createElement('fieldset');
     div.className = 'intensity-item';
     const scaleHtml = [1,2,3,4,5].map(v => `
       <label>
@@ -689,10 +760,10 @@ function renderParteC() {
       </label>
     `).join('');
     div.innerHTML = `
-      <div>
+      <legend>
         <span class="intensity-disc-tag tag-${item.trait.toLowerCase()}">${item.trait}</span>
-        <p class="intensity-text">${item.text}</p>
-      </div>
+        <span class="intensity-text">${item.text}</span>
+      </legend>
       <div>
         <div class="intensity-scale">${scaleHtml}</div>
         <div class="scale-hint"><span>Discordo totalmente</span><span>Concordo totalmente</span></div>
@@ -776,6 +847,26 @@ function renderResultado() {
   renderBars('barsNatural', natural, 28);
   renderBars('barsAdaptado', adaptado, 16);
 
+  // D-04: compara natural x adaptado de verdade — acha o traço com maior
+  // distância entre os dois perfis e comenta a adaptação (ou a falta dela).
+  const deltaEl = document.getElementById('adaptacaoDelta');
+  let maiorTraitDelta = 'D';
+  let maiorDelta = -1;
+  ['D','I','S','C'].forEach(t => {
+    const delta = Math.abs((adaptado[t] || 0) - (natural[t] || 0));
+    if (delta > maiorDelta) { maiorDelta = delta; maiorTraitDelta = t; }
+  });
+  if (maiorDelta > 0) {
+    const delta = adaptado[maiorTraitDelta] - natural[maiorTraitDelta];
+    const label = TRAIT_LABELS[maiorTraitDelta];
+    const verbo = delta > 0 ? 'sobe' : 'cai';
+    deltaEl.style.display = 'block';
+    deltaEl.innerHTML = `<h4>Natural × adaptado</h4><p>No trabalho, sua ${label} ${verbo} ${Math.abs(delta)} ponto${Math.abs(delta) === 1 ? '' : 's'} em relação ao seu perfil natural — é o traço que mais muda quando você está sob pressão no ambiente profissional.</p>`;
+  } else {
+    deltaEl.style.display = 'block';
+    deltaEl.innerHTML = `<h4>Natural × adaptado</h4><p>Seu perfil natural e o adaptado praticamente não mudam — você age no trabalho do jeito que você é naturalmente, sem precisar se ajustar sob pressão.</p>`;
+  }
+
   // intensidade
   const intSection = document.getElementById('barsIntensidade');
   intSection.innerHTML = '';
@@ -786,30 +877,60 @@ function renderResultado() {
     row.innerHTML = `
       <span class="intensity-bar-label" style="color:var(--${t.toLowerCase()}-color)">${t} · ${ARQUETIPO_MAP[t].nome.replace('O ','')}</span>
       <div class="bar-track"><div class="bar-fill fill-${t.toLowerCase()}" style="width:${pct}%"></div></div>
-      <span class="intensity-bar-value">${intensidade[t].toFixed(1)}</span>
+      <span class="intensity-bar-value">${intensidade[t].toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
     `;
     intSection.appendChild(row);
   });
 
-  // cartões DISC
+  // D-05: quando as 4 intensidades saem muito parecidas, avisa que pode
+  // ser sinal de respostas pouco diferenciadas na Parte C.
+  const intensidadeAviso = document.getElementById('intensidadeAviso');
+  const valoresIntensidade = ['D','I','S','C'].map(t => intensidade[t]);
+  const spreadIntensidade = Math.max(...valoresIntensidade) - Math.min(...valoresIntensidade);
+  if (spreadIntensidade < 1) {
+    intensidadeAviso.style.display = 'block';
+    intensidadeAviso.innerHTML = `<h4>Respostas pouco diferenciadas</h4><p>Suas quatro intensidades ficaram bem parecidas (diferença de só ${spreadIntensidade.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ponto entre a maior e a menor). Isso pode ser porque os quatro traços realmente pesam parecido em você, ou porque as respostas da Parte C foram pouco diferenciadas — vale refazer aquela parte respondendo pela primeira impressão.</p>`;
+  } else {
+    intensidadeAviso.style.display = 'none';
+  }
+
+  // cartões DISC — D-06: descrição neutra (não afirma "dominante" pros 4 ao
+  // mesmo tempo) e destaque visual pro(s) traço(s) do participante.
   const cardsEl = document.getElementById('discCards');
-  cardsEl.innerHTML = ['D','I','S','C'].map(t => `
-    <div class="disc-card ${t.toLowerCase()}">
+  cardsEl.innerHTML = ['D','I','S','C'].map(t => {
+    const ehDoParticipante = perfil.traits.includes(t);
+    return `
+    <div class="disc-card ${t.toLowerCase()}${ehDoParticipante ? ' own' : ''}">
       <div class="disc-card-header">
         <span class="disc-card-letter">${t}</span>
         <span class="disc-card-name">${ARQUETIPO_MAP[t].nome}</span>
+        ${ehDoParticipante ? '<span class="disc-card-own-badge">Seu perfil</span>' : ''}
       </div>
-      <p>${ARQUETIPO_MAP[t].descricao}</p>
+      <p>${ARQUETIPO_MAP[t].resumo}</p>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
-  // insights (um bloco por traço — dois blocos quando há empate)
-  document.getElementById('insightPerforma').innerHTML = infos.map(info => `
+  // insights (um bloco por traço — dois blocos quando há empate).
+  // D-05: cada bloco de performa é aberto com uma frase que modula pela
+  // intensidade medida na Parte C, em vez de repetir o mesmo texto pra
+  // quem respondeu 1 ou 5 em tudo.
+  document.getElementById('insightPerforma').innerHTML = infos.map((info, i) => {
+    const t = perfil.traits[i];
+    const valor = intensidade[t];
+    const label = TRAIT_LABELS[t];
+    const fmtValor = valor.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    let fraseIntensidade;
+    if (valor >= 4) fraseIntensidade = `Sua intensidade de ${label} é alta (${fmtValor} de 5) — esse traço aparece com força no seu dia a dia.`;
+    else if (valor <= 2) fraseIntensidade = `Sua intensidade de ${label} é baixa (${fmtValor} de 5) — esse traço aparece de forma mais moderada no seu comportamento.`;
+    else fraseIntensidade = `Sua intensidade de ${label} é moderada (${fmtValor} de 5).`;
+    return `
     <div class="insight-block">
       <h4>${info.nome} em ação</h4>
-      <p>${info.performa}</p>
+      <p><strong>${fraseIntensidade}</strong> ${info.performa}</p>
     </div>
-  `).join('');
+  `;
+  }).join('');
   document.getElementById('insightDerail').innerHTML = infos.map(info => `
     <div class="insight-block derail">
       <h4>Atenção: o que pode derrubar sua performance (${info.nome})</h4>
@@ -867,11 +988,10 @@ function showPart(part) {
 
   if (part === 'resultado') {
     document.getElementById('resultado').style.display = 'block';
-    window.scrollTo(0, 0);
   } else {
     document.getElementById('part' + part).classList.add('active');
-    window.scrollTo(0, 0);
   }
+  if (window.scrollTo) window.scrollTo(0, 0);
   state.part = part;
   saveState();
 }
@@ -908,13 +1028,18 @@ async function sendResultado(data) {
 
   if (!payload.nome_participante) {
     statusEl.textContent = 'Preencha seu nome no início do formulário para registrar.';
-    statusEl.style.color = 'var(--alert)';
+    statusEl.style.color = 'var(--danger)';
+    // D-09 da auditoria: a mensagem pedia pra rolar até o topo, mas não
+    // levava a pessoa até lá — a calculadora já faz isso certo.
+    const nomeInput = document.getElementById('nomeDisc');
+    nomeInput.focus();
+    if (nomeInput.scrollIntoView) nomeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
   document.getElementById('btnSend').disabled = true;
   statusEl.textContent = 'Enviando...';
-  statusEl.style.color = 'var(--ink-faint)';
+  statusEl.style.color = 'var(--fg-faint)';
 
   payload.respostas = { a: state.respostasA, b: state.respostasB, c: state.respostasC };
 
@@ -926,11 +1051,11 @@ async function sendResultado(data) {
     });
     if (!resp.ok) throw new Error();
     statusEl.textContent = 'Perfil enviado com sucesso! Você já pode salvar o PDF.';
-    statusEl.style.color = 'var(--ok)';
+    statusEl.style.color = 'var(--success)';
     document.getElementById('btnSend').disabled = true;
   } catch(e) {
     statusEl.textContent = 'Não foi possível enviar agora. Confira sua conexão e tente de novo.';
-    statusEl.style.color = 'var(--alert)';
+    statusEl.style.color = 'var(--danger)';
     document.getElementById('btnSend').disabled = false;
   }
 }
@@ -970,7 +1095,7 @@ async function baixarPdf(data) {
     URL.revokeObjectURL(url);
   } catch (err) {
     statusEl.textContent = 'Não foi possível gerar o PDF agora. Tente de novo.';
-    statusEl.style.color = 'var(--alert)';
+    statusEl.style.color = 'var(--danger)';
   } finally {
     btnPdf.disabled = false;
     btnPdf.textContent = btnPdfDefaultText;
@@ -980,7 +1105,12 @@ async function baixarPdf(data) {
 // ============================================================
 // INIT
 // ============================================================
+document.getElementById('discForm').addEventListener('submit', (e) => e.preventDefault());
+
 loadState();
+
+document.getElementById('nomeDisc').addEventListener('input', saveState);
+document.getElementById('empresaDisc').addEventListener('input', saveState);
 
 renderParteA();
 renderParteB();
@@ -1028,10 +1158,19 @@ document.getElementById('btnPdf').addEventListener('click', () => {
   if (lastResultData) baixarPdf(lastResultData);
 });
 
+const confirmReset = document.getElementById('confirmReset');
 document.getElementById('btnReset').addEventListener('click', () => {
-  if (!confirm('Isso apaga todas as suas respostas. Continuar?')) return;
+  confirmReset.style.display = 'block';
+  if (confirmReset.scrollIntoView) confirmReset.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+document.getElementById('confirmResetNo').addEventListener('click', () => {
+  confirmReset.style.display = 'none';
+});
+document.getElementById('confirmResetYes').addEventListener('click', () => {
+  confirmReset.style.display = 'none';
+  document.getElementById('nomeDisc').value = '';
+  document.getElementById('empresaDisc').value = '';
   state = { part: 'A', respostasA: {}, respostasB: {}, respostasC: {} };
-  saveState();
   try { localStorage.removeItem('disc_state'); } catch(e){}
   renderParteA();
   renderParteB();

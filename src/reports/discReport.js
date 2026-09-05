@@ -27,28 +27,42 @@ const ARQUETIPO_MAP = {
   D: {
     nome: 'O Executor',
     descricao: 'Perfil dominante — Dominância acima dos demais',
+    // D-06 da auditoria: os 4 cards de referência usavam .descricao (que
+    // afirma "perfil dominante") pros 4 traços ao mesmo tempo — o leitor
+    // via a mesma alegação 4 vezes seguidas. .resumo é neutro, só descreve
+    // o traço, e não afirma dominância de ninguém.
+    resumo: 'Foco em resultado rápido: decide sob pressão, mobiliza gente e assume responsabilidade sem esperar aprovação.',
     performa: 'Você performa melhor em ambientes de alta pressão onde resultado rápido é o que importa. Tem capacidade natural de decidir sob incerteza, mobilizar pessoas para ação imediata e assumir responsabilidades que outros evitam. Funções de liderança direta, vendas consultivas de alta complexidade e qualquer papel que exija coragem para agir sem aprovação de todos são onde você entrega mais.',
     derail: 'Você pode derrubar sua própria performance ao atropelar pessoas que precisam de mais tempo, ao não ouvir feedback que contradiz sua visão ou ao criar urgência desnecessária que desgasta o time. A impaciência com processos e a tendência de decidir sozinho podem gerar resistência onde você mais precisa de adesão.',
   },
   I: {
     nome: 'O Comunicador',
     descricao: 'Perfil dominante — Influência acima dos demais',
+    resumo: 'Foco em relacionamento: engaja, entusiasma e vende visões com facilidade natural para conectar pessoas.',
     performa: 'Você performa melhor em ambientes que exigem engajamento, construção de relacionamento e capacidade de inspirar pessoas a acreditar em algo. Tem talento natural para criar atmosfera positiva, vender visões e conectar pessoas. Funções de desenvolvimento de negócios, gestão de comunidade, treinamento e vendas relacionais são onde você entrega mais.',
     derail: 'Você pode derrubar sua performance ao deixar tarefas incompletas por excesso de ideias, ao evitar conversas difíceis para preservar o clima, ou ao superestimar o entusiasmo de outros como compromisso real. A falta de follow-through e o excesso de otimismo podem comprometer sua credibilidade nos momentos críticos.',
   },
   S: {
     nome: 'O Planejador',
     descricao: 'Perfil dominante — Estabilidade acima dos demais',
+    resumo: 'Foco em consistência: sustenta ritmo, cuida das pessoas ao redor e garante que o combinado seja entregue.',
     performa: 'Você performa melhor em ambientes que valorizam consistência, profundidade e confiabilidade. Tem capacidade natural de sustentar ritmo, cuidar de pessoas e garantir que o que foi prometido seja entregue. Funções de customer success, gestão de projetos de longo prazo, atendimento e qualquer papel onde a confiança é o ativo central são onde você entrega mais.',
     derail: 'Você pode derrubar sua performance ao evitar conflitos necessários, ao resistir a mudanças que seriam boas mas geram desconforto, ou ao se sobrecarregar por dificuldade de dizer não. A tendência de priorizar harmonia pode fazer você segurar feedbacks importantes que precisam ser dados.',
   },
   C: {
     nome: 'O Analista',
     descricao: 'Perfil dominante — Conformidade acima dos demais',
+    resumo: 'Foco em precisão: analisa risco antes de agir, estrutura processo com rigor e busca o padrão de qualidade certo.',
     performa: 'Você performa melhor em ambientes que valorizam qualidade, precisão e análise criteriosa. Tem capacidade natural de identificar riscos antes que se tornem problemas, estruturar processos com rigor e garantir que as entregas tenham o padrão esperado. Funções de operações, qualidade, análise de dados, produtos técnicos e consultoria são onde você entrega mais.',
     derail: 'Você pode derrubar sua performance ao paralisar por excesso de análise, ao rejeitar decisões tomadas com dados insuficientes (mesmo quando o timing exige ação) ou ao criticar sem oferecer alternativas. O perfeccionismo pode gerar atrasos e a exigência de precisão pode tornar a colaboração com perfis mais impulsivos difícil.',
   },
 };
+
+// D-10 da auditoria: o texto dizia "escala de 0 a 5" (0 nem existe como
+// opção) e os valores saíam com ponto decimal em vez de vírgula.
+function fmtDecimalPtBR(n) {
+  return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
 
 // Pontos mínimos de separação entre o 1º e o 2º traço para considerar que
 // há um traço realmente dominante. Abaixo disso é empate técnico — nunca
@@ -111,17 +125,19 @@ function drawSignedBarSection(doc, scores, ref) {
   doc.moveDown(0.6);
 }
 
-// intensidade: média de 0 a 5
+// intensidade: média de 1 a 5
 function drawIntensitySection(doc, scores) {
   TRAITS.forEach((t) => {
     const v = scores[t] || 0;
     const pct = (v / 5) * 100;
-    drawTraitBar(doc, t, pct, v.toFixed(1));
+    drawTraitBar(doc, t, pct, fmtDecimalPtBR(v));
   });
   doc.moveDown(0.6);
 }
 
-function drawTraitCards(doc) {
+// traitsDoParticipante: perfil.traits (1 ou 2 letras) — usado só pra
+// destacar visualmente qual(is) card(s) é(são) do participante (D-06).
+function drawTraitCards(doc, traitsDoParticipante) {
   const width = contentWidth(doc);
   const gap = 12;
   const cardWidth = (width - gap) / 2;
@@ -131,22 +147,28 @@ function drawTraitCards(doc) {
     doc.font('Helvetica').fontSize(9);
     const cardHeight = Math.max(
       74,
-      ...rowTraits.map((t) => 34 + doc.heightOfString(ARQUETIPO_MAP[t].descricao, { width: cardWidth - 32 }))
+      ...rowTraits.map((t) => 34 + doc.heightOfString(ARQUETIPO_MAP[t].resumo, { width: cardWidth - 32 }))
     );
     ensureSpace(doc, cardHeight + 12);
     const startY = doc.y;
 
     rowTraits.forEach((t, i) => {
       const x = PAGE_MARGIN + i * (cardWidth + gap);
+      const ehDoParticipante = traitsDoParticipante.includes(t);
       doc.rect(x, startY, cardWidth, cardHeight).fill(TRAIT_BG[t]);
-      doc.rect(x, startY, 4, cardHeight).fill(TRAIT_COLORS[t]);
+      doc.rect(x, startY, ehDoParticipante ? 6 : 4, cardHeight).fill(TRAIT_COLORS[t]);
+      if (ehDoParticipante) {
+        doc.roundedRect(x + cardWidth - 78, startY + 10, 68, 16, 8).fill(TRAIT_COLORS[t]);
+        doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.5)
+          .text('SEU PERFIL', x + cardWidth - 78, startY + 15, { width: 68, align: 'center', characterSpacing: 0.3 });
+      }
 
       doc.fillColor(TRAIT_COLORS[t]).font('Helvetica-Bold').fontSize(13)
         .text(t, x + 16, startY + 14, { width: 20, lineBreak: false });
       doc.fillColor(PALETTE.ink).font('Helvetica-Bold').fontSize(10.5)
-        .text(ARQUETIPO_MAP[t].nome, x + 36, startY + 14, { width: cardWidth - 52 });
+        .text(ARQUETIPO_MAP[t].nome, x + 36, startY + 14, { width: cardWidth - (ehDoParticipante ? 130 : 52) });
       doc.fillColor(PALETTE.inkSoft).font('Helvetica').fontSize(9)
-        .text(ARQUETIPO_MAP[t].descricao, x + 16, startY + 32, { width: cardWidth - 32 });
+        .text(ARQUETIPO_MAP[t].resumo, x + 16, startY + 32, { width: cardWidth - 32 });
     });
 
     doc.y = startY + cardHeight + 12;
@@ -183,6 +205,51 @@ function drawArchetypeHero(doc, traits, infos, descricao) {
     .text(descricao, PAGE_MARGIN + 24, y + 56, { width: width - 48 });
 
   doc.y = y + height + 18;
+}
+
+// D-04 da auditoria: o subtítulo promete "natural x adaptado" mas nada
+// comparava os dois perfis — só duas seções de barra lado a lado, sem
+// nenhuma linha ligando-as. Acha o traço com maior distância entre os
+// dois perfis e comenta a adaptação (ou a falta dela).
+function drawAdaptacaoDelta(doc, natural, adaptado) {
+  let maiorTrait = 'D';
+  let maiorDelta = -1;
+  TRAITS.forEach((t) => {
+    const delta = Math.abs((adaptado[t] || 0) - (natural[t] || 0));
+    if (delta > maiorDelta) { maiorDelta = delta; maiorTrait = t; }
+  });
+
+  let texto;
+  if (maiorDelta > 0) {
+    const delta = adaptado[maiorTrait] - natural[maiorTrait];
+    const verbo = delta > 0 ? 'sobe' : 'cai';
+    texto = `No trabalho, sua ${TRAIT_LABELS[maiorTrait]} ${verbo} ${Math.abs(delta)} ponto${Math.abs(delta) === 1 ? '' : 's'} em relação ao seu perfil natural — é o traço que mais muda quando você está sob pressão no ambiente profissional.`;
+  } else {
+    texto = 'Seu perfil natural e o adaptado praticamente não mudam — você age no trabalho do jeito que você é naturalmente, sem precisar se ajustar sob pressão.';
+  }
+  sectionTitle(doc, 'Natural × adaptado');
+  drawCallout(doc, texto, 'ok');
+}
+
+// D-05: quando as 4 intensidades saem muito parecidas, é sinal de
+// respostas pouco diferenciadas na Parte C — vale avisar.
+function drawIntensidadeAviso(doc, intensidade) {
+  const valores = TRAITS.map((t) => intensidade[t] || 0);
+  const spread = Math.max(...valores) - Math.min(...valores);
+  if (spread >= 1) return;
+  const texto = `Suas quatro intensidades ficaram bem parecidas (diferença de só ${fmtDecimalPtBR(spread)} ponto entre a maior e a menor). Isso pode ser porque os quatro traços realmente pesam parecido em você, ou porque as respostas da Parte C foram pouco diferenciadas.`;
+  drawCallout(doc, texto, 'alert');
+}
+
+// D-05: frase que modula o texto de "como você performa" pela intensidade
+// medida na Parte C — antes o texto saía igual pra quem respondeu 1 ou 5
+// em tudo.
+function fraseIntensidade(trait, valor) {
+  const label = TRAIT_LABELS[trait];
+  const fmt = fmtDecimalPtBR(valor);
+  if (valor >= 4) return `Sua intensidade de ${label} é alta (${fmt} de 5) — esse traço aparece com força no seu dia a dia.`;
+  if (valor <= 2) return `Sua intensidade de ${label} é baixa (${fmt} de 5) — esse traço aparece de forma mais moderada no seu comportamento.`;
+  return `Sua intensidade de ${label} é moderada (${fmt} de 5).`;
 }
 
 /**
@@ -241,15 +308,19 @@ function generateDiscPdf(data) {
   sectionTitle(doc, 'Perfil adaptado (trabalho)', 'Como você se comporta em situações reais no ambiente de trabalho.');
   drawSignedBarSection(doc, adaptado, 16);
 
-  sectionTitle(doc, 'Intensidade por traço', 'Força de cada traço, numa escala de 0 a 5.');
+  drawAdaptacaoDelta(doc, natural, adaptado);
+
+  sectionTitle(doc, 'Intensidade por traço', 'Força de cada traço, numa escala de 1 a 5.');
   drawIntensitySection(doc, intensidade);
+  drawIntensidadeAviso(doc, intensidade);
 
   sectionTitle(doc, 'Os quatro perfis DISC');
-  drawTraitCards(doc);
+  drawTraitCards(doc, perfil.traits);
 
-  infos.forEach((info) => {
+  infos.forEach((info, i) => {
+    const t = perfil.traits[i];
     sectionTitle(doc, `${info.nome} em ação`);
-    drawCallout(doc, info.performa, 'ok');
+    drawCallout(doc, `${fraseIntensidade(t, intensidade[t])} ${info.performa}`, 'ok');
   });
 
   infos.forEach((info) => {

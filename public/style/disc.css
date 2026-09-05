@@ -12,7 +12,10 @@
   --muted:        #1F2538;
   --fg:           #F4F5FA;
   --fg-soft:      #9DA8C0;
-  --fg-faint:     #5A6480;
+  /* D-07 da auditoria: #5A6480 dava 3,00:1 (ex.: .progress-label sobre
+     --bg) — abaixo do mínimo 4,5:1 do WCAG AA. #808AA6 passa (5,13:1),
+     mesmo ajuste feito em style/index.css para a calculadora. */
+  --fg-faint:     #808AA6;
   --border:       rgba(255, 255, 255, 0.12);
   --border-solid: #2A3050;
   --input-bg:     rgba(255, 255, 255, 0.08);
@@ -58,6 +61,31 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+
+/* D-01 da auditoria: os 348 radios ficavam display:none, o que os tira do
+   teclado e da árvore de acessibilidade — não é só ocultação visual. Esta
+   regra some com eles visualmente sem tirar o elemento do foco/tab (técnica
+   padrão de "visually hidden"). O estado marcado/hover continua pintado no
+   <label> ao redor via :has(:checked); o foco via :has(:focus-visible),
+   uma regra por grupo, perto de cada .choice-radios/.situation-options/
+   .intensity-scale. */
+.choice-radios input[type=radio],
+.situation-options input[type=radio],
+.intensity-scale input[type=radio] {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* D-01/D-03: fieldset/legend nativos agrupam cada bloco/situação/afirmação
+   pra leitor de tela, sem o peso visual padrão do navegador. */
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { display: block; width: 100%; padding: 0; margin: 0; }
+
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -350,7 +378,10 @@ h2 {
   user-select: none;
   transition: all 0.15s;
 }
-.choice-radios input[type=radio] { display: none; }
+.choice-radios label:has(input[type=radio]:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .choice-radios label:has(input[type=radio][value="mais"]:checked),
 .choice-radios label:has(input[type=radio].mais:checked) {
   background: var(--primary);
@@ -398,6 +429,8 @@ h2 {
   padding: 22px;
 }
 .situation-num {
+  /* virou <span> dentro de <legend> (era <p>) — precisa de block explícito */
+  display: block;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -406,6 +439,7 @@ h2 {
   margin-bottom: 8px;
 }
 .situation-text {
+  display: block;
   font-family: var(--display);
   font-weight: 600;
   font-size: 15px;
@@ -433,7 +467,10 @@ h2 {
   transition: all 0.15s;
   line-height: 1.5;
 }
-.situation-options input[type=radio] { display: none; }
+.situation-options label:has(input[type=radio]:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .situation-options label:has(input[type=radio]:checked) {
   background: rgba(170,220,78,0.1);
   color: var(--fg);
@@ -480,6 +517,7 @@ h2 {
 .tag-c { background: var(--c-bg); color: var(--c-color); border: 1px solid var(--c-border); }
 
 .intensity-text {
+  display: block;
   font-size: 14.5px;
   font-weight: 500;
   color: var(--fg);
@@ -505,7 +543,10 @@ h2 {
 }
 .intensity-scale label:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); margin-left: 0; }
 .intensity-scale label:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-.intensity-scale input[type=radio] { display: none; }
+.intensity-scale label:has(input[type=radio]:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .intensity-scale label:has(input[type=radio]:checked) {
   background: var(--primary);
   color: var(--primary-fg);
@@ -719,6 +760,20 @@ h2 {
 .disc-card.c .disc-card-letter { color: var(--c-color); }
 .disc-card-name { font-family: var(--display); font-weight: 600; font-size: 14px; color: var(--fg); }
 .disc-card p { font-size: 13px; color: var(--fg-soft); margin: 0; line-height: 1.55; }
+/* D-06 da auditoria: os 4 cards diziam "perfil dominante" pros 4 traços ao
+   mesmo tempo, sem marcar qual é o do participante. */
+.disc-card.own { border-width: 2px; }
+.disc-card-own-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary-fg);
+  background: var(--primary);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: auto;
+}
 
 /* Blocos de insight */
 .insight-section { margin-bottom: 40px; }
@@ -747,6 +802,17 @@ h2 {
   border-color: rgba(224,82,82,0.3);
 }
 .insight-block.derail h4 { color: var(--danger); }
+
+/* D-12 da auditoria: confirm() nativo travava o navegador no meio de uma
+   avaliação de 56 respostas. Confirmação inline no mesmo padrão visual. */
+.confirm-box {
+  background: var(--danger-bg);
+  border: 1px solid rgba(224,82,82,0.3);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-top: 16px;
+  color: var(--fg);
+}
 .insight-block.derail p  { color: rgba(224,82,82,0.85); }
 
 /* Ações do resultado */
