@@ -69,7 +69,7 @@
    <label> ao redor via :has(:checked); o foco via :has(:focus-visible),
    uma regra por grupo, perto de cada .choice-radios/.situation-options/
    .intensity-scale. */
-.choice-radios input[type=radio],
+.choice-radios input[type=checkbox],
 .situation-options input[type=radio],
 .intensity-scale input[type=radio] {
   position: absolute;
@@ -378,18 +378,11 @@ h2 {
   user-select: none;
   transition: all 0.15s;
 }
-.choice-radios label:has(input[type=radio]:focus-visible) {
+.choice-radios label:has(input[type=checkbox]:focus-visible) {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-.choice-radios label:has(input[type=radio][value="mais"]:checked),
-.choice-radios label:has(input[type=radio].mais:checked) {
-  background: var(--primary);
-  color: var(--primary-fg);
-  border-color: var(--primary);
-}
-/* Qualquer radio checked */
-.choice-radios label:has(input[type=radio]:checked) {
+.choice-radios label:has(input[type=checkbox]:checked) {
   background: var(--primary);
   color: var(--primary-fg);
   border-color: var(--primary);

@@ -66,7 +66,7 @@
       <span class="part-badge">Parte A</span>
       <h2>Perfil natural</h2>
     </div>
-    <p class="part-desc">Em cada bloco, marque qual palavra é <strong>MAIS</strong> parecida com você e qual é a <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
+    <p class="part-desc">Em cada bloco, marque a(s) palavra(s) <strong>MAIS</strong> parecida(s) com você e a(s) <strong>MENOS</strong> parecida(s) — pode marcar mais de uma em cada grupo. Responda como você é — não como gostaria de ser.</p>
 
     <div class="progress-wrap">
       <div class="progress-label" id="progressLabelA" aria-live="polite">0 de 28 blocos respondidos</div>
@@ -594,7 +594,7 @@ function resolverPerfilDominante(scores) {
 // ============================================================
 let state = {
   part: 'A',
-  respostasA: {}, // blockIdx -> { mais: wordIdx, menos: wordIdx }
+  respostasA: {}, // blockIdx -> { mais: wordIdx[], menos: wordIdx[] } — mais de uma palavra por grupo é permitido
   respostasB: {}, // sIdx -> optionIdx
   respostasC: {}, // aIdx -> score (1-5)
 };
@@ -646,21 +646,23 @@ function renderParteA() {
     div.className = 'choice-block';
     div.id = 'bloco-' + bIdx;
 
-    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></legend>`;
+    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque uma ou mais palavras MAIS parecidas e uma ou mais MENOS parecidas com você</span></legend>`;
     const optionsHtml = bloco.words.map((w, wIdx) => {
       const textId = `optText-${bIdx}-${wIdx}`;
       const maisId = `optMais-${bIdx}-${wIdx}`;
       const menosId = `optMenos-${bIdx}-${wIdx}`;
+      const marcadoMais = (state.respostasA[bIdx]?.mais || []).includes(wIdx);
+      const marcadoMenos = (state.respostasA[bIdx]?.menos || []).includes(wIdx);
       return `
       <div class="choice-option">
         <span class="choice-option-text" id="${textId}">${w.text}</span>
         <div class="choice-radios">
           <label>
-            <input type="radio" name="a${bIdx}_mais" value="${wIdx}" aria-labelledby="${textId} ${maisId}" ${state.respostasA[bIdx]?.mais === wIdx ? 'checked' : ''}>
+            <input type="checkbox" name="a${bIdx}_mais" value="${wIdx}" aria-labelledby="${textId} ${maisId}" ${marcadoMais ? 'checked' : ''}>
             <span id="${maisId}">+ Mais</span>
           </label>
           <label>
-            <input type="radio" name="a${bIdx}_menos" value="${wIdx}" aria-labelledby="${textId} ${menosId}" ${state.respostasA[bIdx]?.menos === wIdx ? 'checked' : ''}>
+            <input type="checkbox" name="a${bIdx}_menos" value="${wIdx}" aria-labelledby="${textId} ${menosId}" ${marcadoMenos ? 'checked' : ''}>
             <span id="${menosId}">− Menos</span>
           </label>
         </div>
@@ -679,18 +681,26 @@ function renderParteA() {
   updateProgressA();
 }
 
+// Um bloco conta como respondido quando há pelo menos uma palavra marcada
+// em cada grupo (Mais/Menos permite mais de uma) e nenhuma palavra está
+// marcada nos dois grupos ao mesmo tempo.
+function blocoARespondido(r) {
+  if (!r || !Array.isArray(r.mais) || !Array.isArray(r.menos)) return false;
+  if (r.mais.length === 0 || r.menos.length === 0) return false;
+  return !r.mais.some((v) => r.menos.includes(v));
+}
+
 function updateBlocoA(bIdx) {
-  const maisEl = document.querySelector(`input[name="a${bIdx}_mais"]:checked`);
-  const menosEl = document.querySelector(`input[name="a${bIdx}_menos"]:checked`);
-  const mais = maisEl ? parseInt(maisEl.value) : undefined;
-  const menos = menosEl ? parseInt(menosEl.value) : undefined;
+  const mais = Array.from(document.querySelectorAll(`input[name="a${bIdx}_mais"]:checked`)).map((el) => parseInt(el.value));
+  const menos = Array.from(document.querySelectorAll(`input[name="a${bIdx}_menos"]:checked`)).map((el) => parseInt(el.value));
 
   if (!state.respostasA[bIdx]) state.respostasA[bIdx] = {};
   state.respostasA[bIdx].mais = mais;
   state.respostasA[bIdx].menos = menos;
 
   const bloco = document.getElementById('bloco-' + bIdx);
-  bloco.classList.toggle('conflict', mais !== undefined && menos !== undefined && mais === menos);
+  const overlap = mais.some((v) => menos.includes(v));
+  bloco.classList.toggle('conflict', overlap);
   saveState();
   updateProgressA();
 }
@@ -698,8 +708,7 @@ function updateBlocoA(bIdx) {
 function updateProgressA() {
   let done = 0;
   BLOCOS_A.forEach((_, i) => {
-    const r = state.respostasA[i];
-    if (r && r.mais !== undefined && r.menos !== undefined && r.mais !== r.menos) done++;
+    if (blocoARespondido(state.respostasA[i])) done++;
   });
   const pct = (done / BLOCOS_A.length) * 100;
   document.getElementById('progressFillA').style.width = pct + '%';
@@ -790,11 +799,15 @@ function calcNatural() {
   const scores = { D:0, I:0, S:0, C:0 };
   BLOCOS_A.forEach((bloco, bIdx) => {
     const r = state.respostasA[bIdx];
-    if (!r || r.mais === undefined || r.menos === undefined || r.mais === r.menos) return;
-    const wMais = bloco.words[r.mais];
-    const wMenos = bloco.words[r.menos];
-    if (wMais) scores[wMais.trait] = (scores[wMais.trait] || 0) + 1;
-    if (wMenos) scores[wMenos.trait] = (scores[wMenos.trait] || 0) - 1;
+    if (!blocoARespondido(r)) return;
+    r.mais.forEach((wIdx) => {
+      const w = bloco.words[wIdx];
+      if (w) scores[w.trait] = (scores[w.trait] || 0) + 1;
+    });
+    r.menos.forEach((wIdx) => {
+      const w = bloco.words[wIdx];
+      if (w) scores[w.trait] = (scores[w.trait] || 0) - 1;
+    });
   });
   return scores;
 }
@@ -969,12 +982,7 @@ function renderBars(containerId, scores, total) {
 // VALIDAÇÕES
 // ============================================================
 function validateA() {
-  let allOk = true;
-  BLOCOS_A.forEach((_, i) => {
-    const r = state.respostasA[i];
-    if (!r || r.mais === undefined || r.menos === undefined || r.mais === r.menos) allOk = false;
-  });
-  return allOk;
+  return BLOCOS_A.every((_, i) => blocoARespondido(state.respostasA[i]));
 }
 function validateB() {
   return Object.keys(state.respostasB).length === SITUACOES_B.length;
