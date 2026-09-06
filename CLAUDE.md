@@ -61,6 +61,15 @@ Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
 arquivo do header `Content-Disposition` da resposta — não usam mais
 `window.print()`.
 
+**Parte A permite marcar mais de uma palavra por grupo.** Cada bloco tem 2
+grupos de escolha (Mais/Menos), cada um com `<input type="checkbox">` (não
+`radio` — Partes B e C continuam `radio`, são escolha única). Um bloco só
+conta como respondido (`blocoARespondido(r)` em `disc.html`) quando há pelo
+menos 1 palavra marcada em cada grupo **e** nenhuma palavra está marcada nos
+2 grupos ao mesmo tempo (isso continua bloqueado como conflito). `calcNatural()`
+soma/subtrai o traço de **cada** palavra marcada, não só da 1ª — se 2 palavras
+forem marcadas como Mais no mesmo bloco, as 2 pontuam.
+
 ### Identidade visual (favicon)
 
 `public/favicon.ico` e `public/img/favicon-{16,32}.png` /

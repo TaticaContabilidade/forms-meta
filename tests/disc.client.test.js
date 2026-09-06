@@ -45,16 +45,9 @@ function click(win, el) {
 //   natural : D +28, I -28, S 0, C 0   (dominante = D, sem empate)
 //   adaptado: D +16, I 0,  S 0, C 0
 //   intensidade: D=I=S=C=3.0 (spread 0 -> dispara o aviso do D-05)
-function completarAvaliacao(win) {
+// Completa Parte B (sempre a 1ª opção) e Parte C (sempre nota 3) e finaliza.
+function completarParteBC(win) {
   const doc = win.document;
-
-  doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
-    const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
-    const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
-    mais[0].checked = true; change(win, mais[0]);
-    menos[1].checked = true; change(win, menos[1]);
-  });
-  click(win, doc.getElementById('btnAtoB'));
 
   doc.querySelectorAll('#situationsB fieldset').forEach((fs, sIdx) => {
     const opts = fs.querySelectorAll(`input[name="b${sIdx}"]`);
@@ -68,6 +61,20 @@ function completarAvaliacao(win) {
     nota3.checked = true; change(win, nota3);
   });
   click(win, doc.getElementById('btnFinish'));
+}
+
+function completarAvaliacao(win) {
+  const doc = win.document;
+
+  doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
+    const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
+    const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
+    mais[0].checked = true; change(win, mais[0]);
+    menos[1].checked = true; change(win, menos[1]);
+  });
+  click(win, doc.getElementById('btnAtoB'));
+
+  completarParteBC(win);
 }
 
 describe('estrutura de foco/marcação (D-01, D-03)', () => {
@@ -100,6 +107,68 @@ describe('estrutura de foco/marcação (D-01, D-03)', () => {
     const textoEl = doc.getElementById(textId);
     assert.ok(textoEl, 'id da frase referenciado não existe');
     assert.match(textoEl.textContent, /Decidido/);
+  });
+});
+
+describe('Parte A permite marcar mais de uma palavra por grupo (Mais/Menos)', () => {
+  test('marcar 2 opções como Mais (e 2 como Menos) no mesmo bloco não é bloqueado, e o bloco conta como respondido', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
+    const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
+    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
+
+    mais[0].checked = true; change(win, mais[0]);
+    mais[3].checked = true; change(win, mais[3]);
+    menos[1].checked = true; change(win, menos[1]);
+    menos[2].checked = true; change(win, menos[2]);
+
+    assert.ok(mais[0].checked && mais[3].checked, 'as duas opções marcadas como Mais deveriam continuar marcadas');
+    assert.ok(menos[1].checked && menos[2].checked, 'as duas opções marcadas como Menos deveriam continuar marcadas');
+    assert.ok(!fieldset.classList.contains('conflict'), 'marcar 2 opções distintas em cada grupo não é conflito');
+    assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
+  });
+
+  test('marcar a mesma palavra como Mais e Menos continua sendo bloqueado (conflito) e não conta como respondido', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
+    const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
+    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
+
+    mais[0].checked = true; change(win, mais[0]);
+    menos[1].checked = true; change(win, menos[1]);
+    assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
+
+    menos[0].checked = true; change(win, menos[0]);
+    assert.ok(fieldset.classList.contains('conflict'), 'marcar a mesma opção nos 2 grupos deveria sinalizar conflito');
+    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
+  });
+
+  test('o cálculo do perfil natural soma/subtrai o traço de cada palavra marcada, mesmo com múltiplas por grupo', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+
+    doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
+      const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
+      const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
+      if (bIdx === 0) {
+        // Bloco 0: Mais em D (idx0) e C (idx3); Menos em I (idx1) e S (idx2).
+        mais[0].checked = true; change(win, mais[0]);
+        mais[3].checked = true; change(win, mais[3]);
+        menos[1].checked = true; change(win, menos[1]);
+        menos[2].checked = true; change(win, menos[2]);
+      } else {
+        mais[0].checked = true; change(win, mais[0]);
+        menos[1].checked = true; change(win, menos[1]);
+      }
+    });
+    click(win, doc.getElementById('btnAtoB'));
+    completarParteBC(win);
+
+    // Baseline dos outros 27 blocos: D +27, I -27. Bloco 0 soma D+1, C+1, I-1, S-1.
+    const barras = [...doc.querySelectorAll('#barsNatural .bar-value')].map((el) => el.textContent);
+    assert.deepEqual(barras, ['+28', '-28', '-1', '+1']);
   });
 });
 

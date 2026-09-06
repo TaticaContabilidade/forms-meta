@@ -195,3 +195,28 @@ seguem só no histórico do `git log`.
     `logo-simbolo-512.png`.
   - `<link rel="icon">`/`apple-touch-icon` no `<head>` dos 4 HTML
     (`index.html`, `calculadora.html`, `disc.html`, `admin.html`).
+- **Parte A do DISC passa a permitir marcar mais de uma palavra por grupo
+  (Mais/Menos) no mesmo bloco.** Cada opção usava `<input type="radio">`
+  compartilhado no grupo (Mais e Menos, 1 grupo cada), então marcar uma 2ª
+  palavra como Mais desmarcava a 1ª automaticamente — comportamento nativo
+  de radio. Viraram `<input type="checkbox">` (só em `disc.html`, Partes B
+  e C continuam `radio`, são escolha única de verdade).
+  - `state.respostasA[bIdx]` passa de `{ mais: wordIdx, menos: wordIdx }`
+    pra `{ mais: wordIdx[], menos: wordIdx[] }`.
+  - Novo `blocoARespondido(r)` centraliza o critério de "bloco respondido":
+    pelo menos 1 palavra em cada grupo e nenhuma palavra marcada nos 2
+    grupos ao mesmo tempo (isso continua bloqueado como conflito, igual
+    antes) — usado por `updateProgressA()`, `validateA()` e `calcNatural()`
+    (antes cada um repetia essa checagem de um jeito ligeiramente
+    diferente).
+  - `calcNatural()` agora soma/subtrai o traço de **cada** palavra marcada
+    no grupo, não só da 1ª.
+  - CSS: `.choice-radios input[type=radio]` (visualmente oculto mas focável)
+    e as regras de destaque do `<label>` viram `[type=checkbox]` — só as
+    de Parte A; `.situation-options`/`.intensity-scale` (Partes B/C)
+    continuam intactas.
+  - 3 testes novos em `tests/disc.client.test.js`: marcar 2 opções em Mais
+    e 2 em Menos no mesmo bloco não é bloqueado e conta como respondido;
+    marcar a mesma palavra nos 2 grupos continua sendo conflito; o cálculo
+    do perfil natural soma/subtrai corretamente quando há múltiplas
+    marcações no mesmo bloco.
