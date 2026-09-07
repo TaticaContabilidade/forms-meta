@@ -82,6 +82,16 @@ pendentes de uma vez quando ele clica "Continuar para Parte B" sem terminar
 (mesmo os nunca tocados) — pra não mostrar "pendente" nos 28 blocos de cara,
 antes de qualquer interação.
 
+**Parte B (situações) segue o mesmo padrão de alerta de pendente**, mas mais
+simples: como cada situação é escolha única (`radio`), não existe estado
+"parcialmente respondido" nem conflito — só respondida ou não. Por isso
+`situacoesAlertaVisivel` (mesma ideia do `blocosAlertaVisivel` da Parte A) só
+é preenchido no clique de "Continuar para Parte C", nunca durante a
+digitação — responder uma situação já resolve o alerta dela na hora, então
+não há por que revelar cedo. Clicar no botão com pendências sinaliza
+**todas** de uma vez (`.situation-card.pending`, `--warning`) e rola até a
+primeira, igual a Parte A.
+
 **Compatibilidade do `disc_state` salvo:** sempre que o formato de
 `respostasA`/`respostasB`/`respostasC` mudar, `loadState()` precisa migrar o
 formato antigo na leitura (ver `normalizarRespostasA`) — nunca assumir que o

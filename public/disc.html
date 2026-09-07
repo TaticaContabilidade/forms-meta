@@ -764,13 +764,14 @@ function renderParteB() {
     // radio já era a frase inteira — só faltava mesmo o agrupamento.
     const div = document.createElement('fieldset');
     div.className = 'situation-card';
+    div.id = 'situacao-' + sIdx;
     const optsHtml = sit.options.map((opt, oIdx) => `
       <label>
         <input type="radio" name="b${sIdx}" value="${oIdx}" data-trait="${opt.trait}" ${state.respostasB[sIdx] === oIdx ? 'checked' : ''}>
         ${opt.text}
       </label>
     `).join('');
-    div.innerHTML = `<legend><span class="situation-num">Situação ${sIdx+1}</span><span class="situation-text">${sit.text}</span></legend><div class="situation-options">${optsHtml}</div>`;
+    div.innerHTML = `<legend><span class="situation-num">Situação ${sIdx+1}</span><span class="situation-text">${sit.text}</span></legend><div class="situation-options">${optsHtml}</div><p class="pending-msg">Escolha uma opção antes de continuar.</p>`;
     container.appendChild(div);
 
     div.querySelectorAll(`input[name="b${sIdx}"]`).forEach(inp => {
@@ -778,10 +779,24 @@ function renderParteB() {
         state.respostasB[sIdx] = parseInt(inp.value);
         saveState();
         updateProgressB();
+        renderAlertaSituacaoB(sIdx);
       });
     });
   });
   updateProgressB();
+}
+
+// Situações cujo alerta de "pendente" já pode aparecer — só depois que o
+// participante clicou "Continuar para Parte C" sem terminar (mesmo padrão
+// da Parte A; aqui não há estado intermediário por situação, então não faz
+// sentido revelar o alerta antes disso: escolher uma opção já resolve a
+// situação inteira de uma vez).
+let situacoesAlertaVisivel = new Set();
+
+function renderAlertaSituacaoB(sIdx) {
+  const respondida = state.respostasB[sIdx] !== undefined;
+  const fieldset = document.getElementById('situacao-' + sIdx);
+  fieldset.classList.toggle('pending', situacoesAlertaVisivel.has(sIdx) && !respondida);
 }
 
 function updateProgressB() {
@@ -1195,6 +1210,20 @@ document.getElementById('btnBtoA').addEventListener('click', () => showPart('A')
 document.getElementById('btnBtoC').addEventListener('click', () => {
   if (!validateB()) {
     document.getElementById('validMsgB').style.display = 'inline';
+    // Sinaliza TODAS as situações pendentes de uma vez (mesmo padrão da
+    // Parte A) e rola até a primeira.
+    let primeiraPendente = null;
+    SITUACOES_B.forEach((_, sIdx) => {
+      if (state.respostasB[sIdx] === undefined) {
+        situacoesAlertaVisivel.add(sIdx);
+        renderAlertaSituacaoB(sIdx);
+        if (primeiraPendente === null) primeiraPendente = sIdx;
+      }
+    });
+    if (primeiraPendente !== null) {
+      const situacao = document.getElementById('situacao-' + primeiraPendente);
+      if (situacao.scrollIntoView) situacao.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     return;
   }
   document.getElementById('validMsgB').style.display = 'none';

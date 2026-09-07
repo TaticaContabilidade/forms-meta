@@ -270,3 +270,25 @@ seguem só no histórico do `git log`.
     verificavam, agora sob a regra nova. 2 testes ajustados (contagem do
     formato antigo migrado passa a ser "0 de 28", já que só tinha 2 das 4
     palavras) e 1 teste novo cobrindo o alerta de pendente.
+- **Parte B (situações) ganha o mesmo alerta de pendente ao tentar
+  continuar sem responder tudo.** Pedido do usuário: "faça o mesmo quando
+  o usuário não marcar uma opção... e volte para o bloco pendente quando o
+  usuário clica em Seguir para a Parte C". Mais simples que a Parte A
+  porque cada situação é `radio` de escolha única — não existe estado
+  parcial nem conflito, só respondida ou não.
+  - Novo `<p class="pending-msg">` por situação (reaproveita o CSS já
+    criado pra Parte A: `.pending-msg`/`--warning`) e `.situation-card`
+    ganha `id="situacao-{sIdx}"` pra poder ser sinalizada/rolada até.
+  - `situacoesAlertaVisivel` (mesma ideia do `blocosAlertaVisivel` da Parte
+    A) só é preenchido no clique de "Continuar para Parte C" — diferente da
+    Parte A, aqui não faz sentido revelar cedo durante a digitação: marcar
+    uma opção já resolve a situação inteira de uma vez, não existe "faltou
+    só um pouco".
+  - O clique em "Continuar para Parte C" sinaliza **todas** as situações
+    pendentes de uma vez (mesmo as nunca tocadas) e rola até a primeira —
+    mesmo padrão do botão da Parte A.
+  - 3 testes novos em `tests/disc.client.test.js`: não sinaliza antes do
+    clique; sinaliza todas as pendentes (inclusive as nunca tocadas) e não
+    avança; responder a situação sinalizada faz o alerta sumir e libera o
+    avanço. Extraído `completarParteA()` de `completarAvaliacao()` pra
+    reaproveitar nesses testes (só Parte A + clique, sem completar B/C).
