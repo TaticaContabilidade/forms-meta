@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Qual é a sua meta comercial?</title>
-<meta name="description" content="Calculadora de meta comercial: transforme o faturamento desejado em meta mensal, número de contratos e volume de contatos necessários, e distribua entre a equipe.">
+<meta name="description" content="Calculadora de meta comercial: transforme o faturamento desejado em meta mensal, número de contratos e volume de contatos necessários.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
@@ -47,10 +47,8 @@
     </div>
   </header>
 
-  <!-- PARTE 1 -->
   <section class="part">
     <div class="part-head">
-      <span class="part-num">Parte 1</span>
       <h2>A meta da empresa</h2>
     </div>
     <p class="part-sub">Você não vende só para crescer — vende também para repor quem sai.</p>
@@ -175,70 +173,12 @@
     </div>
   </section>
 
-  <!-- PARTE 2 -->
-  <section class="part">
-    <div class="part-head">
-      <span class="part-num">Parte 2</span>
-      <h2>Da meta da empresa até a meta de cada pessoa</h2>
-    </div>
-    <p class="part-sub">A meta que você acabou de calcular é da empresa. Agora ela precisa virar o pedaço de cada um — senão continua sendo um número que ninguém carrega.</p>
-
-    <div class="ledger">
-      <div class="row">
-        <div class="row-num">12</div>
-        <label class="row-label" for="hunterValor">Quanto virá de clientes novos? (hunter)</label>
-        <p class="row-help" id="hunterValor-help">Parte da linha 8 — quem ainda não é da casa.</p>
-        <div class="field">
-          <span class="field-prefix">R$</span>
-          <input type="text" inputmode="decimal" id="hunterValor" name="hunterValor" placeholder="0" aria-describedby="hunterValor-help hunterValor-alert">
-        </div>
-        <p class="field-alert" id="hunterValor-alert" role="alert"></p>
-      </div>
-
-      <div class="row">
-        <div class="row-num computed">13</div>
-        <label class="row-label" for="calcFarmer">Quanto virá da base? (farmer)</label>
-        <p class="row-help">O resto da linha 8 — upsell e cross-sell em quem já é cliente.</p>
-        <div class="field computed"><output class="output" id="calcFarmer" for="calc8 hunterValor" aria-live="polite">R$ 0</output></div>
-        <div class="callout state-alert" id="calloutHunter" role="status" style="display:none;"></div>
-      </div>
-    </div>
-
-    <div class="callout state-alert" id="calloutPapel" role="status" style="display:none; margin-top:16px;"></div>
-
-    <div style="height:36px"></div>
-
-    <h3 style="font-size:19px; margin-bottom:6px;">Quem carrega cada pedaço?</h3>
-    <p class="part-sub" style="margin-bottom:20px;">Escreva o nome de cada pessoa que vende hoje na sua empresa — inclusive você, se for você quem vende. A soma das metas individuais tem que fechar com a linha 8.</p>
-
-    <div class="team-wrap">
-      <table class="team" id="teamTable">
-        <thead>
-          <tr>
-            <th scope="col" style="width:38%">Nome</th>
-            <th scope="col" style="width:26%">Hunter ou farmer?</th>
-            <th scope="col" style="width:30%">Meta mensal (R$)</th>
-            <td class="col-del"></td>
-          </tr>
-        </thead>
-        <tbody id="teamBody"></tbody>
-      </table>
-
-      <div class="team-actions">
-        <button type="button" class="add-btn" id="addRow">+ Adicionar pessoa</button>
-        <span class="badge" id="teamBadge" role="status"><span class="dot"></span><span id="teamBadgeText">Some as metas da equipe</span></span>
-      </div>
-    </div>
-
-    <p style="margin-top:18px; color:var(--fg-soft); font-size:14.5px;">Se não fecha, você tem só duas saídas honestas: aumentar o time, ou rever a meta com os sócios. Distribuir um número que ninguém consegue entregar não é uma delas.</p>
-  </section>
-
   <div class="footer-actions">
     <button type="submit" class="btn-primary" id="sendBtn">Enviar minha meta</button>
     <button type="button" class="btn-secondary" id="printBtn">Salvar meu resultado (PDF)</button>
     <button type="button" class="btn-secondary" id="resetBtn">Recomeçar</button>
   </div>
-  <p class="footer-note" id="sendStatus" role="status">Preencha seu nome e clique em "Enviar minha meta" para registrar sua meta com a equipe do treinamento.</p>
+  <p class="footer-note" id="sendStatus" role="status">Preencha seu nome e clique em "Enviar minha meta" para registrar sua meta no treinamento.</p>
 
   <div class="callout" id="confirmReset" role="alertdialog" aria-label="Confirmar reinício" style="display:none; margin-top:14px;">
     <p style="margin:0 0 10px;">Isso limpa todos os campos preenchidos. Continuar?</p>
@@ -310,7 +250,6 @@
     ticket: $('ticket'),
     conversaoPct: $('conversaoPct'),
     contatosPassado: $('contatosPassado'),
-    hunterValor: $('hunterValor'),
   };
 
   // Auditoria 3: negativo virava 0 e percentual acima do teto travava só
@@ -325,7 +264,6 @@
     ticket:          { obrigatorio: true,  maiorQueZero: true },
     conversaoPct:    { obrigatorio: true,  max: 100, percentual: true, maiorQueZero: true },
     contatosPassado: { obrigatorio: false },
-    hunterValor:     { obrigatorio: false },
   };
 
   // mostrarObrigatorio: só liga a mensagem de "campo vazio" no blur — não
@@ -360,7 +298,6 @@
     el.closest('.field').classList.toggle('tem-alerta', !!mensagem);
   }
 
-  let metaMensal = 0; // linha 8, alvo da parte 2 e da tabela de time
   let lastValues = {}; // snapshot dos últimos cálculos, usado no envio
 
   function recalc(){
@@ -415,8 +352,6 @@
     $('calcContatos').textContent = fmtQtd(contatosNecessarios, 'contato', 'contatos');
     $('hero-meta').textContent = fmtBRL(l8);
 
-    metaMensal = l8;
-
     // callout comparativo de contatos
     const calloutC = $('calloutContatos');
     if (contatosPassado > 0 && contatosNecessarios > 0) {
@@ -433,22 +368,7 @@
       calloutC.style.display = 'none';
     }
 
-    // hunter / farmer
-    const hunter = lerCampo(els.hunterValor);
-    const farmer = Math.max(l8 - hunter, 0);
-    $('calcFarmer').textContent = fmtBRL(farmer);
-    lastValues.hunter_valor = hunter;
-    lastValues.farmer_valor = farmer;
-
-    const calloutH = $('calloutHunter');
-    if (hunter > l8 && l8 > 0) {
-      calloutH.style.display = 'block';
-      calloutH.textContent = 'O valor de hunter (' + fmtBRL(hunter) + ') é maior que a meta mensal da área (' + fmtBRL(l8) + '). Revise a linha 12.';
-    } else {
-      calloutH.style.display = 'none';
-    }
-
-    recalcTeam();
+    saveState();
   }
 
   Object.entries(els).forEach(([id, el]) => {
@@ -462,117 +382,10 @@
   $('nomeParticipante').addEventListener('input', saveState);
   $('empresaParticipante').addEventListener('input', saveState);
 
-  // ---------- team table ----------
-  const teamBody = $('teamBody');
-  let rowCount = 0;
-
-  function addRow(prefill){
-    rowCount++;
-    const idx = rowCount;
-    const tr = document.createElement('tr');
-    tr.innerHTML =
-      '<td><label class="sr-only" for="t-name-' + idx + '">Nome da pessoa</label><input type="text" id="t-name-' + idx + '" name="t-name-' + idx + '" placeholder="Nome da pessoa" class="t-name" maxlength="60"></td>' +
-      '<td><label class="sr-only" for="t-type-' + idx + '">Hunter ou farmer</label><select id="t-type-' + idx + '" name="t-type-' + idx + '" class="t-type"><option value="Hunter">Hunter</option><option value="Farmer">Farmer</option></select></td>' +
-      '<td><div class="field" style="max-width:100%; border:none; background:transparent;"><span class="field-prefix" style="padding-left:0;">R$</span><label class="sr-only" for="t-meta-' + idx + '">Meta mensal em reais</label><input type="text" inputmode="decimal" id="t-meta-' + idx + '" name="t-meta-' + idx + '" class="t-meta" placeholder="0"></div></td>' +
-      '<td class="col-del"><button type="button" class="del-btn" aria-label="Remover pessoa">✕</button></td>';
-    teamBody.appendChild(tr);
-
-    if (prefill) {
-      if (prefill.nome) tr.querySelector('.t-name').value = prefill.nome;
-      if (prefill.tipo) tr.querySelector('.t-type').value = prefill.tipo;
-      if (prefill.meta) tr.querySelector('.t-meta').value = prefill.meta;
-    }
-
-    const tMeta = tr.querySelector('.t-meta');
-    tr.querySelector('.t-name').addEventListener('input', recalcTeam);
-    tr.querySelector('.t-type').addEventListener('change', recalcTeam);
-    tMeta.addEventListener('input', () => { filtrarDigitacaoNumerica(tMeta); recalcTeam(); });
-    // F-14: não deixa apagar a última linha — a seção não pode ficar só
-    // com o cabeçalho da tabela, sem nenhum lugar para digitar.
-    tr.querySelector('.del-btn').addEventListener('click', () => {
-      if (teamBody.querySelectorAll('tr').length <= 1) return;
-      tr.remove();
-      recalcTeam();
-    });
-  }
-
-  // F-08: uma linha sem nome não deveria contar na soma nem ser enviada —
-  // "meta tem que ter dono". Marca a linha como incompleta visualmente.
-  function linhasValidas(){
-    return [...teamBody.querySelectorAll('tr')].filter(tr => tr.querySelector('.t-name').value.trim());
-  }
-
-  function recalcTeam(){
-    const todasLinhas = [...teamBody.querySelectorAll('tr')];
-    let soma = 0;
-    const somaPorTipo = { Hunter: 0, Farmer: 0 };
-
-    todasLinhas.forEach(tr => {
-      const nome = tr.querySelector('.t-name').value.trim();
-      const v = parseBRNumber(tr.querySelector('.t-meta').value);
-      const incompleta = !nome && v > 0;
-      tr.classList.toggle('incompleta', incompleta);
-      if (!nome) return; // F-08: sem nome não entra na soma
-      soma += v;
-      const tipo = tr.querySelector('.t-type').value;
-      somaPorTipo[tipo] = (somaPorTipo[tipo] || 0) + v;
-    });
-
-    const badge = $('teamBadge');
-    const badgeText = $('teamBadgeText');
-    const diff = metaMensal - soma;
-    const metaInputsCount = linhasValidas().length;
-
-    if (metaInputsCount === 0 || metaMensal === 0) {
-      badge.className = 'badge';
-      badgeText.textContent = 'Some as metas da equipe';
-    } else if (Math.abs(diff) < 1) {
-      badge.className = 'badge ok';
-      badgeText.textContent = 'Fecha: ' + fmtBRL(soma) + ' de ' + fmtBRL(metaMensal);
-    } else if (diff > 0) {
-      badge.className = 'badge alert';
-      badgeText.textContent = 'Falta ' + fmtBRL(diff) + ' para fechar a meta';
-    } else {
-      badge.className = 'badge alert';
-      badgeText.textContent = 'Sobra ' + fmtBRL(Math.abs(diff)) + ' além da meta';
-    }
-
-    // F-07: a divisão hunter/farmer da linha 12/13 não conversava com os
-    // papéis atribuídos na tabela — dava para declarar qualquer coisa nos
-    // dois lugares e a página fechava em verde do mesmo jeito.
-    const calloutPapel = $('calloutPapel');
-    const hunterDecl = lastValues.hunter_valor || 0;
-    const farmerDecl = lastValues.farmer_valor || 0;
-    const diffHunter = somaPorTipo.Hunter - hunterDecl;
-    const diffFarmer = somaPorTipo.Farmer - farmerDecl;
-    if (metaInputsCount === 0 || metaMensal === 0) {
-      calloutPapel.style.display = 'none';
-    } else if (Math.abs(diffHunter) < 1 && Math.abs(diffFarmer) < 1) {
-      calloutPapel.style.display = 'none';
-    } else {
-      calloutPapel.style.display = 'block';
-      calloutPapel.className = 'callout state-alert';
-      calloutPapel.textContent = 'A equipe tem ' + fmtBRL(somaPorTipo.Hunter) + ' em metas de hunter e ' + fmtBRL(somaPorTipo.Farmer) + ' de farmer, mas a linha 12/13 declara ' + fmtBRL(hunterDecl) + ' de hunter e ' + fmtBRL(farmerDecl) + ' de farmer. Ajuste um dos dois.';
-    }
-
-    saveState();
-  }
-
-  $('addRow').addEventListener('click', () => addRow());
-
-  function coletarEquipe(){
-    // F-08: linha sem nome não vai para o banco, mesmo que tenha meta.
-    return linhasValidas().map(tr => ({
-      nome: tr.querySelector('.t-name').value.trim(),
-      tipo: tr.querySelector('.t-type').value,
-      meta: parseBRNumber(tr.querySelector('.t-meta').value),
-    }));
-  }
-
   // ---------- persistência local (sobrevive a sair/voltar na página) ----------
   // F-17: o reset chamava removeItem() e, na sequência, recalc() ->
-  // recalcTeam() -> saveState() regravava a chave (agora vazia). Esse flag
-  // suprime esse salvamento redundante durante o reset.
+  // saveState() regravava a chave (agora vazia). Esse flag suprime esse
+  // salvamento redundante durante o reset.
   let suprimirSave = false;
 
   function saveState(){
@@ -587,14 +400,12 @@
         ticket: els.ticket.value,
         conversaoPct: els.conversaoPct.value,
         contatosPassado: els.contatosPassado.value,
-        hunterValor: els.hunterValor.value,
-        equipe: coletarEquipe(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {}
   }
 
-  // retorna true se havia estado salvo (e já popula os campos + a equipe)
+  // retorna true se havia estado salvo (e já popula os campos)
   function loadState(){
     let state;
     try {
@@ -613,15 +424,6 @@
     els.ticket.value = state.ticket || '';
     els.conversaoPct.value = state.conversaoPct || '';
     els.contatosPassado.value = state.contatosPassado || '';
-    els.hunterValor.value = state.hunterValor || '';
-
-    teamBody.innerHTML = '';
-    if (Array.isArray(state.equipe) && state.equipe.length > 0) {
-      state.equipe.forEach(p => addRow(p));
-    } else {
-      addRow();
-      addRow();
-    }
     return true;
   }
 
@@ -674,12 +476,11 @@
       nome_participante: nome,
       empresa: empresa,
       ...lastValues,
-      equipe: coletarEquipe(),
     };
 
     sendBtn.disabled = true;
     sendStatus.textContent = 'Enviando...';
-    sendStatus.style.color = 'var(--ink-faint)';
+    sendStatus.style.color = 'var(--fg-faint)';
 
     try {
       const resp = await fetch('/api/metas', {
@@ -716,7 +517,6 @@
       nome_participante: $('nomeParticipante').value.trim(),
       empresa: $('empresaParticipante').value.trim(),
       ...lastValues,
-      equipe: coletarEquipe(),
     };
 
     printBtn.disabled = true;
@@ -764,8 +564,6 @@
     $('nomeParticipante').value = '';
     $('empresaParticipante').value = '';
     Object.values(els).forEach(el => el.value = '');
-    teamBody.innerHTML = '';
-    addRow(); addRow();
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     recalc();
     suprimirSave = false;
@@ -781,11 +579,8 @@
     executarReset();
   });
 
-  // restaura o que o usuário já tinha preenchido (se houver); senão começa com 2 linhas vazias
-  if (!loadState()) {
-    addRow();
-    addRow();
-  }
+  // restaura o que o usuário já tinha preenchido (se houver)
+  loadState();
   recalc();
 })();
 </script>
