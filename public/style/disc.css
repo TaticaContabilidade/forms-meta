@@ -392,21 +392,31 @@ h2 {
   color: var(--fg);
 }
 
-/* Conflito */
+/* Conflito (mesma palavra marcada como MAIS e MENOS) */
 .choice-block.conflict {
   border-color: var(--danger);
 }
 .choice-block.conflict .choice-block-header {
   background: var(--danger-bg);
 }
-.conflict-msg {
+.conflict-msg, .pending-msg {
   display: none;
   font-size: 12px;
-  color: var(--danger);
   padding: 6px 16px 10px;
   font-weight: 500;
 }
+.conflict-msg { color: var(--danger); }
 .choice-block.conflict .conflict-msg { display: block; }
+
+/* Pendente (ainda falta classificar alguma das 4 palavras) */
+.choice-block.pending {
+  border-color: var(--warning);
+}
+.choice-block.pending .choice-block-header {
+  background: var(--warning-bg);
+}
+.pending-msg { color: var(--warning); }
+.choice-block.pending .pending-msg { display: block; }
 
 /* ====== PARTE B — SITUAÇÕES ====== */
 .situations-list {

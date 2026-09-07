@@ -238,3 +238,35 @@ seguem só no histórico do `git log`.
     um valor, `[]` se vazio) — quem tinha progresso salvo não perde nada.
   - 1 teste de regressão simulando exatamente esse `disc_state` antigo e
     confirmando que as 3 partes renderizam e a marcação antiga é migrada.
+- **Corrige o critério de "bloco respondido" da Parte A — não é mais "pelo
+  menos 1 em Mais e 1 em Menos".** O usuário apontou que a contagem estava
+  errada: "retire a verificação de que para estar respondido o bloco deve
+  conter +mais e -menos" — o critério certo é contar **respostas
+  preenchidas**: um bloco é respondido quando as 4 palavras foram
+  classificadas (cada uma em Mais ou em Menos, nenhuma de fora), continuando
+  bloqueado só o caso de uma palavra marcada nos 2 grupos ao mesmo tempo
+  (isso não muda). Antes, um bloco com só 2 das 4 palavras classificadas (1
+  Mais + 1 Menos) já contava como respondido; agora precisa das 4.
+  - `blocoARespondido(r)` virou `blocoARespondido(bIdx)` (chama
+    `avaliarBlocoA(bIdx)` internamente, que sabe o total de palavras do
+    bloco via `BLOCOS_A[bIdx].words.length`) — usado por
+    `updateProgressA()`, `validateA()` e `calcNatural()`.
+  - Novo alerta inline "pendente" (`.pending-msg`/`.pending`, cor
+    `--warning`) além do "conflito" já existente (`.conflict-msg`/
+    `.conflict`, `--danger`) — cada bloco mostra um ou outro conforme o
+    caso. Um `Set` em memória (`blocosAlertaVisivel`) evita mostrar
+    "pendente" nos 28 blocos assim que a página carrega: só aparece depois
+    que o participante mexe naquele bloco específico.
+  - O botão "Continuar para Parte B" agora sinaliza **todos** os blocos
+    pendentes de uma vez quando clicado (mesmo os nunca tocados, não só o
+    primeiro) e rola a tela até o primeiro deles — mesmo padrão já usado no
+    `validarObrigatorios()` da calculadora.
+  - Textos de instrução da Parte A atualizados ("classifique as 4 palavras"
+    em vez de "marque o MAIS e o MENOS").
+  - `completarAvaliacao()` (helper de teste) passou a classificar as 4
+    palavras de cada bloco (D sempre Mais, I sempre Menos, S/C alternando
+    de grupo a cada bloco pra se cancelarem) — mantém o resultado
+    determinístico (D+28, I-28, S=0, C=0) que os testes de resultado já
+    verificavam, agora sob a regra nova. 2 testes ajustados (contagem do
+    formato antigo migrado passa a ser "0 de 28", já que só tinha 2 das 4
+    palavras) e 1 teste novo cobrindo o alerta de pendente.
