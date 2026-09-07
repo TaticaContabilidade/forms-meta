@@ -220,3 +220,21 @@ seguem só no histórico do `git log`.
     marcar a mesma palavra nos 2 grupos continua sendo conflito; o cálculo
     do perfil natural soma/subtrai corretamente quando há múltiplas
     marcações no mesmo bloco.
+- **Bug crítico: nenhum bloco da Parte A aparecia ao testar o DISC.**
+  Reportado pelo usuário ("os blocos da parte A não estão aparecendo").
+  Reproduzi carregando `disc.html` num Chromium headless de verdade (não só
+  `jsdom`) — renderizava certo do zero, então a causa não estava no HTML/CSS
+  em si. A pista era o `localStorage`: quem tinha uma avaliação em andamento
+  salva **antes** da mudança de múltipla escolha (commit anterior) ficou com
+  `disc_state.respostasA[bIdx] = { mais: 2, menos: 1 }` (número único) —
+  formato que o `renderParteA()` novo não entende mais (espera array).
+  `loadState()` carregava esse JSON sem validar nada, `(2 || []).includes(...)`
+  lançava `TypeError` não tratado, e como `renderParteA()`/`B()`/`C()` rodam
+  em sequência solta no topo do script (sem try/catch entre elas), a
+  exceção na primeira travava as três — a página inteira ficava sem
+  conteúdo dinâmico, não só a Parte A.
+  - Novo `normalizarRespostasA()` em `loadState()`: converte qualquer
+    `mais`/`menos` que não seja array pro formato novo (`[valor]` se havia
+    um valor, `[]` se vazio) — quem tinha progresso salvo não perde nada.
+  - 1 teste de regressão simulando exatamente esse `disc_state` antigo e
+    confirmando que as 3 partes renderizam e a marcação antiga é migrada.

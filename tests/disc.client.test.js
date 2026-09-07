@@ -255,3 +255,32 @@ describe('persistência de identidade (D-08)', () => {
     assert.equal(dom2.window.document.getElementById('empresaDisc').value, 'Empresa Y');
   });
 });
+
+describe('compatibilidade com disc_state salvo no formato antigo (regressão)', () => {
+  // Antes da Parte A permitir múltipla escolha, respostasA[bIdx] guardava
+  // { mais: wordIdx, menos: wordIdx } (valor único, não array). Quem tinha
+  // uma avaliação em andamento salva nesse formato não pode ficar com a
+  // página quebrada ao recarregar depois do deploy da mudança.
+  test('disc_state com mais/menos como número único (formato pré-múltipla-escolha) não quebra o carregamento da página', () => {
+    const estadoAntigo = JSON.stringify({
+      part: 'A',
+      nomeDisc: 'Fulano',
+      empresaDisc: 'Empresa Z',
+      respostasA: { 0: { mais: 2, menos: 1 } },
+      respostasB: {},
+      respostasC: {},
+    });
+    const { window: win } = criarPagina(estadoAntigo);
+    const doc = win.document;
+
+    assert.equal(doc.getElementById('blocksA').children.length, 28, 'os 28 blocos da Parte A deveriam renderizar');
+    assert.equal(doc.getElementById('situationsB').children.length, 16);
+    assert.equal(doc.getElementById('intensityC').children.length, 12);
+    assert.equal(doc.getElementById('nomeDisc').value, 'Fulano');
+
+    // a marcação antiga (mais=2, menos=1) foi migrada e continua marcada
+    assert.ok(doc.querySelector('input[name="a0_mais"][value="2"]').checked);
+    assert.ok(doc.querySelector('input[name="a0_menos"][value="1"]').checked);
+    assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
+  });
+});

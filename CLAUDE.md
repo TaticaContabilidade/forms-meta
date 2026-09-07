@@ -70,6 +70,16 @@ menos 1 palavra marcada em cada grupo **e** nenhuma palavra está marcada nos
 soma/subtrai o traço de **cada** palavra marcada, não só da 1ª — se 2 palavras
 forem marcadas como Mais no mesmo bloco, as 2 pontuam.
 
+**Compatibilidade do `disc_state` salvo:** sempre que o formato de
+`respostasA`/`respostasB`/`respostasC` mudar, `loadState()` precisa migrar o
+formato antigo na leitura (ver `normalizarRespostasA`) — nunca assumir que o
+`localStorage` de quem já estava com uma avaliação em andamento vai estar no
+formato novo. `renderParteA()`/B()/C() rodam em sequência, sem try/catch,
+direto no topo do script; uma exceção em qualquer uma trava as três (nenhum
+bloco aparece) — já aconteceu uma vez (mudança de `mais`/`menos` de valor
+único pra array) e não foi pego pelos testes existentes até então porque
+nenhum simulava um `disc_state` no formato anterior.
+
 ### Identidade visual (favicon)
 
 `public/favicon.ico` e `public/img/favicon-{16,32}.png` /

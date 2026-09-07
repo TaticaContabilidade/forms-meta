@@ -613,6 +613,24 @@ function saveState() {
     localStorage.setItem('disc_state', JSON.stringify(toSave));
   } catch(e){}
 }
+// Até a mudança que permitiu marcar mais de uma palavra por grupo na Parte A,
+// respostasA[bIdx] guardava { mais: wordIdx, menos: wordIdx } (valor único).
+// Quem tinha uma avaliação em andamento salva no localStorage nesse formato
+// antigo travava a página inteira ao recarregar: renderParteA() chamava
+// .includes() num número, lançava TypeError não tratado, e como
+// renderParteA()/B()/C() rodam em sequência no topo do script, a exceção
+// interrompia as três — nenhum bloco aparecia. Normaliza pro formato atual
+// (array) na leitura, sem exigir que quem tinha progresso salvo o perdesse.
+function normalizarRespostasA(respostasA) {
+  const normalizado = {};
+  Object.keys(respostasA || {}).forEach((bIdx) => {
+    const r = respostasA[bIdx] || {};
+    const paraArray = (v) => (Array.isArray(v) ? v : (v === undefined || v === null ? [] : [v]));
+    normalizado[bIdx] = { mais: paraArray(r.mais), menos: paraArray(r.menos) };
+  });
+  return normalizado;
+}
+
 function loadState() {
   try {
     const s = localStorage.getItem('disc_state');
@@ -620,7 +638,7 @@ function loadState() {
       const parsed = JSON.parse(s);
       state = {
         part: parsed.part || 'A',
-        respostasA: parsed.respostasA || {},
+        respostasA: normalizarRespostasA(parsed.respostasA),
         respostasB: parsed.respostasB || {},
         respostasC: parsed.respostasC || {},
       };
