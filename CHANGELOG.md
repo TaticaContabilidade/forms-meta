@@ -326,3 +326,13 @@ seguem só no histórico do `git log`.
     F-14 (específicos da tabela de equipe) e o helper `teamRows`/
     `preencherLinhaEquipe`; ajustados os testes de "limite de tamanho" e
     "persistência" pra não referenciar mais campos de equipe.
+- **Configura banco persistente no `render.yaml`.** O SQLite
+  (`db/metas.db`) era apagado a cada deploy e quando a instância dormia
+  por inatividade — o plano `free` do Render não suporta Persistent Disk.
+  Decisão (perguntei ao usuário, que optou por manter SQLite em vez de
+  migrar pra Postgres): sobe o plano pra `starter` (menor plano pago que
+  aceita disco), adiciona um `disk` de 1GB montado em `/var/data`, e
+  aponta `DB_PATH=/var/data/metas.db` — sem nenhuma mudança em
+  `src/server.js`, que já lia `DB_PATH` do ambiente. Localmente continua
+  tudo igual (`db/metas.db`, dentro do repo). Bônus: o plano starter também
+  não "dorme" por inatividade como o free.
