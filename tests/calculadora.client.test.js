@@ -38,6 +38,28 @@ function blur(win, id) {
   win.document.getElementById(id).dispatchEvent(new win.Event('blur', { bubbles: true }));
 }
 
+function teamRows(win) {
+  return [...win.document.querySelectorAll('#teamBody tr')];
+}
+
+function preencherLinhaEquipe(win, tr, { nome, tipo, meta }) {
+  if (nome !== undefined) {
+    const el = tr.querySelector('.t-name');
+    el.value = nome;
+    el.dispatchEvent(new win.Event('input', { bubbles: true }));
+  }
+  if (tipo !== undefined) {
+    const el = tr.querySelector('.t-type');
+    el.value = tipo;
+    el.dispatchEvent(new win.Event('change', { bubbles: true }));
+  }
+  if (meta !== undefined) {
+    const el = tr.querySelector('.t-meta');
+    el.value = meta;
+    el.dispatchEvent(new win.Event('input', { bubbles: true }));
+  }
+}
+
 describe('calculadora.html — cadeia de cálculo e parsing pt-BR (F-01, F-05, F-06)', () => {
   test('F-01: "200.000" (separador de milhar) é lido como 200000, não 200', () => {
     const { window: win } = criarPagina();
@@ -110,11 +132,13 @@ describe('calculadora.html — cadeia de cálculo e parsing pt-BR (F-01, F-05, F
     assert.ok(!texto(win, 'calc10').includes('.'), 'não deve usar ponto como separador decimal');
   });
 
-  test('auditoria 2: campos de texto têm limite de tamanho (nome, empresa)', () => {
+  test('auditoria 2: campos de texto têm limite de tamanho (nome, empresa, equipe)', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
     assert.equal(doc.getElementById('nomeParticipante').maxLength, 80);
     assert.equal(doc.getElementById('empresaParticipante').maxLength, 80);
+    const [row1] = doc.querySelectorAll('#teamBody tr');
+    assert.equal(row1.querySelector('.t-name').maxLength, 60);
   });
 });
 
@@ -165,7 +189,7 @@ describe('auditoria 3: validação inline por campo (não só nos botões)', () 
   });
 });
 
-describe('validação de obrigatórios (F-03)', () => {
+describe('validação e equipe (F-03, F-07, F-08, F-14)', () => {
   test('F-03: envio bloqueado se faltar um dos 5 campos que sustentam a conta', () => {
     const { window: win } = criarPagina();
     setVal(win, 'nomeParticipante', 'Fulano');
@@ -185,6 +209,45 @@ describe('validação de obrigatórios (F-03)', () => {
     assert.doesNotMatch(status, /Gerando/);
     assert.equal(win.document.getElementById('printBtn').disabled, false);
   });
+
+  test('F-07: equipe com papéis que não batem com a linha 12/13 mostra alerta', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'faturamento', '12000');
+    setVal(win, 'crescimentoPct', '100');
+    setVal(win, 'churnPct', '0'); // linha 8 = 1.000
+    setVal(win, 'hunterValor', '1000'); // declara 100% hunter
+
+    const [row1, row2] = teamRows(win);
+    preencherLinhaEquipe(win, row1, { nome: 'Ana', tipo: 'Hunter', meta: '400' });
+    preencherLinhaEquipe(win, row2, { nome: 'Bruno', tipo: 'Farmer', meta: '600' }); // mas equipe só põe 400 em hunter
+
+    const calloutPapel = win.document.getElementById('calloutPapel');
+    assert.equal(calloutPapel.style.display, 'block');
+    assert.match(calloutPapel.textContent, /R\$\s*400/);
+  });
+
+  test('F-08: linha sem nome não entra na soma nem fecha a meta sozinha', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'faturamento', '12000');
+    setVal(win, 'crescimentoPct', '100');
+    setVal(win, 'churnPct', '0'); // linha 8 = 1.000
+
+    const [row1, row2] = teamRows(win);
+    preencherLinhaEquipe(win, row1, { nome: 'Ana', meta: '1000' }); // fecha sozinha
+    preencherLinhaEquipe(win, row2, { meta: '500' }); // sem nome — não deve contar
+
+    assert.match(texto(win, 'teamBadgeText'), /Fecha: R\$\s*1\.000 de R\$\s*1\.000/);
+    assert.ok(row2.classList.contains('incompleta'));
+  });
+
+  test('F-14: não é possível remover a última linha da equipe', () => {
+    const { window: win } = criarPagina();
+    const [row1, row2] = teamRows(win);
+    row1.querySelector('.del-btn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    assert.equal(teamRows(win).length, 1);
+    row2.querySelector('.del-btn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    assert.equal(teamRows(win).length, 1, 'a última linha nunca deve ser removida');
+  });
 });
 
 describe('persistência local (F-17)', () => {
@@ -200,10 +263,12 @@ describe('persistência local (F-17)', () => {
     assert.equal(win.localStorage.getItem('calculadora_meta_state'), null);
   });
 
-  test('recarregar a página restaura nome e campos salvos', () => {
+  test('recarregar a página restaura nome, campos e equipe salvos', () => {
     const dom1 = criarPagina();
     setVal(dom1.window, 'nomeParticipante', 'Ciclana');
     setVal(dom1.window, 'faturamento', '30000');
+    const [row1] = teamRows(dom1.window);
+    preencherLinhaEquipe(dom1.window, row1, { nome: 'Duda', tipo: 'Farmer', meta: '250' });
     const saved = dom1.window.localStorage.getItem('calculadora_meta_state');
     assert.ok(saved);
 
@@ -211,5 +276,8 @@ describe('persistência local (F-17)', () => {
     const dom2 = criarPagina(saved);
     assert.equal(dom2.window.document.getElementById('nomeParticipante').value, 'Ciclana');
     assert.equal(dom2.window.document.getElementById('faturamento').value, '30000');
+    const linhasRestauradas = teamRows(dom2.window);
+    assert.equal(linhasRestauradas[0].querySelector('.t-name').value, 'Duda');
+    assert.equal(linhasRestauradas[0].querySelector('.t-meta').value, '250');
   });
 });

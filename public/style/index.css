@@ -225,6 +225,13 @@ section.part { margin-bottom: 56px; }
   gap: 12px;
   margin-bottom: 6px;
 }
+.part-num {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
 h2 {
   font-family: var(--display);
   font-weight: 700;
@@ -320,6 +327,118 @@ h2 {
 .callout.state-alert { background: var(--alert-bg); border-color: rgba(224,82,82,0.3); color: var(--alert); }
 .callout strong { color: inherit; }
 
+/* ====== TABELA DE TIME ====== */
+.team-wrap { margin-left: 0; }
+table.team {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+table.team thead th,
+table.team thead td {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  font-weight: 700;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-solid);
+  background: rgba(255,255,255,0.03);
+}
+table.team td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-solid);
+  vertical-align: middle;
+}
+table.team tr:last-child td { border-bottom: none; }
+table.team input[type=text] {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 8px;
+  font-family: var(--body);
+  font-size: 14px;
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+}
+table.team input.t-meta { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* F-08 da auditoria: linha com valor mas sem nome é sinalizada visualmente
+   (some da soma e não é enviada — ver coletarEquipe()/recalcTeam()). */
+table.team tr.incompleta { background: var(--alert-bg); }
+table.team tr.incompleta .t-name { border-color: rgba(224,82,82,0.4); }
+table.team input:focus { outline: none; border-color: var(--primary); background: rgba(170,220,78,0.05); }
+table.team select {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 6px;
+  font-family: var(--body);
+  font-size: 14px;
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+}
+table.team select:focus { outline: none; border-color: var(--primary); }
+.col-del { width: 36px; text-align: center; }
+.del-btn {
+  border: none;
+  background: transparent;
+  color: var(--fg-faint);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 6px;
+  transition: color 0.15s;
+}
+.del-btn:hover { color: var(--alert); }
+.del-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.team-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.add-btn {
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-soft);
+  background: var(--card-2);
+  border: 1px solid var(--border-solid);
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.add-btn:hover { border-color: rgba(255,255,255,0.25); color: var(--fg); }
+.add-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* Badge de fechamento */
+.badge {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-2);
+  border: 1px solid var(--border-solid);
+  color: var(--fg-soft);
+}
+.badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-faint); flex-shrink: 0; }
+.badge.ok  { background: var(--ok-bg); border-color: rgba(80,208,144,0.3); color: var(--ok); }
+.badge.ok .dot { background: var(--ok); }
+.badge.alert { background: var(--alert-bg); border-color: rgba(224,82,82,0.3); color: var(--alert); }
+.badge.alert .dot { background: var(--alert); }
+
 /* ====== FOOTER ACTIONS ====== */
 .footer-actions {
   display: flex;
@@ -371,10 +490,12 @@ h2 {
   .wrap { padding: 0 16px 100px; }
   header.hero { padding: 32px 20px 28px; margin: 16px 0 32px; }
   .field { max-width: 100%; }
+  table.team thead th:nth-child(2),
+  table.team td:nth-child(2) { display: none; }
 }
 
 @media print {
   body { background: white !important; color: #111 !important; }
-  .footer-actions { display: none !important; }
-  .field, .callout { border-color: #ccc !important; }
+  .footer-actions, .add-btn, .del-btn { display: none !important; }
+  .field, .callout, table.team, .badge { border-color: #ccc !important; }
 }
