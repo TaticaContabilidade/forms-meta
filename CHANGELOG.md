@@ -292,3 +292,37 @@ seguem só no histórico do `git log`.
     avança; responder a situação sinalizada faz o alerta sumir e libera o
     avanço. Extraído `completarParteA()` de `completarAvaliacao()` pra
     reaproveitar nesses testes (só Parte A + clique, sem completar B/C).
+- **Remove a Parte 2 da calculadora de meta comercial** (distribuir a meta
+  entre hunter/farmer e uma tabela de equipe por pessoa) — pedido direto do
+  usuário. A calculadora agora tem só uma seção ("A meta da empresa"), do
+  faturamento até os contatos necessários por mês (linhas 1-11); a antiga
+  "Parte 1" perdeu o rótulo de número já que não há mais uma "Parte 2" pra
+  distinguir.
+  - `public/calculadora.html`: removidos o HTML da seção (linhas 12/13,
+    tabela de equipe, `calloutHunter`/`calloutPapel`) e todo o JS ligado
+    (`addRow`, `recalcTeam`, `coletarEquipe`, `linhasValidas`,
+    `hunterValor` em `els`/`REGRAS_CAMPO`/`saveState`/`loadState`). O
+    `saveState()` que antes rodava só via `recalcTeam()` (cascata
+    `recalc()` → `recalcTeam()` → `saveState()`) passou a ser chamado
+    direto no fim de `recalc()`, senão nenhum campo persistia mais no
+    `localStorage`.
+  - Achado à parte enquanto mexia nesses mesmos botões: `sendStatus.style.
+    color = 'var(--ink-faint)'` no handler do "Enviando..." — token que
+    nunca existiu em `index.css` (só `--fg-faint`), mesma classe de bug já
+    corrigida antes em `disc.html`. Corrigido pro token real.
+  - `public/style/index.css`: removido todo o CSS só usado pela tabela de
+    equipe (`table.team`, `.add-btn`, `.del-btn`, `.badge`, `.team-actions`,
+    regras de impressão e responsivo relacionadas) e o `.part-num` (não
+    tem mais `<span>` de número de parte no HTML).
+  - `src/reports/metaComercialReport.js`: removida a seção "Meta por
+    pessoa" (hunter/farmer + `drawTeamTable`) do PDF — sem isso, o relatório
+    passaria a mostrar pra sempre "Clientes novos (hunter): R$ 0" (a UI não
+    envia mais esse campo), o que é pior que não ter a seção.
+  - **Não foi uma migração destrutiva de banco**: `src/server.js` e a
+    tabela `metas` continuam com `hunter_valor`/`farmer_valor`/
+    `equipe_json` (a API já tratava esses campos como opcionais,
+    default 0/`[]`) — só a UI parou de coletar e enviar.
+  - `tests/calculadora.client.test.js`: removidos os testes F-07, F-08,
+    F-14 (específicos da tabela de equipe) e o helper `teamRows`/
+    `preencherLinhaEquipe`; ajustados os testes de "limite de tamanho" e
+    "persistência" pra não referenciar mais campos de equipe.

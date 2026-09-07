@@ -1,7 +1,6 @@
 const {
   BASE_PALETTE,
   PAGE_MARGIN,
-  FOOTER_RESERVE,
   sanitizeForFilename,
   contentDispositionFilename,
   createReportDocument,
@@ -91,110 +90,10 @@ function drawFactList(doc, items) {
   doc.moveDown(0.4);
 }
 
-function drawTeamTable(doc, equipe, metaMensal) {
-  const width = contentWidth(doc);
-  const colNome = width * 0.42;
-  const colPapel = width * 0.24;
-  const colMeta = width * 0.34;
-  const rowPad = 8;
-
-  // F-13 da auditoria: com só 2 pessoas cadastradas, a tabela partia no
-  // meio — a 1ª pessoa fechava a página 1 e a 2ª abria a página 2 sozinha,
-  // com o total e o rodapé, deixando quase uma folha em branco. Mede a
-  // altura da tabela inteira (cabeçalho + linhas + total) antes de
-  // desenhar; se ela cabe inteira numa página e só não cabe no que resta
-  // da atual, empurra o bloco inteiro para a próxima — sem isso, times
-  // grandes continuam paginando linha a linha normalmente.
-  const soma = equipe.reduce((acc, pessoa) => acc + (Number(pessoa.meta) || 0), 0);
-  const diff = metaMensal - soma;
-  let statusTexto = null;
-  let tone;
-  if (equipe.length > 0 && metaMensal !== 0) {
-    if (Math.abs(diff) < 1) {
-      statusTexto = `Fecha: ${fmtBRL(soma)} de ${fmtBRL(metaMensal)} distribuídos entre a equipe.`;
-      tone = 'ok';
-    } else if (diff > 0) {
-      statusTexto = `Falta distribuir ${fmtBRL(diff)} para fechar a meta mensal da área (${fmtBRL(metaMensal)}).`;
-      tone = 'alert';
-    } else {
-      statusTexto = `A soma das metas individuais está ${fmtBRL(Math.abs(diff))} acima da meta mensal da área (${fmtBRL(metaMensal)}).`;
-      tone = 'alert';
-    }
-  }
-
-  const headerHeight = 26;
-  const totalRowHeight = 28;
-  doc.font('Helvetica').fontSize(10);
-  const rowsHeight = equipe.reduce((acc, pessoa, i) => {
-    const nome = pessoa.nome || `Pessoa ${i + 1}`;
-    return acc + Math.max(24, doc.heightOfString(nome, { width: colNome - 12 }) + rowPad * 2);
-  }, 0);
-  const calloutHeight = statusTexto
-    ? doc.heightOfString(statusTexto, { width: width - 32 }) + 24 + 16
-    : 0;
-  const tabelaHeightTotal = headerHeight + rowsHeight + totalRowHeight + calloutHeight;
-  const alturaUtilPagina = doc.page.height - doc.page.margins.top - doc.page.margins.bottom - FOOTER_RESERVE;
-  if (tabelaHeightTotal <= alturaUtilPagina) {
-    ensureSpace(doc, tabelaHeightTotal);
-  } else {
-    ensureSpace(doc, 30);
-  }
-
-  const headerY = doc.y;
-  doc.rect(PAGE_MARGIN, headerY, width, 26).fill(PALETTE.ink);
-  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
-  doc.text('NOME', PAGE_MARGIN + 12, headerY + 8, { width: colNome - 12 });
-  doc.text('PAPEL', PAGE_MARGIN + colNome, headerY + 8, { width: colPapel });
-  doc.text('META MENSAL', PAGE_MARGIN + colNome + colPapel, headerY + 8, {
-    width: colMeta - 12, align: 'right',
-  });
-  doc.y = headerY + 26;
-
-  equipe.forEach((pessoa, i) => {
-    const nome = pessoa.nome || `Pessoa ${i + 1}`;
-    const tipo = pessoa.tipo || '—';
-    const meta = Number(pessoa.meta) || 0;
-
-    doc.font('Helvetica').fontSize(10);
-    const rowHeight = Math.max(24, doc.heightOfString(nome, { width: colNome - 12 }) + rowPad * 2);
-    ensureSpace(doc, rowHeight);
-    const y = doc.y;
-
-    if (i % 2 === 1) {
-      doc.rect(PAGE_MARGIN, y, width, rowHeight).fill('#F6F7FA');
-    }
-
-    doc.fillColor(PALETTE.ink).font('Helvetica').fontSize(10)
-      .text(nome, PAGE_MARGIN + 12, y + rowPad, { width: colNome - 12 });
-    doc.fillColor(PALETTE.inkSoft)
-      .text(tipo, PAGE_MARGIN + colNome, y + rowPad, { width: colPapel });
-    doc.fillColor(PALETTE.ink).font('Helvetica-Bold')
-      .text(fmtBRL(meta), PAGE_MARGIN + colNome + colPapel, y + rowPad, {
-        width: colMeta - 12, align: 'right',
-      });
-
-    doc.y = y + rowHeight;
-    doc.moveTo(PAGE_MARGIN, doc.y).lineTo(PAGE_MARGIN + width, doc.y)
-      .strokeColor(PALETTE.border).lineWidth(0.5).stroke();
-  });
-
-  // total
-  ensureSpace(doc, 28);
-  const totalY = doc.y + 4;
-  doc.fillColor(PALETTE.ink).font('Helvetica-Bold').fontSize(10.5)
-    .text('Total distribuído', PAGE_MARGIN + 12, totalY, { width: colNome + colPapel - 12 });
-  doc.text(fmtBRL(soma), PAGE_MARGIN + colNome + colPapel, totalY, {
-    width: colMeta - 12, align: 'right',
-  });
-  doc.y = totalY + 24;
-
-  if (statusTexto) drawCallout(doc, statusTexto, tone);
-}
-
 /**
  * Gera o relatório em PDF da meta comercial (não é uma cópia da página HTML,
  * e sim um documento formatado especificamente para leitura/impressão).
- * @param {object} data — mesmo formato aceito por POST /api/metas, mais `equipe`.
+ * @param {object} data — mesmo formato aceito por POST /api/metas.
  * @returns {PDFDocument} stream pronto para ser "pipe"-ado na resposta.
  */
 function generateMetaComercialPdf(data) {
@@ -213,9 +112,6 @@ function generateMetaComercialPdf(data) {
   const conversaoPct = Number(data.conversao_pct) || 0;
   const contatosNecessarios = Number(data.contatos_necessarios) || 0;
   const contatosPassado = Number(data.contatos_mes_passado) || 0;
-  const hunterValor = Number(data.hunter_valor) || 0;
-  const farmerValor = Number(data.farmer_valor) || 0;
-  const equipe = Array.isArray(data.equipe) ? data.equipe : [];
 
   const dataFormatada = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -267,25 +163,6 @@ function generateMetaComercialPdf(data) {
         'ok'
       );
     }
-  }
-
-  sectionTitle(doc, 'Meta por pessoa', 'A meta da empresa precisa virar o pedaço de cada um — senão continua sendo um número que ninguém carrega.');
-  drawFactList(doc, [
-    { label: 'Clientes novos (hunter)', value: fmtBRL(hunterValor) },
-    { label: 'Base — upsell e cross-sell (farmer)', value: fmtBRL(farmerValor) },
-  ]);
-
-  if (hunterValor > metaMensal && metaMensal > 0) {
-    drawCallout(
-      doc,
-      `O valor de hunter (${fmtBRL(hunterValor)}) é maior que a meta mensal da área (${fmtBRL(metaMensal)}). Revise a divisão entre hunter e farmer.`,
-      'alert'
-    );
-  }
-
-  if (equipe.length > 0) {
-    doc.moveDown(0.2);
-    drawTeamTable(doc, equipe, metaMensal);
   }
 
   return finalizeReport(doc, 'Gerado automaticamente pela calculadora de meta comercial');

@@ -8,7 +8,15 @@ Backend Node.js (Express 5 + `better-sqlite3`) que serve duas ferramentas de
 treinamento comercial em `public/`:
 
 - `calculadora.html` — "Qual é a sua meta comercial?", grava respostas em
-  `POST /api/metas` (tabela `metas`).
+  `POST /api/metas` (tabela `metas`). Só tem uma seção hoje ("A meta da
+  empresa", linhas 1-11 — do faturamento até os contatos necessários por
+  mês); a antiga "Parte 2" (distribuir a meta entre hunter/farmer e uma
+  tabela de equipe) foi removida da UI, do JS e do relatório em PDF a
+  pedido do usuário. As colunas `hunter_valor`/`farmer_valor`/`equipe_json`
+  continuam em `metas` (e a API continua aceitando esses campos, tratando
+  ausência como 0/`[]`) — não foi uma migração destrutiva, só a interface
+  parou de coletar/enviar esses dados. Não recrie essa seção sem pedido
+  explícito.
 - `disc.html` — avaliação DISC, grava respostas em `POST /api/disc` (tabela
   `disc_respostas`).
 - `admin.html` — painel autenticado (`x-admin-token` / `?token=`) para listar,
@@ -169,8 +177,7 @@ Os testes usam o runner nativo do Node (`node --test`):
   `calculadora.html` num DOM real (`jsdom`), carregando o HTML de verdade e
   disparando eventos reais (`input`/`change`/`click`). Se mexer em
   `calculadora.html`, rode esses testes — é a única cobertura automatizada
-  que existe da UI (parsing de número, validação, tabela de equipe,
-  persistência local).
+  que existe da UI (parsing de número, validação, persistência local).
 - `tests/disc.client.test.js` — mesma ideia pra `disc.html`. Preenche a
   avaliação inteira de forma determinística (ver comentário no topo do
   arquivo) pra chegar na tela de resultado e testar arquétipo, comparação
