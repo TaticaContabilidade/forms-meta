@@ -63,12 +63,24 @@ arquivo do header `Content-Disposition` da resposta — não usam mais
 
 **Parte A permite marcar mais de uma palavra por grupo.** Cada bloco tem 2
 grupos de escolha (Mais/Menos), cada um com `<input type="checkbox">` (não
-`radio` — Partes B e C continuam `radio`, são escolha única). Um bloco só
-conta como respondido (`blocoARespondido(r)` em `disc.html`) quando há pelo
-menos 1 palavra marcada em cada grupo **e** nenhuma palavra está marcada nos
-2 grupos ao mesmo tempo (isso continua bloqueado como conflito). `calcNatural()`
-soma/subtrai o traço de **cada** palavra marcada, não só da 1ª — se 2 palavras
-forem marcadas como Mais no mesmo bloco, as 2 pontuam.
+`radio` — Partes B e C continuam `radio`, são escolha única). Um bloco conta
+como respondido (`blocoARespondido(bIdx)` em `disc.html`, via
+`avaliarBlocoA(bIdx)`) quando **todas** as palavras do bloco foram
+classificadas — cada uma em Mais ou em Menos, nenhuma de fora — **e** nenhuma
+palavra está marcada nos 2 grupos ao mesmo tempo (conflito). Não é mais "pelo
+menos 1 em cada grupo": um bloco com as 4 palavras em Mais e 0 em Menos conta
+como respondido igual. `calcNatural()` soma/subtrai o traço de **cada**
+palavra marcada, não só da 1ª.
+
+Cada bloco tem 2 alertas inline (`.conflict-msg`/`.pending-msg`, classes
+`.conflict`/`.pending` no `<fieldset>`, cores `--danger`/`--warning`):
+conflito (mesma palavra nos 2 grupos) e pendente (falta classificar alguma
+palavra). Um `Set` em memória (`blocosAlertaVisivel`, não vai pro
+`localStorage`) controla quando cada alerta pode aparecer — assim que o
+participante mexe naquele bloco (`updateBlocoA`), ou em todos os blocos
+pendentes de uma vez quando ele clica "Continuar para Parte B" sem terminar
+(mesmo os nunca tocados) — pra não mostrar "pendente" nos 28 blocos de cara,
+antes de qualquer interação.
 
 **Compatibilidade do `disc_state` salvo:** sempre que o formato de
 `respostasA`/`respostasB`/`respostasC` mudar, `loadState()` precisa migrar o

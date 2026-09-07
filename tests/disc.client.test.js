@@ -69,8 +69,20 @@ function completarAvaliacao(win) {
   doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
     const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
     const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
-    mais[0].checked = true; change(win, mais[0]);
-    menos[1].checked = true; change(win, menos[1]);
+    // A regra atual exige as 4 palavras do bloco classificadas (não só 1 em
+    // cada grupo). D sempre Mais, I sempre Menos — mantém D/I determinístico
+    // (+28/-28). S e C alternam de grupo a cada bloco (14 blocos pares, 14
+    // ímpares) pra se cancelarem e continuarem em 0, preservando o resultado
+    // que os testes abaixo (D-04, D-05...) esperam.
+    mais[0].checked = true; change(win, mais[0]); // D
+    menos[1].checked = true; change(win, menos[1]); // I
+    if (bIdx % 2 === 0) {
+      mais[2].checked = true; change(win, mais[2]); // S
+      menos[3].checked = true; change(win, menos[3]); // C
+    } else {
+      menos[2].checked = true; change(win, menos[2]); // S
+      mais[3].checked = true; change(win, mais[3]); // C
+    }
   });
   click(win, doc.getElementById('btnAtoB'));
 
@@ -136,12 +148,33 @@ describe('Parte A permite marcar mais de uma palavra por grupo (Mais/Menos)', ()
     const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
     const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
 
+    // classifica as 4 palavras sem conflito: 0 e 3 em Mais, 1 e 2 em Menos
     mais[0].checked = true; change(win, mais[0]);
+    mais[3].checked = true; change(win, mais[3]);
     menos[1].checked = true; change(win, menos[1]);
+    menos[2].checked = true; change(win, menos[2]);
     assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
 
+    // marca a palavra 0 (já em Mais) também em Menos -> conflito
     menos[0].checked = true; change(win, menos[0]);
     assert.ok(fieldset.classList.contains('conflict'), 'marcar a mesma opção nos 2 grupos deveria sinalizar conflito');
+    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
+  });
+
+  test('bloco com alguma palavra sem classificar (nem Mais nem Menos) não conta como respondido e mostra o alerta de pendente', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
+    const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
+    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
+
+    // só classifica 3 das 4 palavras (falta a de índice 3)
+    mais[0].checked = true; change(win, mais[0]);
+    menos[1].checked = true; change(win, menos[1]);
+    mais[2].checked = true; change(win, mais[2]);
+
+    assert.ok(!fieldset.classList.contains('conflict'), 'não há conflito, só falta classificar');
+    assert.ok(fieldset.classList.contains('pending'), 'deveria sinalizar como pendente por faltar 1 palavra');
     assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
   });
 
@@ -159,16 +192,21 @@ describe('Parte A permite marcar mais de uma palavra por grupo (Mais/Menos)', ()
         menos[1].checked = true; change(win, menos[1]);
         menos[2].checked = true; change(win, menos[2]);
       } else {
+        // Demais 27 blocos: Mais em D e S; Menos em I e C — as 4 palavras
+        // classificadas, como a regra atual exige.
         mais[0].checked = true; change(win, mais[0]);
+        mais[2].checked = true; change(win, mais[2]);
         menos[1].checked = true; change(win, menos[1]);
+        menos[3].checked = true; change(win, menos[3]);
       }
     });
     click(win, doc.getElementById('btnAtoB'));
     completarParteBC(win);
 
-    // Baseline dos outros 27 blocos: D +27, I -27. Bloco 0 soma D+1, C+1, I-1, S-1.
+    // 27 blocos "padrão": D+27, I-27, S+27, C-27. Bloco 0 inverte S e C:
+    // D+1, I-1, S-1, C+1. Total: D+28, I-28, S+26, C-26.
     const barras = [...doc.querySelectorAll('#barsNatural .bar-value')].map((el) => el.textContent);
-    assert.deepEqual(barras, ['+28', '-28', '-1', '+1']);
+    assert.deepEqual(barras, ['+28', '-28', '+26', '-26']);
   });
 });
 
@@ -281,6 +319,9 @@ describe('compatibilidade com disc_state salvo no formato antigo (regressão)', 
     // a marcação antiga (mais=2, menos=1) foi migrada e continua marcada
     assert.ok(doc.querySelector('input[name="a0_mais"][value="2"]').checked);
     assert.ok(doc.querySelector('input[name="a0_menos"][value="1"]').checked);
-    assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
+    // só 2 das 4 palavras estavam classificadas nesse registro antigo — a
+    // regra atual exige as 4, então o bloco não conta como respondido (mas
+    // também não trava nem perde a marcação já feita)
+    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
   });
 });

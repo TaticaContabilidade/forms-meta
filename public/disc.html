@@ -66,7 +66,7 @@
       <span class="part-badge">Parte A</span>
       <h2>Perfil natural</h2>
     </div>
-    <p class="part-desc">Em cada bloco, marque a(s) palavra(s) <strong>MAIS</strong> parecida(s) com você e a(s) <strong>MENOS</strong> parecida(s) — pode marcar mais de uma em cada grupo. Responda como você é — não como gostaria de ser.</p>
+    <p class="part-desc">Em cada bloco, classifique <strong>todas as 4 palavras</strong>: marque cada uma como <strong>MAIS</strong> ou <strong>MENOS</strong> parecida com você — pode marcar mais de uma em cada grupo. Responda como você é — não como gostaria de ser.</p>
 
     <div class="progress-wrap">
       <div class="progress-label" id="progressLabelA" aria-live="polite">0 de 28 blocos respondidos</div>
@@ -594,7 +594,7 @@ function resolverPerfilDominante(scores) {
 // ============================================================
 let state = {
   part: 'A',
-  respostasA: {}, // blockIdx -> { mais: wordIdx[], menos: wordIdx[] } — mais de uma palavra por grupo é permitido
+  respostasA: {}, // blockIdx -> { mais: wordIdx[], menos: wordIdx[] } — cada palavra do bloco entra em só 1 dos 2 grupos, e o bloco só é respondido quando TODAS entram em algum
   respostasB: {}, // sIdx -> optionIdx
   respostasC: {}, // aIdx -> score (1-5)
 };
@@ -664,7 +664,7 @@ function renderParteA() {
     div.className = 'choice-block';
     div.id = 'bloco-' + bIdx;
 
-    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque uma ou mais palavras MAIS parecidas e uma ou mais MENOS parecidas com você</span></legend>`;
+    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Classifique as ${bloco.words.length} palavras como MAIS ou MENOS parecidas com você</span></legend>`;
     const optionsHtml = bloco.words.map((w, wIdx) => {
       const textId = `optText-${bIdx}-${wIdx}`;
       const maisId = `optMais-${bIdx}-${wIdx}`;
@@ -688,7 +688,7 @@ function renderParteA() {
     `;
     }).join('');
 
-    div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p>`;
+    div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p><p class="pending-msg">Classifique as ${bloco.words.length} palavras como MAIS ou MENOS antes de continuar.</p>`;
     container.appendChild(div);
 
     // listeners
@@ -699,13 +699,33 @@ function renderParteA() {
   updateProgressA();
 }
 
-// Um bloco conta como respondido quando há pelo menos uma palavra marcada
-// em cada grupo (Mais/Menos permite mais de uma) e nenhuma palavra está
-// marcada nos dois grupos ao mesmo tempo.
-function blocoARespondido(r) {
-  if (!r || !Array.isArray(r.mais) || !Array.isArray(r.menos)) return false;
-  if (r.mais.length === 0 || r.menos.length === 0) return false;
-  return !r.mais.some((v) => r.menos.includes(v));
+// Blocos cujo alerta inline já pode aparecer — só depois que o participante
+// interagiu com aquele bloco (evita mostrar "pendente" nos 28 de cara, antes
+// de qualquer clique), ou depois que tentou avançar pelo botão (aí sinaliza
+// todos os pendentes, mesmo os nunca tocados — ver clique de btnAtoB).
+let blocosAlertaVisivel = new Set();
+
+// Um bloco é respondido quando TODAS as palavras foram classificadas (MAIS ou
+// MENOS) e nenhuma palavra está marcada nos dois grupos ao mesmo tempo — não
+// depende mais de ter pelo menos 1 em cada grupo (pode ser, por exemplo, 3
+// MAIS e 1 MENOS, ou até as 4 MAIS).
+function avaliarBlocoA(bIdx) {
+  const r = state.respostasA[bIdx] || { mais: [], menos: [] };
+  const total = BLOCOS_A[bIdx].words.length;
+  const overlap = r.mais.some((v) => r.menos.includes(v));
+  const classificadas = new Set([...r.mais, ...r.menos]);
+  return { overlap, completo: !overlap && classificadas.size === total };
+}
+function blocoARespondido(bIdx) {
+  return avaliarBlocoA(bIdx).completo;
+}
+
+function renderAlertaBlocoA(bIdx) {
+  const { overlap, completo } = avaliarBlocoA(bIdx);
+  const bloco = document.getElementById('bloco-' + bIdx);
+  const mostrar = blocosAlertaVisivel.has(bIdx) && !completo;
+  bloco.classList.toggle('conflict', mostrar && overlap);
+  bloco.classList.toggle('pending', mostrar && !overlap);
 }
 
 function updateBlocoA(bIdx) {
@@ -716,9 +736,8 @@ function updateBlocoA(bIdx) {
   state.respostasA[bIdx].mais = mais;
   state.respostasA[bIdx].menos = menos;
 
-  const bloco = document.getElementById('bloco-' + bIdx);
-  const overlap = mais.some((v) => menos.includes(v));
-  bloco.classList.toggle('conflict', overlap);
+  blocosAlertaVisivel.add(bIdx);
+  renderAlertaBlocoA(bIdx);
   saveState();
   updateProgressA();
 }
@@ -726,7 +745,7 @@ function updateBlocoA(bIdx) {
 function updateProgressA() {
   let done = 0;
   BLOCOS_A.forEach((_, i) => {
-    if (blocoARespondido(state.respostasA[i])) done++;
+    if (blocoARespondido(i)) done++;
   });
   const pct = (done / BLOCOS_A.length) * 100;
   document.getElementById('progressFillA').style.width = pct + '%';
@@ -816,8 +835,8 @@ function renderParteC() {
 function calcNatural() {
   const scores = { D:0, I:0, S:0, C:0 };
   BLOCOS_A.forEach((bloco, bIdx) => {
+    if (!blocoARespondido(bIdx)) return;
     const r = state.respostasA[bIdx];
-    if (!blocoARespondido(r)) return;
     r.mais.forEach((wIdx) => {
       const w = bloco.words[wIdx];
       if (w) scores[w.trait] = (scores[w.trait] || 0) + 1;
@@ -1000,7 +1019,7 @@ function renderBars(containerId, scores, total) {
 // VALIDAÇÕES
 // ============================================================
 function validateA() {
-  return BLOCOS_A.every((_, i) => blocoARespondido(state.respostasA[i]));
+  return BLOCOS_A.every((_, i) => blocoARespondido(i));
 }
 function validateB() {
   return Object.keys(state.respostasB).length === SITUACOES_B.length;
@@ -1150,6 +1169,21 @@ renderParteC();
 document.getElementById('btnAtoB').addEventListener('click', () => {
   if (!validateA()) {
     document.getElementById('validMsgA').style.display = 'inline';
+    // Sinaliza TODOS os blocos pendentes de uma vez (mesmo os nunca
+    // tocados), não só o primeiro — mesmo padrão de validarObrigatorios()
+    // na calculadora.
+    let primeiroPendente = null;
+    BLOCOS_A.forEach((_, i) => {
+      if (!blocoARespondido(i)) {
+        blocosAlertaVisivel.add(i);
+        renderAlertaBlocoA(i);
+        if (primeiroPendente === null) primeiroPendente = i;
+      }
+    });
+    if (primeiroPendente !== null) {
+      const bloco = document.getElementById('bloco-' + primeiroPendente);
+      if (bloco.scrollIntoView) bloco.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     return;
   }
   document.getElementById('validMsgA').style.display = 'none';
