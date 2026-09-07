@@ -63,17 +63,16 @@ function completarParteBC(win) {
   click(win, doc.getElementById('btnFinish'));
 }
 
-function completarAvaliacao(win) {
+// Completa a Parte A (as 4 palavras de cada bloco, sem conflito) e clica
+// "Continuar para Parte B". D sempre Mais, I sempre Menos — mantém D/I
+// determinístico (+28/-28). S e C alternam de grupo a cada bloco (14 blocos
+// pares, 14 ímpares) pra se cancelarem e continuarem em 0, preservando o
+// resultado que os testes de resultado (D-04, D-05...) esperam.
+function completarParteA(win) {
   const doc = win.document;
-
   doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
     const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
     const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
-    // A regra atual exige as 4 palavras do bloco classificadas (não só 1 em
-    // cada grupo). D sempre Mais, I sempre Menos — mantém D/I determinístico
-    // (+28/-28). S e C alternam de grupo a cada bloco (14 blocos pares, 14
-    // ímpares) pra se cancelarem e continuarem em 0, preservando o resultado
-    // que os testes abaixo (D-04, D-05...) esperam.
     mais[0].checked = true; change(win, mais[0]); // D
     menos[1].checked = true; change(win, menos[1]); // I
     if (bIdx % 2 === 0) {
@@ -85,7 +84,10 @@ function completarAvaliacao(win) {
     }
   });
   click(win, doc.getElementById('btnAtoB'));
+}
 
+function completarAvaliacao(win) {
+  completarParteA(win);
   completarParteBC(win);
 }
 
@@ -207,6 +209,60 @@ describe('Parte A permite marcar mais de uma palavra por grupo (Mais/Menos)', ()
     // D+1, I-1, S-1, C+1. Total: D+28, I-28, S+26, C-26.
     const barras = [...doc.querySelectorAll('#barsNatural .bar-value')].map((el) => el.textContent);
     assert.deepEqual(barras, ['+28', '-28', '+26', '-26']);
+  });
+});
+
+describe('Parte B sinaliza situação sem resposta ao tentar continuar para a Parte C', () => {
+  test('situação sem opção marcada não bloqueia nada até o clique em "Continuar" — não nageia antes disso', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    completarParteA(win);
+
+    // responde só a situação 0, deixa as outras 15 sem resposta
+    const opts0 = doc.querySelectorAll('input[name="b0"]');
+    opts0[0].checked = true; change(win, opts0[0]);
+
+    assert.ok(!doc.getElementById('situacao-1').classList.contains('pending'), 'não deveria sinalizar antes de tentar continuar');
+  });
+
+  test('clicar "Continuar para Parte C" sem terminar sinaliza TODAS as situações pendentes (mesmo as nunca tocadas) e não avança', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    completarParteA(win);
+
+    // responde todas menos a situação 9
+    doc.querySelectorAll('#situationsB fieldset').forEach((fs, sIdx) => {
+      if (sIdx === 9) return;
+      const opts = fs.querySelectorAll(`input[name="b${sIdx}"]`);
+      opts[0].checked = true; change(win, opts[0]);
+    });
+
+    click(win, doc.getElementById('btnBtoC'));
+
+    assert.ok(doc.getElementById('partB').classList.contains('active'), 'não deveria ter avançado pra Parte C');
+    assert.ok(doc.getElementById('situacao-9').classList.contains('pending'), 'situação 9 deveria estar sinalizada como pendente');
+    assert.equal(win.getComputedStyle(doc.getElementById('situacao-9').querySelector('.pending-msg')).display, 'block');
+    assert.equal(doc.getElementById('validMsgB').style.display, 'inline');
+  });
+
+  test('responder a situação pendente some com o alerta e libera o avanço pra Parte C', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    completarParteA(win);
+
+    doc.querySelectorAll('#situationsB fieldset').forEach((fs, sIdx) => {
+      if (sIdx === 9) return;
+      const opts = fs.querySelectorAll(`input[name="b${sIdx}"]`);
+      opts[0].checked = true; change(win, opts[0]);
+    });
+    click(win, doc.getElementById('btnBtoC')); // sinaliza a situação 9 como pendente
+
+    const opts9 = doc.querySelectorAll('input[name="b9"]');
+    opts9[1].checked = true; change(win, opts9[1]);
+    assert.ok(!doc.getElementById('situacao-9').classList.contains('pending'), 'o alerta deveria sumir ao responder');
+
+    click(win, doc.getElementById('btnBtoC'));
+    assert.ok(doc.getElementById('partC').classList.contains('active'), 'agora deveria avançar pra Parte C');
   });
 });
 

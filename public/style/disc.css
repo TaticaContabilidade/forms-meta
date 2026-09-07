@@ -484,6 +484,15 @@ h2 {
   color: var(--fg);
 }
 
+/* Pendente (nenhuma opção escolhida) */
+.situation-card.pending {
+  border-color: var(--warning);
+}
+.situation-card .pending-msg {
+  margin: 12px 0 0;
+}
+.situation-card.pending .pending-msg { display: block; }
+
 /* ====== PARTE C — INTENSIDADE ====== */
 .intensity-list {
   display: flex;
