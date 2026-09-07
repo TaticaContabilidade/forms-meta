@@ -3,11 +3,22 @@ services:
     name: forms-meta
     env: node
     region: ohio
-    plan: free
+    # O plano free não suporta Persistent Disk (obrigatório pra ter um disco
+    # montado abaixo) — starter é o menor plano pago que aceita.
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
+    disk:
+      name: dados
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: ADMIN_TOKEN
         sync: false
-    # Plano free não suporta Persistent Disk: o SQLite em db/metas.db
-    # é apagado a cada deploy e quando a instância dorme por inatividade.
+      # SQLite (better-sqlite3, sem mudança de código) grava no disco
+      # persistente montado acima — sobrevive a redeploys, diferente de
+      # db/metas.db (default local, dentro do próprio código-fonte, que o
+      # Render recria do zero a cada deploy). O plano starter também não
+      # "dorme" por inatividade como o free — isso já resolve sozinho.
+      - key: DB_PATH
+        value: /var/data/metas.db

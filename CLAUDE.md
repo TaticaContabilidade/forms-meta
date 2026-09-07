@@ -125,6 +125,24 @@ partir de um raster), isolando só o símbolo antes de gerar os tamanhos —
 `pdftocairo -png -r 600 -transp` preserva o alpha; um `pdftoppm` comum não
 tem essa flag nesta versão do poppler.
 
+### Deploy (Render) e persistência do banco
+
+`render.yaml` roda no plano **starter** (não `free`) porque só planos pagos
+suportam **Persistent Disk** — sem disco, o SQLite (`db/metas.db`) some a
+cada deploy e quando a instância dorme por inatividade (comportamento do
+plano free, que o starter também não tem). O disco é montado em
+`/var/data` e `DB_PATH=/var/data/metas.db` aponta o `better-sqlite3` pra
+lá — sem nenhuma mudança de código em `src/server.js`, que já lê `DB_PATH`
+do ambiente. Localmente (`.env`/`npm start` sem `DB_PATH` definido) continua
+gravando no default `db/metas.db`, dentro do próprio repo — só o ambiente
+do Render é diferente.
+
+Se um dia crescer para precisar de um banco relacional de verdade (múltiplos
+serviços, backups gerenciados, queries mais complexas), a alternativa é o
+PostgreSQL gerenciado do Render — mas isso exige reescrever a camada de
+banco (`better-sqlite3` → `pg`) em `src/server.js`, não é só configuração de
+infraestrutura. Não faça essa migração sem pedido explícito.
+
 ## Fluxo de commit
 
 Sempre que o usuário pedir para commitar (ex.: "comita", "pode commitar",
