@@ -562,3 +562,29 @@ seguem só no histórico do `git log`.
     teste específico provando que `i_natural`/`d_natural` enviados
     "errados" de propósito no body são ignorados na geração do PDF.
   - `npm test`: 75/75 passando.
+- **Conflito Mais/Menos na Parte A do DISC se resolve sozinho, em vez de
+  travar o bloco** — testador relatou conseguir marcar a mesma frase como
+  MAIS e MENOS (Mais e Menos são 2 `radio` de grupos independentes; o
+  radio nativo só impede 2 marcações dentro do mesmo grupo, não entre os
+  2). Antes disso virava um alerta de conflito (`.conflict`) que exigia o
+  participante corrigir manualmente. Agora `updateBlocoA(bIdx,
+  grupoAlterado)` recebe qual grupo o participante acabou de mexer, e ao
+  detectar `mais === menos` mantém essa marcação e sorteia
+  aleatoriamente outra palavra (excluindo a que empatou) pro outro grupo,
+  marcando o `checked` do radio sorteado direto no DOM — o bloco nunca
+  fica visivelmente em conflito nem exige correção manual.
+  - `public/disc.html`: os 2 listeners de cada bloco (antes um único
+    `querySelectorAll` combinando `_mais, _menos`) foram separados, cada
+    um passando `'mais'`/`'menos'` pra `updateBlocoA` saber qual dos 2 foi
+    a ação mais recente do participante (pra não desfazê-la ao sortear).
+  - `avaliarBlocoA`/`.conflict-msg`/classe `.conflict` continuam no
+    código como rede de segurança (um `disc_state` salvo antes dessa
+    correção existir poderia, em teoria, carregar um overlap já salvo),
+    mas não deveriam mais aparecer durante o preenchimento normal.
+  - `tests/disc.client.test.js`: o teste que verificava o bloqueio por
+    conflito foi reescrito pra verificar a resolução automática (Menos
+    marcado por último permanece, Mais sorteado fica diferente de Menos,
+    sem classe `.conflict`, bloco continua contando como respondido).
+    Testado também manualmente via jsdom no sentido inverso (Mais
+    alterado por último) pra confirmar que os dois sentidos funcionam.
+  - `npm test`: 75/75 passando.
