@@ -89,84 +89,79 @@ Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
 arquivo do header `Content-Disposition` da resposta — não usam mais
 `window.print()`.
 
-**Parte A é escolha forçada de verdade — `<input type="radio">`, não
-`checkbox`.** Cada bloco tem 2 grupos de escolha (Mais/Menos), e o radio
-nativo garante no máximo 1 palavra marcada por grupo — não dá pra marcar 2
-como Mais mesmo tentando. Isso existiu diferente por um tempo: entre o
-commit que trocou pra `checkbox` (permitindo marcar várias palavras por
-grupo) e o N-05 do reteste externo (`reteste-e-plataforma-ideal.md`), que
-apontou que isso quebrava a propriedade **ipsativa** do instrumento — com
-`checkbox` o total de pontos por pessoa deixava de ser constante (a soma dos
-4 traços podia variar de 0 a -56 dependendo de quantas palavras a pessoa
-marcava por bloco), o que invalida qualquer comparação entre perfis de
-pessoas diferentes. Voltou a ser `radio` (histórico no CHANGELOG). Um bloco
-conta como respondido (`blocoARespondido(bIdx)` em `disc.html`, via
-`avaliarBlocoA(bIdx)`) quando exatamente 1 palavra foi marcada em Mais **e**
-1 em Menos, e não é a mesma palavra nos dois grupos (conflito — só isso o
-radio não impede sozinho, já que Mais e Menos são 2 grupos independentes).
-`calcNatural()` soma o traço da palavra em Mais e subtrai o da palavra em
-Menos — sempre exatamente ±1 por bloco, nunca mais que isso.
+**A avaliação tem 2 partes, não 3.** Item 01 do reteste externo
+(`reteste-e-plataforma-ideal.md`, ver CHANGELOG) foi implementado: a antiga
+Parte B (16 situações de trabalho, escala 0..16) foi aposentada. Os 2
+perfis (natural e adaptado) agora vêm das mesmas 28 marcações da Parte A —
+`calcNatural()` conta quantas vezes cada traço foi escolhido como **Menos**
+(o que exige menos esforço), `calcAdaptado()` conta quantas vezes cada
+traço foi escolhido como **Mais** (o que aparece quando o ambiente pede
+diferente). Os 2 são contagens sem sinal, 0 a 28, **mesma escala** — ao
+contrário do modelo antigo (natural -28..+28 combinando Mais(+1)/Menos(-1)
+num único escore; adaptado 0..16 de um instrumento separado), que é
+exatamente o que produzia o N-06 (réguas incompatíveis, ver abaixo). A
+"Parte B" que sobrou na UI é a intensidade — internamente ainda é chamada
+de "Parte C" nas variáveis/funções (`INTENSIDADE_C`, `respostasC`,
+`calcIntensidade`, `#intensityC`) por convenção histórica do instrumento;
+não é um bug, é só uma discrepância de nome entre código e UI.
 
-**Conflito (mesma palavra em Mais e Menos) se resolve sozinho, nunca
-bloqueia.** Testadores relataram conseguir marcar a mesma frase nos 2 grupos
-e ficar travados no bloco. `updateBlocoA(bIdx, grupoAlterado)` recebe qual
-dos 2 grupos o participante acabou de mexer (`'mais'` ou `'menos'`,
-passado pelo listener de cada grupo separadamente) — ao detectar
-`mais === menos`, mantém a marcação que ele acabou de fazer e sorteia
-aleatoriamente outra palavra (excluindo a que empatou) pro outro grupo,
-atualizando o `checked` do radio sorteado direto no DOM. `avaliarBlocoA`/
-`.conflict-msg`/classe `.conflict` continuam existindo só como rede de
-segurança pra um `disc_state` salvo antes dessa correção existir (não
-deveriam mais aparecer durante o preenchimento normal).
+**Parte A é passo a passo — Passo 1 escolhe a MAIS parecida (das 4), Passo
+2 escolhe a MENOS parecida (só das 3 que sobraram).** Existiu diferente por
+duas fases antes disso: 1) `<input type="checkbox">` permitindo marcar
+várias palavras por grupo (quebrava a propriedade **ipsativa** — a soma dos
+4 traços deixava de ser constante entre pessoas, invalidando qualquer
+comparação de perfis — corrigido pelo N-05 do reteste); 2) `<input
+type="radio">` com os 2 grupos (Mais/Menos) simultâneos lado a lado —
+tecnicamente correto (radio garante no máximo 1 marcação por grupo), mas
+testadores continuaram relatando confusão mesmo com texto de instrução e
+exemplo visual, e ainda dava pra marcar a mesma frase nos 2 grupos (mesma
+palavra em Mais e Menos — resolvido na época com um sorteio automático em
+`updateBlocoA`). O passo a passo elimina esse conflito **por construção**:
+o Passo 2 (`.choice-step-menos`) começa com todas as opções `disabled` até
+o Passo 1 responder (`atualizarDisponibilidadeBlocoA(bIdx)`), e a opção
+igual à escolhida no Passo 1 fica `disabled` + marcada com a tag "Já é sua
+Mais" — não dá pra marcar a mesma frase nas 2 nem tentando, sem precisar de
+alerta nem sorteio depois do fato. Cada opção é um `<label class="choice-
+card">` que já embrulha o radio + o texto da frase (nome acessível vem do
+próprio conteúdo do label — não precisa mais de `aria-labelledby`, que só
+era necessário quando o texto ficava fora do `<label>`, compartilhado entre
+os 2 radios do modelo anterior). Um bloco conta como respondido
+(`blocoARespondido(bIdx)`, via `avaliarBlocoA(bIdx)`) quando exatamente 1
+palavra foi marcada em Mais **e** 1 em Menos, e não é a mesma palavra
+(`overlap` — não deveria mais acontecer via UI normal, mas continua como
+rede de segurança pra um `disc_state` salvo antes dessa correção existir;
+`updateBlocoA` também limpa a ponta que não acabou de mudar se ainda assim
+detectar `mais === menos`, ex.: trocar a Mais depois de já ter respondido
+a Menos, pra a mesma palavra que virou a nova Mais).
 
 **Não reintroduza múltipla escolha na Parte A sem entender a implicação
-psicométrica** (ver seção 04 do documento de reteste) — o instrumento clássico
-depende do total ser constante entre respondentes pra ser comparável.
-
-**Não compare natural × adaptado com uma frase numérica de delta** (N-06 do
-reteste). `calcNatural()` varia de -28 a +28 (28 blocos, +1/-1);
-`calcAdaptado()` varia de 0 a 16 (16 situações, só +1) — são escalas
-diferentes, subtrair um do outro não produz "pontos" de nada (o traço
-natural mais negativo sempre "vencia" a conta, artificialmente). Existiu um
-bloco assim (`#adaptacaoDelta` em `disc.html`, `drawAdaptacaoDelta()` em
-`discReport.js`) — removido. Os dois perfis aparecem lado a lado (tela e
-PDF), cada um na sua própria escala, sem comparação numérica entre eles.
-Se um dia isso for resolvido de verdade, é derivando os dois perfis do
-mesmo instrumento na mesma escala (ver seção 04/05 do documento de
-reteste) — não voltando a subtrair réguas diferentes.
+psicométrica** (ver seção 04 do documento de reteste) — o instrumento
+clássico depende do total ser constante entre respondentes pra ser
+comparável.
 
 Cada bloco tem 2 alertas inline (`.conflict-msg`/`.pending-msg`, classes
 `.conflict`/`.pending` no `<fieldset>`, cores `--danger`/`--warning`):
-conflito (mesma palavra nos 2 grupos) e pendente (falta classificar alguma
-palavra). Um `Set` em memória (`blocosAlertaVisivel`, não vai pro
-`localStorage`) controla quando cada alerta pode aparecer — assim que o
-participante mexe naquele bloco (`updateBlocoA`), ou em todos os blocos
-pendentes de uma vez quando ele clica "Continuar para Parte B" sem terminar
-(mesmo os nunca tocados) — pra não mostrar "pendente" nos 28 blocos de cara,
-antes de qualquer interação.
-
-**Parte B (situações) segue o mesmo padrão de alerta de pendente**, mas mais
-simples: como cada situação é escolha única (`radio`), não existe estado
-"parcialmente respondido" nem conflito — só respondida ou não. Por isso
-`situacoesAlertaVisivel` (mesma ideia do `blocosAlertaVisivel` da Parte A) só
-é preenchido no clique de "Continuar para Parte C", nunca durante a
-digitação — responder uma situação já resolve o alerta dela na hora, então
-não há por que revelar cedo. Clicar no botão com pendências sinaliza
-**todas** de uma vez (`.situation-card.pending`, `--warning`) e rola até a
-primeira, igual a Parte A.
+conflito (rede de segurança, ver acima) e pendente (falta responder o
+Passo 1 e/ou o Passo 2). Um `Set` em memória (`blocosAlertaVisivel`, não
+vai pro `localStorage`) controla quando cada alerta pode aparecer — assim
+que o participante mexe naquele bloco (`updateBlocoA`), ou em todos os
+blocos pendentes de uma vez quando ele clica "Continuar para Parte B" sem
+terminar (mesmo os nunca tocados) — pra não mostrar "pendente" nos 28
+blocos de cara, antes de qualquer interação.
 
 **Compatibilidade do `disc_state` salvo:** sempre que o formato de
-`respostasA`/`respostasB`/`respostasC` mudar, `loadState()` precisa migrar o
-formato antigo na leitura (ver `normalizarRespostasA`) — nunca assumir que o
-`localStorage` de quem já estava com uma avaliação em andamento vai estar no
-formato novo. `renderParteA()`/B()/C() rodam em sequência, sem try/catch,
-direto no topo do script; uma exceção em qualquer uma trava as três (nenhum
-bloco aparece). Já aconteceu duas vezes com `respostasA[bIdx].mais`/`.menos`
-(valor único → array, no commit que trocou pra `checkbox`; array → valor
-único de novo, no revert do N-05) — nenhuma das duas vezes foi pega pelos
-testes existentes até então porque nenhum simulava um `disc_state` no
-formato anterior. `normalizarRespostasA()` sempre precisa saber ler o
-formato imediatamente anterior ao atual, não só o "correto".
+`respostasA`/`respostasC` mudar, `loadState()` precisa migrar o formato
+antigo na leitura (ver `normalizarRespostasA`) — nunca assumir que o
+`localStorage` de quem já estava com uma avaliação em andamento vai estar
+no formato novo. `renderParteA()`/`renderParteB()` (intensidade) rodam em
+sequência, sem try/catch, direto no topo do script; uma exceção em
+qualquer uma trava as duas (nenhum bloco aparece). Já aconteceu duas vezes
+com `respostasA[bIdx].mais`/`.menos` (valor único → array, no commit que
+trocou pra `checkbox`; array → valor único de novo, no revert do N-05) —
+nenhuma das duas vezes foi pega pelos testes existentes até então porque
+nenhum simulava um `disc_state` no formato anterior. `normalizarRespostasA()`
+sempre precisa saber ler o formato imediatamente anterior ao atual, não só
+o "correto".
 
 ### Calculadora de meta comercial: números pt-BR
 
@@ -278,13 +273,13 @@ A seção "05 — Como seria a plataforma" de `reteste-e-plataforma-ideal.md`
 abaixo, embora este não tenha o prefixo por não ter sido pedido) lista 8
 ideias de evolução da plataforma. O item 02 (escolha forçada com radio
 agrupado) já foi entregue — era o N-05, ver CHANGELOG. O item 01 (aposentar
-a Parte B, derivando os 2 perfis das mesmas 28 marcações da Parte A) tinha
-sido avaliado e descartado antes, mas voltou a ser discutido por pedido
-explícito do usuário (relatos de confusão de testadores na Parte A) — ver
-CHANGELOG pra decisão mais recente antes de mexer nisso de novo. Os 6
-restantes são **features novas, não correções** — ficam pra fase de
-refinamento, depois que a entrega atual fechar. Ordenados por barateamento
-(mais barato primeiro):
+a Parte B, derivando os 2 perfis das mesmas 28 marcações da Parte A)
+também já foi entregue — tinha sido avaliado e descartado antes, mas
+voltou a ser discutido e implementado por pedido explícito do usuário
+(relatos de confusão de testadores na Parte A) — ver a seção "A avaliação
+tem 2 partes, não 3" acima e o CHANGELOG. Os 6 restantes são **features
+novas, não correções** — ficam pra fase de refinamento, depois que a
+entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
 
 1. **Uma linha sobre o que o instrumento não é** (item 08) — uma frase de
    rodapé no relatório e no PDF ("leitura de estilo comportamental para
