@@ -454,3 +454,8 @@ seguem só no histórico do `git log`.
   aposentar a Parte B e derivar os 2 perfis da Parte A (a reformulação
   grande que foi recusada como correção do N-06). Nenhum código mudou
   nesta entrada — só documentação.
+- **Remove o item 01 (aposentar a Parte B) do backlog** — decisão
+  explícita do usuário: "não iremos seguir por esse caminho". O backlog
+  no `CLAUDE.md` fica com 6 itens em vez de 7; o item 01 não é mais
+  reconsiderado sem pedido novo (nota deixada no próprio `CLAUDE.md`).
+  Nenhum código mudou — só documentação.
