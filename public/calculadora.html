@@ -508,12 +508,22 @@
     tr.querySelector('.t-type').addEventListener('change', recalcTeam);
     tMeta.addEventListener('input', () => { filtrarDigitacaoNumerica(tMeta); recalcTeam(); });
     // F-14: não deixa apagar a última linha — a seção não pode ficar só
-    // com o cabeçalho da tabela, sem nenhum lugar para digitar.
+    // com o cabeçalho da tabela, sem nenhum lugar para digitar. N-04 do
+    // reteste: o botão continuava com aparência de ativo mesmo quando o
+    // clique não fazia nada — atualizarBotoesRemover() desabilita o(s)
+    // botão(ões) quando só resta 1 linha, em vez de só ignorar o clique.
     tr.querySelector('.del-btn').addEventListener('click', () => {
       if (teamBody.querySelectorAll('tr').length <= 1) return;
       tr.remove();
+      atualizarBotoesRemover();
       recalcTeam();
     });
+    atualizarBotoesRemover();
+  }
+
+  function atualizarBotoesRemover(){
+    const podeRemover = teamBody.querySelectorAll('tr').length > 1;
+    teamBody.querySelectorAll('.del-btn').forEach((btn) => { btn.disabled = !podeRemover; });
   }
 
   // F-08: uma linha sem nome não deveria contar na soma nem ser enviada —
