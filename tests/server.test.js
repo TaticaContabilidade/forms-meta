@@ -21,10 +21,18 @@ after(() => {
 });
 
 describe('rotas estáticas', () => {
-  test('GET / serve o index.html', async () => {
+  test('GET / serve a landing page institucional (Priscila Galindo)', async () => {
     const res = await request(app).get('/');
     assert.equal(res.status, 200);
     assert.match(res.headers['content-type'], /html/);
+    assert.match(res.text, /Priscila Galindo/);
+    assert.match(res.text, /ferramentas\.html/);
+  });
+
+  test('GET /ferramentas.html serve o menu das dinâmicas (era o antigo index.html)', async () => {
+    const res = await request(app).get('/ferramentas.html');
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Ferramentas do treinamento/);
   });
 
   test('GET /disc.html serve a página do DISC', async () => {

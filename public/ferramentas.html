@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferramentas de Treinamento | Practice to Create</title>
+<meta name="description" content="Calculadora de metas comerciais e avaliação DISC profunda para empresários.">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:           #141920;
+  --card:         #1C2235;
+  --card-2:       #222840;
+  --fg:           #F4F5FA;
+  --fg-soft:      #9DA8C0;
+  --fg-faint:     #5A6480;
+  --border-solid: #2A3050;
+  --border:       rgba(255,255,255,0.12);
+  --input-bg:     rgba(255,255,255,0.08);
+  --primary:      #AADC4E;
+  --primary-fg:   #162318;
+  --accent:       #E8A838;
+  --d-color: #E05252; --d-bg: rgba(224,82,82,0.1);   --d-border: rgba(224,82,82,0.25);
+  --i-color: #E8A838; --i-bg: rgba(232,168,56,0.1);  --i-border: rgba(232,168,56,0.25);
+  --s-color: #50D090; --s-bg: rgba(80,208,144,0.1);  --s-border: rgba(80,208,144,0.25);
+  --c-color: #6BA0F0; --c-bg: rgba(107,160,240,0.1); --c-border: rgba(107,160,240,0.25);
+  --gradient-hero: linear-gradient(135deg, #141C2E 0%, #182535 55%, #1A2E25 100%);
+  --display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --body:    'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-lg: 1.25rem;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.wrap { max-width: 840px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* HERO */
+.hero {
+  background: var(--gradient-hero);
+  border-radius: var(--radius-lg);
+  margin: 32px 0 48px;
+  padding: 56px 48px 48px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -80px; left: 50%; transform: translateX(-50%);
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(170,220,78,0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; right: -60px;
+  width: 250px; height: 250px;
+  background: radial-gradient(circle, rgba(232,168,56,0.05) 0%, transparent 65%);
+  pointer-events: none;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin: 0 0 16px;
+}
+h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(30px, 5.5vw, 50px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+  margin: 0 0 14px;
+}
+.hero-sub {
+  font-size: 16px;
+  color: var(--fg-soft);
+  max-width: 52ch;
+  margin: 0 auto 36px;
+  line-height: 1.65;
+}
+
+/* CHIPS de info */
+.hero-chips {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--fg-soft);
+}
+
+/* GRID DE CARDS */
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 56px;
+}
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.tool-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--primary));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+.tool-card:hover {
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.tool-card:hover::before { transform: scaleX(1); }
+
+.tool-card.meta   { --card-accent: var(--primary); }
+.tool-card.disc   { --card-accent: var(--accent); }
+
+.tool-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.tool-card.meta .tool-icon   { background: rgba(170,220,78,0.12); }
+.tool-card.disc .tool-icon   { background: rgba(232,168,56,0.12); }
+
+.tool-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+.tool-card.meta .tool-label { color: var(--primary); }
+.tool-card.disc .tool-label { color: var(--accent); }
+
+.tool-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+.tool-desc {
+  font-size: 14px;
+  color: var(--fg-soft);
+  line-height: 1.6;
+  margin: 0;
+  flex: 1;
+}
+.tool-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.tool-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+.tool-card.meta .tool-pill { background: rgba(170,220,78,0.08); border-color: rgba(170,220,78,0.25); color: var(--primary); }
+.tool-card.disc .tool-pill { background: rgba(232,168,56,0.08); border-color: rgba(232,168,56,0.25); color: var(--accent); }
+
+.tool-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  transition: all 0.15s;
+}
+.tool-card.meta .tool-cta {
+  background: var(--primary);
+  color: var(--primary-fg);
+  box-shadow: 0 4px 14px rgba(170,220,78,0.25);
+}
+.tool-card.disc .tool-cta {
+  background: var(--accent);
+  color: #1A1000;
+  box-shadow: 0 4px 14px rgba(232,168,56,0.25);
+}
+.tool-card:hover .tool-cta { opacity: 0.9; }
+
+/* PERFIS DISC no card */
+.disc-profiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+.disc-profile-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--fg-soft);
+}
+.disc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* SEÇÃO QR CODE */
+.qr-section {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 32px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius);
+  padding: 32px;
+  margin-bottom: 48px;
+}
+.qr-box {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.qr-box img { display: block; width: 160px; height: 160px; }
+.qr-info h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--fg);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+.qr-info p {
+  font-size: 14px;
+  color: var(--fg-soft);
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
+.qr-url {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(170,220,78,0.08);
+  border: 1px solid rgba(170,220,78,0.25);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  word-break: break-all;
+  margin-bottom: 14px;
+}
+.qr-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-sm {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+}
+.btn-primary-sm {
+  background: var(--primary);
+  color: var(--primary-fg);
+  box-shadow: 0 3px 10px rgba(170,220,78,0.25);
+}
+.btn-primary-sm:hover { opacity: 0.9; }
+.btn-secondary-sm {
+  background: var(--card-2);
+  color: var(--fg-soft);
+  border: 1px solid var(--border-solid);
+}
+.btn-secondary-sm:hover { border-color: rgba(255,255,255,0.25); color: var(--fg); }
+
+/* RODAPÉ */
+footer {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-solid);
+}
+footer p {
+  font-size: 12.5px;
+  color: var(--fg-faint);
+  margin: 0;
+}
+footer a { color: var(--fg-soft); text-decoration: none; }
+footer a:hover { color: var(--primary); }
+
+@media (max-width: 620px) {
+  .tools-grid { grid-template-columns: 1fr; }
+  .hero { padding: 36px 24px 32px; margin: 16px 0 36px; }
+  .qr-section { grid-template-columns: 1fr; text-align: center; }
+  .qr-box { margin: 0 auto; }
+  .qr-actions { justify-content: center; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav style="padding-top:16px;">
+    <a href="/" style="font-size:13px; font-weight:600; color:var(--fg-faint); text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color .15s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--fg-faint)'">← Início</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <p class="eyebrow">Treinamento comercial · Practice to Create</p>
+    <h1>Ferramentas do treinamento</h1>
+    <p class="hero-sub">Calculadora de metas comerciais e avaliação de perfil comportamental DISC. Escolha a dinâmica que o facilitador indicar.</p>
+    <div class="hero-chips">
+      <span class="chip">📊 Calculadora de metas</span>
+      <span class="chip">🧠 Avaliação DISC</span>
+      <span class="chip">⏱ ~12–20 min cada</span>
+    </div>
+  </section>
+
+  <!-- GRID DE DINÂMICAS -->
+  <div class="tools-grid">
+
+    <!-- Card 1: Calculadora de metas -->
+    <a class="tool-card meta" href="/calculadora.html">
+      <div>
+        <div class="tool-icon">📊</div>
+      </div>
+      <div>
+        <p class="tool-label">Dinâmica 1</p>
+        <h2 class="tool-title">Calculadora de metas</h2>
+        <p class="tool-desc">Transforme o faturamento desejado em meta da área, número de contratos e volume de contatos necessários por mês.</p>
+      </div>
+      <div class="tool-pills">
+        <span class="tool-pill">Meta anual → mensal</span>
+        <span class="tool-pill">Hunter / Farmer</span>
+        <span class="tool-pill">Equipe comercial</span>
+      </div>
+      <div>
+        <span class="tool-cta">Acessar → </span>
+      </div>
+    </a>
+
+    <!-- Card 2: DISC -->
+    <a class="tool-card disc" href="/disc.html">
+      <div>
+        <div class="tool-icon">🧠</div>
+      </div>
+      <div>
+        <p class="tool-label">Dinâmica 2</p>
+        <h2 class="tool-title">Avaliação DISC</h2>
+        <p class="tool-desc">56 questões em 3 partes que revelam seu perfil natural, comportamento sob pressão e a intensidade de cada traço.</p>
+      </div>
+      <div class="disc-profiles">
+        <div class="disc-profile-item"><div class="disc-dot" style="background:#E05252"></div>D · O Executor</div>
+        <div class="disc-profile-item"><div class="disc-dot" style="background:#E8A838"></div>I · O Comunicador</div>
+        <div class="disc-profile-item"><div class="disc-dot" style="background:#50D090"></div>S · O Planejador</div>
+        <div class="disc-profile-item"><div class="disc-dot" style="background:#6BA0F0"></div>C · O Analista</div>
+      </div>
+      <div>
+        <span class="tool-cta">Acessar →</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- SEÇÃO QR CODE -->
+  <div class="qr-section">
+    <div class="qr-box">
+      <img id="qrImg" src="" alt="QR Code da Avaliação DISC" width="160" height="160">
+    </div>
+    <div class="qr-info">
+      <h3>Envie ao time antes da mentoria</h3>
+      <p>Escaneie o QR code ou envie o link abaixo para o time responder a Avaliação DISC direto do celular. A calculadora de metas é feita ao vivo, com você, durante a mentoria.</p>
+      <div class="qr-url" id="qrUrl">—</div>
+      <div class="qr-actions">
+        <a class="btn-sm btn-primary-sm" id="btnDownloadQR" download="qrcode-treinamento.png" href="#">⬇ Baixar QR Code</a>
+        <button class="btn-sm btn-secondary-sm" id="btnCopyUrl">📋 Copiar link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RODAPÉ -->
+  <footer>
+    <p>Painel do facilitador: <a href="/admin.html">admin.html</a> &nbsp;·&nbsp; Respostas salvas automaticamente</p>
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  const base = window.location.origin;
+  // Link enviado ao time antes da mentoria: só a Avaliação DISC.
+  // A calculadora de metas é feita ao vivo, com o facilitador, na mentoria —
+  // por isso não entra no link/QR code compartilhado aqui.
+  const url = base + '/disc.html';
+
+  // Preenche a URL exibida
+  document.getElementById('qrUrl').textContent = url;
+
+  // Gera QR code via API pública (sem dependência de JS extra)
+  const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&format=png&data=' + encodeURIComponent(url);
+  const img = document.getElementById('qrImg');
+  img.src = qrApiUrl;
+  img.onerror = function() {
+    // fallback: QR local gerado pelo servidor
+    img.src = '/api/qr?url=' + encodeURIComponent(url);
+  };
+
+  // Botão baixar
+  document.getElementById('btnDownloadQR').href = qrApiUrl;
+
+  // Botão copiar
+  document.getElementById('btnCopyUrl').addEventListener('click', function() {
+    navigator.clipboard.writeText(url).then(() => {
+      this.textContent = '✓ Copiado!';
+      setTimeout(() => { this.textContent = '📋 Copiar link'; }, 2000);
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -10,9 +10,12 @@ dinâmicas de treinamento comercial:
   revelam o perfil natural, o comportamento sob pressão e a intensidade de
   cada traço (D/I/S/C).
 
-`index.html` é o menu com as duas dinâmicas, QR code e link para compartilhar
-com o time. Inclui um painel `/admin.html` para ver e exportar (CSV) as
-respostas de ambas.
+`index.html` é a landing page institucional (a história da Tática, contada
+pela fundadora Priscila Galindo). O menu com as duas dinâmicas, QR code e
+link para compartilhar com o time é `ferramentas.html` (o botão "Acessar as
+ferramentas do treinamento" logo no topo do `index.html` leva pra lá).
+Inclui um painel `/admin.html` para ver e exportar (CSV) as respostas de
+ambas.
 
 Ambas as dinâmicas geram um **relatório em PDF de verdade** (não é print da
 página) — veja `CLAUDE.md` para os detalhes de arquitetura.
@@ -44,7 +47,7 @@ Roda com o test runner nativo do Node (`node --test`):
   num DOM real (`jsdom`): parsing de números no formato pt-BR, validação
   antes do envio, regras da tabela de equipe e persistência local.
 - `tests/disc.client.test.js` — lógica client-side da avaliação DISC num
-  DOM real (`jsdom`): foco/marcação dos radios, comparação natural×adaptado,
+  DOM real (`jsdom`): escolha forçada (radio) na Parte A, foco/marcação,
   modulação do laudo pela intensidade, persistência de nome/empresa.
 
 ## Estrutura
@@ -62,12 +65,13 @@ forms-meta/
     calculadora.client.test.js -> testes de UI da calculadora (jsdom)
     disc.client.test.js       -> testes de UI da avaliação DISC (jsdom)
   public/
-    index.html               -> menu com as duas dinâmicas + QR code
+    index.html               -> landing page institucional (a história da Tática)
+    ferramentas.html          -> menu com as duas dinâmicas + QR code
     calculadora.html          -> calculadora de meta comercial
     disc.html                 -> avaliação DISC
     admin.html                 -> painel para ver/exportar as respostas
     style/
-      index.css               -> estilos do menu e da calculadora
+      index.css               -> estilos do menu (ferramentas.html) e da calculadora
       disc.css                -> estilos da avaliação DISC
       admin.css                -> estilos do painel admin
   db/
@@ -133,7 +137,7 @@ um serviço que rode Node continuamente. Opções gratuitas e rápidas:
 5. Deploy. Você recebe um link tipo `https://sua-calculadora.onrender.com`.
 6. O link que vai para o time **antes** da mentoria é o `/disc.html` desse
    domínio — a calculadora de metas é feita ao vivo, com o facilitador,
-   durante o encontro (ver a seção "QR code" em `index.html`).
+   durante o encontro (ver a seção "QR code" em `ferramentas.html`).
 7. Depois do treinamento, acesse `/admin.html` no mesmo domínio, entre com o
    token, e clique em "Exportar CSV" para guardar tudo numa planilha.
 

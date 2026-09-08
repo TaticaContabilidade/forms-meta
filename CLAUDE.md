@@ -7,12 +7,24 @@ Orientações para trabalhar neste repositório (`forms-meta`).
 Backend Node.js (Express 5 + `better-sqlite3`) que serve duas ferramentas de
 treinamento comercial em `public/`:
 
+- `index.html` — landing page institucional: a história da Tática contada
+  pela fundadora Priscila Galindo, com trechos da política comercial
+  interna (`politica_comercial.docx`, na raiz do repo, não versionado)
+  ilustrando a fala dela. Um botão logo abaixo do header ("Acessar as
+  ferramentas do treinamento") leva pra `ferramentas.html` — é o ponto de
+  entrada do site (`GET /`), sem lógica de formulário nem `<script>`.
+- `ferramentas.html` — o menu com as duas dinâmicas + QR code pra
+  compartilhar com o time (era o `index.html` antes da landing page
+  entrar; só mudou de nome/rota, conteúdo idêntico).
 - `calculadora.html` — "Qual é a sua meta comercial?", grava respostas em
   `POST /api/metas` (tabela `metas`).
 - `disc.html` — avaliação DISC, grava respostas em `POST /api/disc` (tabela
   `disc_respostas`).
 - `admin.html` — painel autenticado (`x-admin-token` / `?token=`) para listar,
   exportar CSV e apagar registros de ambas as tabelas.
+
+Todas as páginas com `<a>← Voltar ao menu</a>` linkam pra
+`/ferramentas.html`, não pra `/` — `/` agora é a landing page, não o menu.
 
 `src/server.js` é o único arquivo de backend; ele exporta o `app` do Express
 (`module.exports = app`) e só chama `app.listen` quando executado diretamente
