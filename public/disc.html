@@ -747,9 +747,14 @@ function renderParteA() {
     div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p><p class="pending-msg">Marque a palavra mais parecida e a menos parecida antes de continuar.</p>`;
     container.appendChild(div);
 
-    // listeners
-    div.querySelectorAll(`input[name="a${bIdx}_mais"], input[name="a${bIdx}_menos"]`).forEach(inp => {
-      inp.addEventListener('change', () => updateBlocoA(bIdx));
+    // listeners — cada grupo avisa updateBlocoA de qual dos 2 (mais/menos)
+    // acabou de mudar, pra resolver conflito sem desfazer a ação mais
+    // recente do participante (ver updateBlocoA).
+    div.querySelectorAll(`input[name="a${bIdx}_mais"]`).forEach(inp => {
+      inp.addEventListener('change', () => updateBlocoA(bIdx, 'mais'));
+    });
+    div.querySelectorAll(`input[name="a${bIdx}_menos"]`).forEach(inp => {
+      inp.addEventListener('change', () => updateBlocoA(bIdx, 'menos'));
     });
   });
   updateProgressA();
@@ -764,7 +769,10 @@ let blocosAlertaVisivel = new Set();
 // Escolha forçada: um bloco é respondido quando exatamente 1 palavra foi
 // marcada como Mais e 1 como Menos, e não é a mesma palavra nos dois grupos
 // (o radio nativo já garante no máximo 1 marcação por grupo — não dá pra
-// marcar 2 como Mais mesmo tentando).
+// marcar 2 como Mais mesmo tentando). `overlap` (mesma palavra nos 2 grupos)
+// não deveria mais acontecer durante o preenchimento normal — updateBlocoA
+// resolve sozinho assim que detecta (ver comentário lá) — mas fica aqui como
+// rede de segurança pra um `disc_state` salvo antes dessa correção existir.
 function avaliarBlocoA(bIdx) {
   const r = state.respostasA[bIdx] || {};
   const overlap = r.mais !== undefined && r.menos !== undefined && r.mais === r.menos;
@@ -783,11 +791,26 @@ function renderAlertaBlocoA(bIdx) {
   bloco.classList.toggle('pending', mostrar && !overlap);
 }
 
-function updateBlocoA(bIdx) {
+function updateBlocoA(bIdx, grupoAlterado) {
   const maisEl = document.querySelector(`input[name="a${bIdx}_mais"]:checked`);
   const menosEl = document.querySelector(`input[name="a${bIdx}_menos"]:checked`);
-  const mais = maisEl ? parseInt(maisEl.value) : undefined;
-  const menos = menosEl ? parseInt(menosEl.value) : undefined;
+  let mais = maisEl ? parseInt(maisEl.value) : undefined;
+  let menos = menosEl ? parseInt(menosEl.value) : undefined;
+
+  // Testadores relataram conseguir marcar a mesma frase como MAIS e MENOS
+  // (2 grupos de radio independentes, então nenhum dos 2 impede sozinho).
+  // Em vez de só bloquear com o alerta de conflito, resolve sozinho aqui:
+  // mantém a marcação que o participante acabou de fazer (`grupoAlterado`)
+  // e sorteia outra palavra pro outro grupo, excluindo a que empatou.
+  if (mais !== undefined && menos !== undefined && mais === menos) {
+    const totalPalavras = BLOCOS_A[bIdx].words.length;
+    const candidatos = Array.from({ length: totalPalavras }, (_, i) => i).filter((i) => i !== mais);
+    const sorteada = candidatos[Math.floor(Math.random() * candidatos.length)];
+    const grupoParaSortear = grupoAlterado === 'menos' ? 'mais' : 'menos';
+    const inputSorteado = document.querySelector(`input[name="a${bIdx}_${grupoParaSortear}"][value="${sorteada}"]`);
+    if (inputSorteado) inputSorteado.checked = true;
+    if (grupoParaSortear === 'mais') mais = sorteada; else menos = sorteada;
+  }
 
   if (!state.respostasA[bIdx]) state.respostasA[bIdx] = {};
   state.respostasA[bIdx].mais = mais;

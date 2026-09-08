@@ -107,6 +107,18 @@ radio não impede sozinho, já que Mais e Menos são 2 grupos independentes).
 `calcNatural()` soma o traço da palavra em Mais e subtrai o da palavra em
 Menos — sempre exatamente ±1 por bloco, nunca mais que isso.
 
+**Conflito (mesma palavra em Mais e Menos) se resolve sozinho, nunca
+bloqueia.** Testadores relataram conseguir marcar a mesma frase nos 2 grupos
+e ficar travados no bloco. `updateBlocoA(bIdx, grupoAlterado)` recebe qual
+dos 2 grupos o participante acabou de mexer (`'mais'` ou `'menos'`,
+passado pelo listener de cada grupo separadamente) — ao detectar
+`mais === menos`, mantém a marcação que ele acabou de fazer e sorteia
+aleatoriamente outra palavra (excluindo a que empatou) pro outro grupo,
+atualizando o `checked` do radio sorteado direto no DOM. `avaliarBlocoA`/
+`.conflict-msg`/classe `.conflict` continuam existindo só como rede de
+segurança pra um `disc_state` salvo antes dessa correção existir (não
+deveriam mais aparecer durante o preenchimento normal).
+
 **Não reintroduza múltipla escolha na Parte A sem entender a implicação
 psicométrica** (ver seção 04 do documento de reteste) — o instrumento clássico
 depende do total ser constante entre respondentes pra ser comparável.
