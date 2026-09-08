@@ -617,3 +617,20 @@ seguem só no histórico do `git log`.
     cenário relatado ("2000663" → preview "= R$ 2.000.663,00" ao lado de
     "0 contratos").
   - `npm test`: 75/75 passando.
+- **Preview do valor interpretado estendido pros outros 2 campos em
+  reais** (faturamento, linha 1; meta de clientes novos/hunter, linha 12)
+  — pedido do usuário depois de aprovar o preview do ticket: o mesmo risco
+  de ambiguidade (sem separador = inteiro literal) existe em qualquer
+  campo em reais, não só no ticket.
+  - `atualizarPreviewTicket()` generalizada pra `atualizarPreviewMoeda(id)`
+    + `atualizarPreviewsMoeda()`, dirigida por `CAMPOS_PREVIEW_MOEDA =
+    ['faturamento', 'ticket', 'hunterValor']` — um único lugar pra
+    adicionar um campo em reais novo no futuro (mais o `<p
+    class="field-preview" id="<id>-preview">` correspondente no HTML).
+  - Continua sem teto/validação de valor em nenhum dos 3 (mesma decisão
+    do ticket: valor real varia demais entre empresas clientes).
+  - Não estendido à tabela de equipe (`t-meta-<idx>`, meta mensal por
+    pessoa) — layout de tabela compacta, sem espaço óbvio pra um preview
+    por linha; fica pra reavaliar se surgir relato de confusão ali também.
+  - Testado via jsdom nos 3 campos (aparece/some corretamente).
+  - `npm test`: 75/75 passando.

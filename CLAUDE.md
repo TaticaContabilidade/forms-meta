@@ -177,18 +177,28 @@ qualquer separador). Isso significa que digitar um número **sem nenhum
 separador** é lido como inteiro — "2000663" vira R$ 2.000.663,00, não
 R$ 2.000,66. Um testador caiu nisso no campo ticket médio (linha 9): o
 valor gigante gerado fez a conta de contratos/mês (linha 8 ÷ linha 9)
-arredondar pra "0 contratos" sem nenhuma pista do porquê.
+arredondar pra "0 contratos" sem nenhuma pista do porquê. O mesmo risco
+existe em qualquer campo em reais, não só no ticket.
 
-**Não colocamos teto/validação de valor no ticket médio de propósito** —
-decisão do usuário: o ticket médio real varia demais entre empresas
-clientes pra travar um limite (uma empresa pode legitimamente ter ticket de
-R$ 100.000). Em vez disso, `atualizarPreviewTicket()` mostra ao vivo,
-abaixo do campo (`#ticket-preview`, `.field-preview` no CSS), o valor que
-o sistema está lendo (`= R$ 2.000.663,00`) — pra quem esqueceu a vírgula
-perceber na hora e se corrigir sozinho, sem bloquear ninguém com ticket
-alto de verdade. Chamado no `input` do campo ticket, na carga inicial
-(depois de `loadState()`, que popula `els.ticket.value` direto, sem passar
-pelo listener) e no reset do formulário (mesma razão).
+**Não colocamos teto/validação de valor em nenhum campo em reais de
+propósito** — decisão do usuário: o valor real (faturamento, ticket médio,
+meta de hunter) varia demais entre empresas clientes pra travar um limite
+(uma empresa pode legitimamente ter ticket de R$ 100.000). Em vez disso,
+`atualizarPreviewMoeda(id)` (chamada pra cada campo em
+`CAMPOS_PREVIEW_MOEDA = ['faturamento', 'ticket', 'hunterValor']`) mostra
+ao vivo, abaixo do campo (`#<id>-preview`, `.field-preview` no CSS), o
+valor que o sistema está lendo (`= R$ 2.000.663,00`) — pra quem esqueceu a
+vírgula perceber na hora e se corrigir sozinho, sem bloquear ninguém com
+valor alto de verdade. Chamada no `input` de cada um desses 3 campos
+(`CAMPOS_PREVIEW_MOEDA.includes(id)` no listener genérico), na carga
+inicial via `atualizarPreviewsMoeda()` (depois de `loadState()`, que
+popula os campos direto, sem passar pelo listener) e no reset do
+formulário (mesma razão). Se um novo campo em reais for adicionado, inclua
+o `id` em `CAMPOS_PREVIEW_MOEDA` e o `<p class="field-preview"
+id="<id>-preview">` no HTML — não tem efeito automático, tem que declarar
+os dois lados. Não inclui a tabela de equipe (`t-meta-<idx>`, meta mensal
+por pessoa) — layout de tabela compacta, sem espaço óbvio pra um preview
+por linha; reavaliar se isso também virar uma fonte de confusão relatada.
 
 ### Identidade visual (favicon)
 
