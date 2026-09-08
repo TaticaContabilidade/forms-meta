@@ -301,3 +301,33 @@ describe('persistência local (F-17)', () => {
     assert.equal(linhasRestauradas[0].querySelector('.t-meta').value, '250');
   });
 });
+
+describe('reteste N-02: uma única região viva com resumo, em vez de 9 anunciando junto', () => {
+  const OUTPUTS_SEM_ARIA_LIVE = ['hero-meta', 'calc3', 'calc5', 'calc6', 'calc7', 'calc8', 'calc10', 'calcContatos', 'calcFarmer'];
+
+  test('os 9 <output> calculados não têm mais aria-live — só a região de resumo tem', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    OUTPUTS_SEM_ARIA_LIVE.forEach((id) => {
+      assert.equal(doc.getElementById(id).hasAttribute('aria-live'), false, id + ' não deveria ter aria-live');
+    });
+    assert.equal(doc.getElementById('resumoAoVivo').getAttribute('aria-live'), 'polite');
+  });
+
+  test('a região de resumo só atualiza depois de uma pausa na digitação (debounce), não a cada tecla', async () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    setVal(win, 'faturamento', '200000');
+    setVal(win, 'crescimentoPct', '30');
+    setVal(win, 'churnPct', '10');
+    setVal(win, 'ticket', '900');
+    setVal(win, 'conversaoPct', '20');
+
+    assert.equal(texto(win, 'resumoAoVivo'), '', 'não deveria anunciar imediatamente após digitar');
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    // fmtBRL usa Intl.NumberFormat (pt-BR), que às vezes intercala um espaço
+    // não separável (U+00A0) entre "R$" e o valor — \s cobre os dois casos.
+    assert.match(texto(win, 'resumoAoVivo'), /^Meta mensal R\$\s*6\.667, 38 contatos necessários por mês\.$/);
+  });
+});

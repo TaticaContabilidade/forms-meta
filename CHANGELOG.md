@@ -335,3 +335,19 @@ seguem só no histórico do `git log`.
     situações (hunter desalinhado vs. farmer desalinhado com hunter
     batendo) — o teste antigo (`F-07`) só checava que "R$ 400" aparecia em
     algum lugar do texto, não testava a especificidade da orientação.
+- **N-02 do reteste — 9 regiões `aria-live` disparando junto viram 1.**
+  Cada tecla digitada recalculava até 9 `<output aria-live="polite">`
+  (linha 3, 5, 6, 7, 8, 10, contatos necessários, farmer, hero) de uma vez
+  — um leitor de tela recebia até 9 anúncios por dígito.
+  - Os 9 `aria-live="polite"` saíram dos `<output>` (continuam
+    `<output for="...">` comuns, só não anunciam mais sozinhos).
+  - Novo `<p id="resumoAoVivo" class="sr-only" role="status"
+    aria-live="polite">` — visualmente oculto (mesma técnica já usada nos
+    rótulos da tabela de equipe), só existe pra leitor de tela.
+  - `agendarResumoAoVivo(mensagem)` em `public/calculadora.html`: debounce
+    de 600ms — só escreve no `#resumoAoVivo` depois que `recalc()` para de
+    ser chamado (ou seja, depois que a pessoa para de digitar), texto
+    combinando os dois números que importam: "Meta mensal R$ 6.667, 38
+    contatos necessários por mês."
+  - 2 testes novos: confirma que os 9 outputs perderam `aria-live` e que
+    o resumo não aparece imediatamente após digitar (só depois da pausa).
