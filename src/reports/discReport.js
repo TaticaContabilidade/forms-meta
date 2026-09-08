@@ -207,29 +207,14 @@ function drawArchetypeHero(doc, traits, infos, descricao) {
   doc.y = y + height + 18;
 }
 
-// D-04 da auditoria: o subtítulo promete "natural x adaptado" mas nada
-// comparava os dois perfis — só duas seções de barra lado a lado, sem
-// nenhuma linha ligando-as. Acha o traço com maior distância entre os
-// dois perfis e comenta a adaptação (ou a falta dela).
-function drawAdaptacaoDelta(doc, natural, adaptado) {
-  let maiorTrait = 'D';
-  let maiorDelta = -1;
-  TRAITS.forEach((t) => {
-    const delta = Math.abs((adaptado[t] || 0) - (natural[t] || 0));
-    if (delta > maiorDelta) { maiorDelta = delta; maiorTrait = t; }
-  });
-
-  let texto;
-  if (maiorDelta > 0) {
-    const delta = adaptado[maiorTrait] - natural[maiorTrait];
-    const verbo = delta > 0 ? 'sobe' : 'cai';
-    texto = `No trabalho, sua ${TRAIT_LABELS[maiorTrait]} ${verbo} ${Math.abs(delta)} ponto${Math.abs(delta) === 1 ? '' : 's'} em relação ao seu perfil natural — é o traço que mais muda quando você está sob pressão no ambiente profissional.`;
-  } else {
-    texto = 'Seu perfil natural e o adaptado praticamente não mudam — você age no trabalho do jeito que você é naturalmente, sem precisar se ajustar sob pressão.';
-  }
-  sectionTitle(doc, 'Natural × adaptado');
-  drawCallout(doc, texto, 'ok');
-}
+// N-06 do reteste: drawAdaptacaoDelta() (era a correção do D-04 da
+// auditoria anterior) subtraía o escore adaptado do natural pra achar "o
+// traço que mais muda sob pressão", mas os dois perfis não estão na mesma
+// escala — natural vem de 28 blocos (+1/-1, varia -28 a +28), adaptado vem
+// de 16 situações (só +1, varia 0 a 16). O traço natural mais negativo
+// sempre "vencia" essa conta, artificialmente — não é uma leitura real de
+// adaptação. Removida; o relatório mostra as duas seções de barra lado a
+// lado (já feito acima), sem comparação numérica entre elas.
 
 // D-05: quando as 4 intensidades saem muito parecidas, é sinal de
 // respostas pouco diferenciadas na Parte C — vale avisar.
@@ -307,8 +292,6 @@ function generateDiscPdf(data) {
 
   sectionTitle(doc, 'Perfil adaptado (trabalho)', 'Como você se comporta em situações reais no ambiente de trabalho.');
   drawSignedBarSection(doc, adaptado, 16);
-
-  drawAdaptacaoDelta(doc, natural, adaptado);
 
   sectionTitle(doc, 'Intensidade por traço', 'Força de cada traço, numa escala de 1 a 5.');
   drawIntensitySection(doc, intensidade);

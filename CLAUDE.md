@@ -83,6 +83,18 @@ Menos — sempre exatamente ±1 por bloco, nunca mais que isso.
 psicométrica** (ver seção 04 do documento de reteste) — o instrumento clássico
 depende do total ser constante entre respondentes pra ser comparável.
 
+**Não compare natural × adaptado com uma frase numérica de delta** (N-06 do
+reteste). `calcNatural()` varia de -28 a +28 (28 blocos, +1/-1);
+`calcAdaptado()` varia de 0 a 16 (16 situações, só +1) — são escalas
+diferentes, subtrair um do outro não produz "pontos" de nada (o traço
+natural mais negativo sempre "vencia" a conta, artificialmente). Existiu um
+bloco assim (`#adaptacaoDelta` em `disc.html`, `drawAdaptacaoDelta()` em
+`discReport.js`) — removido. Os dois perfis aparecem lado a lado (tela e
+PDF), cada um na sua própria escala, sem comparação numérica entre eles.
+Se um dia isso for resolvido de verdade, é derivando os dois perfis do
+mesmo instrumento na mesma escala (ver seção 04/05 do documento de
+reteste) — não voltando a subtrair réguas diferentes.
+
 Cada bloco tem 2 alertas inline (`.conflict-msg`/`.pending-msg`, classes
 `.conflict`/`.pending` no `<fieldset>`, cores `--danger`/`--warning`):
 conflito (mesma palavra nos 2 grupos) e pendente (falta classificar alguma
@@ -205,9 +217,9 @@ Os testes usam o runner nativo do Node (`node --test`):
   persistência local).
 - `tests/disc.client.test.js` — mesma ideia pra `disc.html`. Preenche a
   avaliação inteira de forma determinística (ver comentário no topo do
-  arquivo) pra chegar na tela de resultado e testar arquétipo, comparação
-  natural×adaptado, modulação por intensidade, persistência de nome/empresa
-  e a confirmação inline do "Refazer avaliação". Os dois arquivos de teste
+  arquivo) pra chegar na tela de resultado e testar arquétipo, modulação
+  por intensidade, persistência de nome/empresa e a confirmação inline do
+  "Refazer avaliação". Os dois arquivos de teste
   usam um `VirtualConsole` próprio (sem `.sendTo(console)`) pra suprimir o
   aviso "Not implemented" que o `window.scrollTo`/`scrollIntoView` do jsdom
   imprime a cada chamada — isso não esconde erro de verdade: uma exceção
