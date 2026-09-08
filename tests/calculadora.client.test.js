@@ -210,7 +210,7 @@ describe('validação e equipe (F-03, F-07, F-08, F-14)', () => {
     assert.equal(win.document.getElementById('printBtn').disabled, false);
   });
 
-  test('F-07: equipe com papéis que não batem com a linha 12/13 mostra alerta', () => {
+  test('F-07: hunter (linha 12) desalinhado da equipe diz exatamente pra qual valor mudar a linha 12', () => {
     const { window: win } = criarPagina();
     setVal(win, 'faturamento', '12000');
     setVal(win, 'crescimentoPct', '100');
@@ -223,7 +223,27 @@ describe('validação e equipe (F-03, F-07, F-08, F-14)', () => {
 
     const calloutPapel = win.document.getElementById('calloutPapel');
     assert.equal(calloutPapel.style.display, 'block');
-    assert.match(calloutPapel.textContent, /R\$\s*400/);
+    assert.match(calloutPapel.textContent, /linha 12/);
+    assert.match(calloutPapel.textContent, /Altere a linha 12 para R\$\s*400/);
+  });
+
+  test('F-07: hunter batendo mas farmer da equipe divergindo (equipe não fecha a meta mensal) orienta a revisar a tabela', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'faturamento', '12000');
+    setVal(win, 'crescimentoPct', '100');
+    setVal(win, 'churnPct', '0'); // linha 8 = 1.000
+    setVal(win, 'hunterValor', '400'); // hunter bate com a equipe
+
+    const [row1, row2] = teamRows(win);
+    preencherLinhaEquipe(win, row1, { nome: 'Ana', tipo: 'Hunter', meta: '400' });
+    preencherLinhaEquipe(win, row2, { nome: 'Bruno', tipo: 'Farmer', meta: '500' }); // farmer deveria ser 600
+
+    const calloutPapel = win.document.getElementById('calloutPapel');
+    assert.equal(calloutPapel.style.display, 'block');
+    assert.doesNotMatch(calloutPapel.textContent, /Altere a linha 12/, 'hunter já bate, não deveria pedir pra mudar a linha 12');
+    assert.match(calloutPapel.textContent, /"Farmer"/);
+    assert.match(calloutPapel.textContent, /R\$\s*500/);
+    assert.match(calloutPapel.textContent, /R\$\s*600/);
   });
 
   test('F-08: linha sem nome não entra na soma nem fecha a meta sozinha', () => {

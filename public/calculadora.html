@@ -552,7 +552,17 @@
     } else {
       calloutPapel.style.display = 'block';
       calloutPapel.className = 'callout state-alert';
-      calloutPapel.textContent = 'A equipe tem ' + fmtBRL(somaPorTipo.Hunter) + ' em metas de hunter e ' + fmtBRL(somaPorTipo.Farmer) + ' de farmer, mas a linha 12/13 declara ' + fmtBRL(hunterDecl) + ' de hunter e ' + fmtBRL(farmerDecl) + ' de farmer. Ajuste um dos dois.';
+      // Deixa explícito qual campo alterar e por quê: a linha 12 é o único
+      // campo editável dessa divisão (a linha 13/farmer é calculada a
+      // partir dela) — por isso o hunter é sempre a 1ª coisa a checar. Só
+      // quando o hunter já bate com a equipe é que o desvio está do lado
+      // farmer, que não tem campo próprio (é a equipe ou a meta mensal que
+      // precisam se ajustar).
+      if (Math.abs(diffHunter) >= 1) {
+        calloutPapel.textContent = 'A linha 12 (clientes novos — hunter) declara ' + fmtBRL(hunterDecl) + ', mas a soma das metas de quem está marcado como "Hunter" na tabela é ' + fmtBRL(somaPorTipo.Hunter) + '. Altere a linha 12 para ' + fmtBRL(somaPorTipo.Hunter) + ' — a linha 13 (farmer) é calculada a partir dela e se ajusta sozinha.';
+      } else {
+        calloutPapel.textContent = 'A soma das metas de quem está marcado como "Farmer" na tabela é ' + fmtBRL(somaPorTipo.Farmer) + ', mas a linha 13 (o restante da meta mensal depois do hunter) espera ' + fmtBRL(farmerDecl) + '. Revise as metas das pessoas marcadas como Farmer na tabela, ou confira se a soma total da equipe já fecha com a meta mensal (veja o aviso logo acima da tabela).';
+      }
     }
 
     saveState();

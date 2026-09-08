@@ -311,3 +311,27 @@ seguem só no histórico do `git log`.
   inexistente (`--ink-faint` → `--fg-faint`) que tinha sido feita junto
   também voltou com o revert; se ela ainda for válida, precisa ser
   reaplicada separadamente.
+- **Alerta de divergência hunter/farmer (`calloutPapel`) fica específico
+  sobre qual campo mudar e por quê.** Verifiquei `reteste-e-plataforma-
+  ideal.md` (documento de reteste externo) contra o código atual antes de
+  mexer: 2 dos 5 achados da calculadora (F-03, N-01) já estavam corrigidos
+  e o documento estava desatualizado; os outros 3 (N-02, N-03, N-04) são
+  válidos mas não foram pedidos nesta mudança. O pedido do usuário foi
+  específico: a mensagem antiga ("A equipe tem X em metas de hunter e Y de
+  farmer, mas a linha 12/13 declara... Ajuste um dos dois.") não dizia
+  qual dos dois campos alterar.
+  - A linha 12 (hunter) é o único campo editável dessa divisão — a linha
+    13 (farmer) é sempre calculada a partir dela (`meta mensal - hunter`).
+    Por isso a mensagem agora prioriza esse diagnóstico: quando o hunter
+    declarado diverge da soma da equipe marcada como "Hunter", diz
+    exatamente para qual valor mudar a linha 12 ("a linha 13 se ajusta
+    sozinha").
+  - Só quando o hunter já bate é que o desvio pode estar do lado farmer —
+    nesse caso não há campo próprio pra apontar (a linha 13 não é
+    editável), então a mensagem orienta a revisar as metas das pessoas
+    marcadas como Farmer na tabela ou o total da equipe vs. a meta mensal
+    (o badge logo acima já cobre esse segundo caso).
+  - 2 testes em `tests/calculadora.client.test.js` cobrindo as duas
+    situações (hunter desalinhado vs. farmer desalinhado com hunter
+    batendo) — o teste antigo (`F-07`) só checava que "R$ 400" aparecia em
+    algum lugar do texto, não testava a especificidade da orientação.
