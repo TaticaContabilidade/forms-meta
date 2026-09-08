@@ -517,3 +517,48 @@ seguem só no histórico do `git log`.
   - Confirmado que os 28 blocos reais continuam 28 (`#blocksA fieldset`)
     e que nenhum input do exemplo tem `name` ou fica focável — testado
     via jsdom e visualmente num Chromium real.
+
+### 2026-09-08
+
+- **Escore do DISC calculado no servidor, não confia mais no cliente**
+  (item 03 do backlog de robustez, ver `CLAUDE.md`) — antes, `POST
+  /api/disc` e `POST /api/disc/pdf` recebiam `d_natural`/`i_natural`/...
+  já prontos do `disc.html` e só recalculavam `perfil_dominante`/
+  `arquetipo` em cima disso; dava pra abrir o console do navegador e
+  fabricar qualquer perfil direto no POST. Escolhido como o item "menos
+  custoso" da lista de robustez (puramente mudança de código, sem
+  infraestrutura nova) em vez da robustez de carga (2k participantes
+  simultâneos, adiada por enquanto).
+  - `src/discScoring.js` (novo): duplica `BLOCOS_A`/`SITUACOES_B`/
+    `INTENSIDADE_C` e `calcNatural()`/`calcAdaptado()`/
+    `calcIntensidade()` de `disc.html` (mesma ideia do `ARQUETIPO_MAP`
+    duplicado em `discReport.js`) — se o conteúdo das partes A/B/C mudar
+    em `disc.html`, tem que espelhar aqui também. `SITUACOES_B`/
+    `INTENSIDADE_C` guardam só `{trait}` (ordem mecanicamente uniforme,
+    conferida antes de simplificar); `BLOCOS_A` guarda o `text` inteiro
+    porque a ordem das palavras não é uniforme o bastante pra confiar sem
+    poder auditar contra `disc.html`.
+  - `src/server.js`: as duas rotas agora recebem `respostas.{a,b,c}`
+    (respostas cruas por bloco/situação/item) e recalculam tudo
+    (`d_natural`, ..., `perfil_dominante`, `arquetipo`) a partir disso —
+    qualquer `d_natural`/etc. que o cliente ainda mande é ignorado.
+  - `public/disc.html`: `montarPayloadBase()` parou de calcular e enviar
+    os escores prontos (só manda `nome_participante`/`empresa` — o resto
+    o servidor deriva de `respostas`).
+  - **Bug crítico encontrado e corrigido antes de rodar teste nenhum**:
+    `baixarPdf()` (botão "Salvar PDF") nunca enviava `payload.respostas`
+    — só `sendResultado()` (botão "Enviar meu perfil") enviava. Sem essa
+    correção, todo PDF baixado passaria a sair com todos os traços
+    zerados, silenciosamente, assim que o servidor parasse de confiar nos
+    escores prontos. Adicionada a mesma linha (`payload.respostas = {...
+    }`) em `baixarPdf()`.
+  - `tests/server.test.js`: os testes de `/api/disc` e `/api/disc/pdf`
+    que mandavam `d_natural`/`i_natural`/etc. prontos foram reescritos
+    pra montar `respostas.a` de verdade (blocos com `mais`/`menos`
+    reais) — do jeito que estavam antes, ou quebravam, ou "passavam" por
+    coincidência (ex.: todos os campos ignorados dando zero, empatando
+    por acaso com o resultado esperado). Casos cobertos: traço dominante
+    de verdade, empate técnico D+I (mesmo cenário do bug D-02), e um
+    teste específico provando que `i_natural`/`d_natural` enviados
+    "errados" de propósito no body são ignorados na geração do PDF.
+  - `npm test`: 75/75 passando.

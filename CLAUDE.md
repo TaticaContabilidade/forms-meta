@@ -63,11 +63,27 @@ barra) — nunca um "print" da página HTML.
   desempataria por posição. Se a diferença entre o 1º e o 2º traço for menor
   que o limiar, o resultado vira um perfil combinado (`traits` com 2
   elementos, ex. `"D+I"`) — hero, insights e `perfil_dominante`/`arquetipo`
-  salvos no banco todos refletem os dois traços, nunca um só. `POST
-  /api/disc` e `generateDiscPdf` sempre recalculam a partir dos escores
-  brutos (`d_natural`, `i_natural`, ...) — nunca confiam num
-  `perfil_dominante`/`arquetipo` que o cliente mandou, para não persistir um
-  resultado calculado por uma versão desatualizada/cacheada do `disc.html`.
+  salvos no banco todos refletem os dois traços, nunca um só.
+
+  **Escore calculado no servidor, não confia no cliente.**
+  `src/discScoring.js` duplica `BLOCOS_A`/`SITUACOES_B`/`INTENSIDADE_C` e as
+  funções `calcNatural()`/`calcAdaptado()`/`calcIntensidade()` de
+  `disc.html` (mesma ideia do `ARQUETIPO_MAP` duplicado em
+  `discReport.js`) — se o conteúdo das partes A/B/C mudar em `disc.html`,
+  espelhe a mudança aqui também. `POST /api/disc` e `POST /api/disc/pdf`
+  recebem `respostas.{a,b,c}` (as respostas cruas por bloco/situação/item)
+  e recalculam `d_natural`/`i_natural`/... e `perfil_dominante`/`arquetipo`
+  inteiramente no servidor a partir disso — nunca confiam em nenhum escore
+  pronto que o cliente mande (`disc.html` nem envia mais esses campos,
+  ver `montarPayloadBase()`). Isso fecha o buraco de quem abria o console
+  do navegador e fabricava um `d_natural` qualquer direto no POST, e evita
+  persistir um resultado calculado por uma versão desatualizada/cacheada de
+  `disc.html`. `SITUACOES_B`/`INTENSIDADE_C` guardam só `{trait}` (sem o
+  texto de exibição, que só existe em `disc.html`) porque a ordem dos
+  traços nessas duas partes é mecanicamente uniforme (situações sempre
+  D,I,S,C; intensidade sempre D×3,I×3,S×3,C×3) — já `BLOCOS_A` guarda o
+  `text` inteiro porque a ordem das palavras não é uniforme o bastante pra
+  confiar sem poder auditar visualmente contra `disc.html`.
 
 Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
 arquivo do header `Content-Disposition` da resposta — não usam mais
@@ -203,15 +219,8 @@ entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
    agregada sobre dados já existentes: "2º mais D entre os 40"), mas só
    fica útil com volume real de respondentes na base — sem massa crítica,
    não compensa implementar ainda.
-5. **Escore no servidor, não no navegador** (item 03) — hoje o cliente
-   calcula `d_natural` etc. e o servidor só recalcula `perfil_dominante`/
-   `arquetipo` a partir disso, confiando no valor que o cliente mandou
-   (`Number(b.d_natural) || 0` em `src/server.js`) — dá pra abrir o console
-   e fabricar um perfil. Exige mover `calcNatural()`/`calcAdaptado()`/
-   `calcIntensidade()` (hoje só em `disc.html`) pro backend, recebendo as
-   respostas cruas em vez dos escores prontos — muda o contrato da API.
-   Isso é a "robustez" que o usuário já pediu pra adiar antes (ver decisão
-   registrada na conversa) — não iniciar sem pedido explícito de retomar.
+5. ~~**Escore no servidor, não no navegador** (item 03)~~ — feito. Ver
+   `src/discScoring.js` e a seção "Escore calculado no servidor" acima.
 6. **Um cadastro, um participante, duas ferramentas** (item 06) — hoje
    nome/empresa são digitados 2x, cada ferramenta com seu `localStorage` e
    PDF separados. Precisa de um identificador compartilhado entre as duas
