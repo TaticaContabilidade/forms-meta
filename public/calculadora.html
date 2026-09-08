@@ -29,11 +29,17 @@
     <p>Preencha com os números da sua empresa. No fim, você descobre de quantos contatos por mês precisa — e se a sua meta já nasceu possível ou impossível.</p>
     <div class="northstar">
       <span class="label">Meta comercial mensal</span>
-      <output class="value" id="hero-meta" for="faturamento crescimentoPct churnPct" aria-live="polite">R$ 0</output>
+      <output class="value" id="hero-meta" for="faturamento crescimentoPct churnPct">R$ 0</output>
     </div>
     <p style="margin-top:18px; font-size:13.5px; color:var(--fg-faint);">
       Também disponível: <a href="/disc.html" style="color:var(--fg-soft); text-decoration:underline;">Avaliação DISC Profunda →</a>
     </p>
+    <!-- N-02 do reteste: os 9 <output aria-live> anunciavam um por um a cada
+         tecla digitada (até 9 anúncios por dígito num leitor de tela). Uma
+         única região viva com o resumo final, atualizada com debounce
+         (agendarResumoAoVivo() em recalc()), substitui isso — os 9 outputs
+         viraram <output> comuns (sem aria-live), só visuais. -->
+    <p id="resumoAoVivo" class="sr-only" role="status" aria-live="polite"></p>
 
     <div class="row" style="margin-top:28px; padding-left:0;">
       <label class="row-label" for="nomeParticipante">Seu nome</label>
@@ -83,7 +89,7 @@
         <div class="row-num computed">3</div>
         <label class="row-label" for="calc3">Quanto isso dá em reais?</label>
         <p class="row-help">Linha 1 × linha 2.</p>
-        <div class="field computed"><output class="output" id="calc3" for="faturamento crescimentoPct" aria-live="polite">R$ 0</output></div>
+        <div class="field computed"><output class="output" id="calc3" for="faturamento crescimentoPct">R$ 0</output></div>
       </div>
 
       <div class="row">
@@ -101,28 +107,28 @@
         <div class="row-num computed">5</div>
         <label class="row-label" for="calc5">Quanto isso dá em reais?</label>
         <p class="row-help">Linha 1 × linha 4.</p>
-        <div class="field computed"><output class="output" id="calc5" for="faturamento churnPct" aria-live="polite">R$ 0</output></div>
+        <div class="field computed"><output class="output" id="calc5" for="faturamento churnPct">R$ 0</output></div>
       </div>
 
       <div class="row">
         <div class="row-num computed">6</div>
         <label class="row-label" for="calc6">Quanta receita recorrente nova você precisa conquistar no ano?</label>
         <p class="row-help">Linha 3 + linha 5 — crescimento mais reposição do churn. Esta é a sua <strong>meta corporativa</strong> (não é o faturamento total do ano).</p>
-        <div class="field computed"><output class="output" id="calc6" for="calc3 calc5" aria-live="polite">R$ 0</output></div>
+        <div class="field computed"><output class="output" id="calc6" for="calc3 calc5">R$ 0</output></div>
       </div>
 
       <div class="row">
         <div class="row-num computed">7</div>
         <label class="row-label" for="calc7">Quanto por trimestre?</label>
         <p class="row-help">Linha 6 ÷ 4 — receita recorrente nova por ciclo. É o que a gestão avalia a cada trimestre.</p>
-        <div class="field computed"><output class="output" id="calc7" for="calc6" aria-live="polite">R$ 0</output></div>
+        <div class="field computed"><output class="output" id="calc7" for="calc6">R$ 0</output></div>
       </div>
 
       <div class="row highlight">
         <div class="row-num computed">8</div>
         <label class="row-label" for="calc8">Quanto por mês?</label>
         <p class="row-help">Linha 6 ÷ 12 — receita recorrente nova por mês. Esta é a meta da área comercial.</p>
-        <div class="field computed"><output class="output" id="calc8" for="calc6" aria-live="polite">R$ 0</output></div>
+        <div class="field computed"><output class="output" id="calc8" for="calc6">R$ 0</output></div>
       </div>
 
       <div class="row">
@@ -140,7 +146,7 @@
         <div class="row-num computed">10</div>
         <label class="row-label" for="calc10">Quantos contratos novos por mês?</label>
         <p class="row-help">Linha 8 ÷ linha 9.</p>
-        <div class="field computed"><output class="output" id="calc10" for="calc8 ticket" aria-live="polite">0 contratos</output></div>
+        <div class="field computed"><output class="output" id="calc10" for="calc8 ticket">0 contratos</output></div>
       </div>
 
       <div class="row">
@@ -158,7 +164,7 @@
         <div class="row-num computed">↳</div>
         <label class="row-label" for="calcContatos">Contatos que precisam entrar por mês</label>
         <p class="row-help">Linha 10 ÷ linha 11.</p>
-        <div class="field computed"><output class="output" id="calcContatos" for="calc10 conversaoPct" aria-live="polite">0 contatos</output></div>
+        <div class="field computed"><output class="output" id="calcContatos" for="calc10 conversaoPct">0 contatos</output></div>
       </div>
 
       <div class="row">
@@ -199,7 +205,7 @@
         <div class="row-num computed">13</div>
         <label class="row-label" for="calcFarmer">Quanto virá da base? (farmer)</label>
         <p class="row-help">O resto da linha 8 — upsell e cross-sell em quem já é cliente.</p>
-        <div class="field computed"><output class="output" id="calcFarmer" for="calc8 hunterValor" aria-live="polite">R$ 0</output></div>
+        <div class="field computed"><output class="output" id="calcFarmer" for="calc8 hunterValor">R$ 0</output></div>
         <div class="callout state-alert" id="calloutHunter" role="status" style="display:none;"></div>
       </div>
     </div>
@@ -266,6 +272,18 @@
     const texto = v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
     return texto + ' ' + (Math.abs(v) === 1 ? singular : plural);
   };
+
+  // N-02 do reteste: os 9 <output aria-live> anunciavam um por um a cada
+  // tecla digitada — até 9 anúncios por dígito num leitor de tela. Uma
+  // única região viva (#resumoAoVivo) recebe o resumo final, com debounce
+  // pra só anunciar depois que a pessoa parar de digitar, não a cada tecla.
+  let resumoAoVivoTimeout = null;
+  function agendarResumoAoVivo(mensagem) {
+    clearTimeout(resumoAoVivoTimeout);
+    resumoAoVivoTimeout = setTimeout(() => {
+      $('resumoAoVivo').textContent = mensagem;
+    }, 600);
+  }
 
   const STORAGE_KEY = 'calculadora_meta_state';
 
@@ -414,6 +432,8 @@
     $('calc10').textContent = fmtQtd(l10, 'contrato', 'contratos');
     $('calcContatos').textContent = fmtQtd(contatosNecessarios, 'contato', 'contatos');
     $('hero-meta').textContent = fmtBRL(l8);
+
+    agendarResumoAoVivo('Meta mensal ' + fmtBRL(l8) + ', ' + fmtQtd(contatosNecessarios, 'contato necessário', 'contatos necessários') + ' por mês.');
 
     metaMensal = l8;
 
