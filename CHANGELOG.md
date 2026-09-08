@@ -489,3 +489,12 @@ seguem só no histórico do `git log`.
   - Testado ao vivo num Chromium real: as 3 rotas (`/`, `/ferramentas.html`,
     e os 2 "Voltar ao menu") navegam pro lugar certo; screenshot da
     landing inteira conferida visualmente.
+- **Remove o link do painel do facilitador (`/admin.html`) do rodapé da
+  landing page** — pedido do usuário: uma página institucional pública
+  não deveria anunciar o link de login do painel administrativo, mesmo
+  autenticado por token. Vira um aviso de direitos autorais ("© 2026
+  Tática Gestão Contábil. Todos os direitos reservados."). O link pro
+  admin continua existindo normalmente no rodapé de `ferramentas.html`
+  (a página que só o facilitador/time usa, não o público). CSS órfão
+  (`footer a`, sem mais nenhum link no rodapé desta página) removido
+  junto.
