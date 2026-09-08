@@ -167,9 +167,12 @@ A seção "05 — Como seria a plataforma" de `reteste-e-plataforma-ideal.md`
 (documento de reteste externo, não versionado — ver convenção de prefixo `_`
 abaixo, embora este não tenha o prefixo por não ter sido pedido) lista 8
 ideias de evolução da plataforma. O item 02 (escolha forçada com radio
-agrupado) já foi entregue — era o N-05, ver CHANGELOG. Os outros 7 são
-**features novas, não correções** — ficam pra fase de refinamento, depois
-que a entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
+agrupado) já foi entregue — era o N-05, ver CHANGELOG. O item 01 (aposentar
+a Parte B, derivando os 2 perfis das mesmas 28 marcações da Parte A) foi
+avaliado e **descartado por decisão explícita do usuário** — não faz parte
+do backlog, não reconsiderar sem pedido novo. Os 6 restantes são **features
+novas, não correções** — ficam pra fase de refinamento, depois que a
+entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
 
 1. **Uma linha sobre o que o instrumento não é** (item 08) — uma frase de
    rodapé no relatório e no PDF ("leitura de estilo comportamental para
@@ -203,13 +206,6 @@ que a entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
    ferramentas e um relatório combinado novo (meta comercial + perfil
    DISC) — maior que os itens acima, mexe na identidade de dados das duas
    tabelas.
-7. **Um instrumento, dois gráficos** (item 01) — aposentar a Parte B
-   inteira, derivando natural e adaptado das mesmas 28 marcações da Parte
-   A (MAIS forma um perfil, MENOS forma o outro). Foi cogitado como
-   correção "de verdade" do N-06 e recusado por enquanto — reformulação
-   grande da Parte A/B já testada e estável; só reconsiderar com pedido
-   explícito, avaliando o que isso muda no banco (`disc_respostas`), no
-   PDF e nos ~30 testes que cobrem o fluxo atual.
 
 ## Fluxo de commit
 
