@@ -6,7 +6,10 @@ services:
     # O plano free não suporta Persistent Disk (obrigatório pra ter um disco
     # montado abaixo) — starter é o menor plano pago que aceita.
     plan: starter
-    buildCommand: npm install
+    # --omit=dev: em produção não precisa de jsdom/supertest/autocannon
+    # (só usados por npm test / npm run load-test) — instala mais rápido e
+    # deixa menos coisa no servidor real.
+    buildCommand: npm install --omit=dev
     startCommand: npm start
     disk:
       name: dados
