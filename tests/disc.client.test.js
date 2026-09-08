@@ -2,8 +2,9 @@
 // cobre especificamente os achados de auditoria-avaliacao-disc.md que
 // foram corrigidos (D-01, D-03 a D-06, D-08, D-09, D-12), a estrutura
 // fieldset/legend usada pra resolver D-01/D-03, e o item 01 do
-// reteste-e-plataforma-ideal.md (Parte A vira passo a passo, Parte B de
-// situações foi aposentada — ver CLAUDE.md/CHANGELOG).
+// reteste-e-plataforma-ideal.md (Parte A vira 2 rodadas pelos mesmos 28
+// blocos — Mais primeiro, Menos depois —, Parte B de situações foi
+// aposentada — ver CLAUDE.md/CHANGELOG).
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -40,19 +41,23 @@ function click(win, el) {
   el.dispatchEvent(new win.Event('click', { bubbles: true }));
 }
 
-// Completa a Parte A (passo a passo: Mais entre as 4, Menos entre as 3 que
-// sobraram) e clica "Continuar para Parte B". Em todos os 28 blocos marca
-// a palavra I (índice 1) como Mais e a palavra D (índice 0) como Menos —
-// resultado 100% previsível sob o modelo novo (item 01 do reteste:
+// Completa a Parte A (Rodada 1: Mais em todos os 28; Rodada 2: Menos em
+// todos os 28) e clica "Continuar para Parte B". Em todos os 28 blocos
+// marca a palavra I (índice 1) como Mais e a palavra D (índice 0) como
+// Menos — resultado 100% previsível sob o modelo novo (item 01 do reteste:
 // MENOS forma o natural, MAIS forma o adaptado):
 //   natural : D +28 (dominante, sem empate), I 0, S 0, C 0
 //   adaptado: I +28, D 0, S 0, C 0
 function completarParteA(win) {
   const doc = win.document;
-  doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
+  doc.querySelectorAll('#blocksAMais fieldset').forEach((fs, bIdx) => {
     const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
-    const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
     mais[1].checked = true; change(win, mais[1]); // I vira adaptado
+  });
+  click(win, doc.getElementById('btnMaisToMenos'));
+
+  doc.querySelectorAll('#blocksAMenos fieldset').forEach((fs, bIdx) => {
+    const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
     menos[0].checked = true; change(win, menos[0]); // D vira natural
   });
   click(win, doc.getElementById('btnAtoB'));
@@ -87,13 +92,13 @@ describe('estrutura de foco/marcação (D-01, D-03)', () => {
   test('D-01: cada bloco/afirmação vira <fieldset> com <legend> como 1º filho', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
-    assert.equal(doc.querySelectorAll('#blocksA fieldset').length, 28);
+    assert.equal(doc.querySelectorAll('#blocksAMais fieldset').length, 28);
     assert.equal(doc.querySelectorAll('#intensityC fieldset').length, 12);
-    assert.equal(doc.querySelector('#blocksA fieldset').firstElementChild.tagName, 'LEGEND');
+    assert.equal(doc.querySelector('#blocksAMais fieldset').firstElementChild.tagName, 'LEGEND');
     assert.equal(doc.querySelector('#intensityC fieldset').firstElementChild.tagName, 'LEGEND');
   });
 
-  test('D-03: cada opção da Parte A é um <label> que embrulha o radio + a frase — nome acessível vem do próprio conteúdo, sem precisar de aria-labelledby', () => {
+  test('D-03: cada opção é um <label> que embrulha o radio + a frase — nome acessível vem do próprio conteúdo, sem precisar de aria-labelledby', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
     const radioMais = doc.querySelector('input[name="a0_mais"]');
@@ -103,11 +108,20 @@ describe('estrutura de foco/marcação (D-01, D-03)', () => {
   });
 });
 
-describe('item 01 do reteste: Parte A vira passo a passo (Mais entre as 4, Menos entre as 3 que sobraram)', () => {
+describe('item 01 do reteste: Parte A em 2 rodadas pelos mesmos 28 blocos (Mais primeiro, Menos depois)', () => {
+  test('a Rodada 2 (Menos) não existe ainda — só aparece depois de terminar a Rodada 1 e clicar Continuar', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    assert.equal(doc.getElementById('blocksAMenos').children.length, 0);
+    assert.ok(doc.getElementById('blocksAMenos').hidden);
+    assert.ok(doc.getElementById('navFaseMenos').hidden);
+    assert.match(doc.getElementById('progressLabelA').textContent, /\(Mais\)$/);
+  });
+
   test('marcar uma 2ª palavra como Mais desmarca a 1ª automaticamente — exclusividade nativa do radio', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
-    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
+    const fieldset = doc.querySelectorAll('#blocksAMais fieldset')[0];
     const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
 
     mais[0].checked = true; change(win, mais[0]);
@@ -118,80 +132,92 @@ describe('item 01 do reteste: Parte A vira passo a passo (Mais entre as 4, Menos
     assert.ok(!mais[0].checked, 'o radio nativo deveria ter desmarcado a marcação anterior — não dá pra ter 2 Mais no mesmo bloco');
   });
 
-  test('Passo 2 (Menos) começa bloqueado — todas as opções desabilitadas até o Passo 1 (Mais) ser respondido', () => {
+  test('clicar "Continuar" com a Rodada 1 incompleta sinaliza os blocos pendentes e não avança pra Rodada 2', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
-    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
-    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
+    // responde 27 dos 28, deixa o bloco 27 sem resposta
+    doc.querySelectorAll('#blocksAMais fieldset').forEach((fs, bIdx) => {
+      if (bIdx === 27) return;
+      const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
+      mais[0].checked = true; change(win, mais[0]);
+    });
 
-    assert.ok([...menos].every((m) => m.disabled), 'todas as opções do Passo 2 deveriam estar desabilitadas antes do Passo 1');
-    assert.ok(fieldset.querySelector('.choice-step-menos').classList.contains('bloqueado'));
+    click(win, doc.getElementById('btnMaisToMenos'));
+
+    assert.ok(doc.getElementById('blocksAMenos').hidden, 'não deveria ter avançado pra Rodada 2');
+    assert.ok(doc.getElementById('bloco-mais-27').classList.contains('pending'));
+    assert.equal(doc.getElementById('validMsgAMais').style.display, 'inline');
   });
 
-  test('depois do Passo 1, só a opção escolhida como Mais fica indisponível no Passo 2 — impossível marcar a mesma frase nas 2', () => {
+  test('terminar a Rodada 1 revela a Rodada 2, com a opção escolhida como Mais desabilitada e marcada "Já é sua Mais"', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
-    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
-    const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
-    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
+    doc.querySelectorAll('#blocksAMais fieldset').forEach((fs, bIdx) => {
+      const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
+      mais[0].checked = true; change(win, mais[0]); // sempre D
+    });
+    click(win, doc.getElementById('btnMaisToMenos'));
 
-    mais[0].checked = true; change(win, mais[0]);
+    assert.ok(!doc.getElementById('blocksAMenos').hidden, 'Rodada 2 deveria ficar visível');
+    assert.equal(doc.querySelectorAll('#blocksAMenos fieldset').length, 28);
+    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28.*\(Menos\)$/);
 
-    assert.ok(!fieldset.querySelector('.choice-step-menos').classList.contains('bloqueado'), 'Passo 2 deveria liberar depois do Passo 1');
-    assert.ok(menos[0].disabled, 'a opção 0 (igual à escolhida como Mais) deveria ficar desabilitada no Passo 2');
-    assert.ok(!menos[1].disabled && !menos[2].disabled && !menos[3].disabled, 'as outras 3 opções do Passo 2 deveriam continuar disponíveis');
+    const bloco0 = doc.getElementById('bloco-menos-0');
+    const menos = bloco0.querySelectorAll('input[name="a0_menos"]');
+    assert.ok(menos[0].disabled, 'a opção 0 (igual à escolhida como Mais) deveria ficar desabilitada');
+    assert.ok(!menos[1].disabled && !menos[2].disabled && !menos[3].disabled, 'as outras 3 continuam disponíveis');
     assert.match(menos[0].closest('.choice-card').querySelector('.choice-card-tag').textContent, /Já é sua Mais/);
 
     menos[1].checked = true; change(win, menos[1]);
     assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
   });
 
-  test('trocar a Mais depois de já ter respondido a Menos, pra a mesma palavra: limpa a Menos (rede de segurança)', () => {
+  test('voltar pra Rodada 1 e trocar uma resposta invalida a Menos daquele bloco na Rodada 2', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
-    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
-    const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
-    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
+    doc.querySelectorAll('#blocksAMais fieldset').forEach((fs, bIdx) => {
+      const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
+      mais[0].checked = true; change(win, mais[0]); // sempre D
+    });
+    click(win, doc.getElementById('btnMaisToMenos'));
 
-    mais[0].checked = true; change(win, mais[0]);
-    menos[1].checked = true; change(win, menos[1]);
+    const menos0 = doc.getElementById('bloco-menos-0').querySelectorAll('input[name="a0_menos"]');
+    menos0[1].checked = true; change(win, menos0[1]); // I
     assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
 
-    // muda a Mais pra palavra 1 (a mesma que já estava marcada como Menos)
-    mais[1].checked = true; change(win, mais[1]);
+    click(win, doc.getElementById('btnMenosToMais'));
+    assert.ok(!doc.getElementById('blocksAMais').hidden, 'deveria voltar pra Rodada 1');
 
-    assert.ok(!fieldset.classList.contains('conflict'), 'não deveria sinalizar conflito — a Menos foi limpa automaticamente');
-    assert.equal(fieldset.querySelector('input[name="a0_menos"]:checked'), null, 'a Menos deveria ter sido limpa (word 1 virou a nova Mais)');
-    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/, 'bloco volta a ficar incompleto até escolher outra Menos');
+    // troca o Mais do bloco 0 pra palavra 1 (a mesma que já era a Menos)
+    const mais0 = doc.getElementById('bloco-mais-0').querySelectorAll('input[name="a0_mais"]');
+    mais0[1].checked = true; change(win, mais0[1]);
+
+    click(win, doc.getElementById('btnMaisToMenos'));
+    const menos0depois = doc.getElementById('bloco-menos-0').querySelectorAll('input[name="a0_menos"]');
+    assert.equal(doc.getElementById('bloco-menos-0').querySelector('input[name="a0_menos"]:checked'), null, 'a Menos do bloco 0 deveria ter sido limpa (word 1 virou a nova Mais)');
+    assert.ok(menos0depois[1].disabled, 'agora a opção 1 (nova Mais) que deveria ficar desabilitada');
+    assert.ok(!menos0depois[0].disabled, 'a opção 0 (antiga Mais) volta a ficar disponível');
   });
 
-  test('um disc_state salvo com mais===menos (rede de segurança, não deveria acontecer via UI) sinaliza conflito e não conta como respondido', () => {
+  test('disc_state salvo com mais===menos (rede de segurança, não deveria acontecer via UI) não trava a Rodada 2 — vira só um bloco pendente', () => {
     const estadoComConflito = JSON.stringify({
       part: 'A',
+      faseA: 'menos',
       respostasA: { 0: { mais: 2, menos: 2 } },
       respostasC: {},
     });
     const { window: win } = criarPagina(estadoComConflito);
     const doc = win.document;
-    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
 
-    // sinaliza o alerta (mesmo padrão de clicar "Continuar" sem terminar)
-    click(win, doc.getElementById('btnAtoB'));
-    assert.ok(fieldset.classList.contains('conflict'), 'disc_state com mais===menos deveria sinalizar conflito');
-    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
-  });
+    assert.equal(doc.querySelectorAll('#blocksAMenos fieldset').length, 28, 'a Rodada 2 deveria renderizar mesmo com esse dado corrompido');
+    click(win, doc.getElementById('btnAtoB')); // sinaliza pendentes
+    assert.ok(doc.getElementById('bloco-menos-0').classList.contains('pending'), 'bloco 0 deveria contar como pendente (menos===mais não é uma resposta válida)');
 
-  test('bloco com só Mais marcado (falta a Menos) não conta como respondido e mostra o alerta de pendente', () => {
-    const { window: win } = criarPagina();
-    const doc = win.document;
-    const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
-    const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
-
-    mais[0].checked = true; change(win, mais[0]); // só o Mais, falta o Menos
-
-    assert.ok(!fieldset.classList.contains('conflict'), 'não há conflito, só falta o Menos');
-    assert.ok(fieldset.classList.contains('pending'), 'deveria sinalizar como pendente por faltar o Menos');
-    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
+    // a pessoa consegue se autocorrigir escolhendo outra opção (a 2 fica disabled)
+    const menos0 = doc.getElementById('bloco-menos-0').querySelectorAll('input[name="a0_menos"]');
+    assert.ok(menos0[2].disabled);
+    menos0[0].checked = true; change(win, menos0[0]);
+    assert.ok(!doc.getElementById('bloco-menos-0').classList.contains('pending'));
   });
 
   test('o total de pontos é sempre o mesmo (28 blocos = 28 pontos), não varia por padrão de preenchimento — propriedade ipsativa', () => {
@@ -204,10 +230,13 @@ describe('item 01 do reteste: Parte A vira passo a passo (Mais entre as 4, Menos
     // pro adaptado (Mais), nunca mais que isso — por isso a soma dos 4
     // traços em cada perfil é sempre 28, e os 2 perfis ficam comparáveis
     // entre pessoas diferentes de qualquer padrão de preenchimento.
-    doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
+    doc.querySelectorAll('#blocksAMais fieldset').forEach((fs, bIdx) => {
       const maisIdx = bIdx % 2 === 0 ? 0 : 2; // alterna D/S
       const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
       mais[maisIdx].checked = true; change(win, mais[maisIdx]);
+    });
+    click(win, doc.getElementById('btnMaisToMenos'));
+    doc.querySelectorAll('#blocksAMenos fieldset').forEach((fs, bIdx) => {
       const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
       menos[1].checked = true; change(win, menos[1]); // I
     });
@@ -287,7 +316,7 @@ describe('resultado calculado (D-04, D-05, D-06, D-09, D-12)', () => {
 
     click(win, win.document.getElementById('confirmResetYes'));
     assert.equal(win.document.getElementById('confirmReset').style.display, 'none');
-    assert.equal(win.document.getElementById('progressLabelA').textContent, '0 de 28 blocos respondidos');
+    assert.match(win.document.getElementById('progressLabelA').textContent, /^0 de 28.*\(Mais\)$/);
   });
 });
 
@@ -320,6 +349,7 @@ describe('compatibilidade com disc_state salvo no formato antigo (regressão)', 
   test('disc_state com mais/menos como array (formato do período de múltipla escolha) migra pro escalar sem quebrar', () => {
     const estadoAntigo = JSON.stringify({
       part: 'A',
+      faseA: 'menos', // força renderizar a Rodada 2 também, pra testar a migração dos 2 lados
       nomeDisc: 'Fulano',
       empresaDisc: 'Empresa Z',
       respostasA: { 0: { mais: [0, 3], menos: [1] } }, // array — normalizarRespostasA() pega a última marcação
@@ -328,7 +358,8 @@ describe('compatibilidade com disc_state salvo no formato antigo (regressão)', 
     const { window: win } = criarPagina(estadoAntigo);
     const doc = win.document;
 
-    assert.equal(doc.getElementById('blocksA').children.length, 28, 'os 28 blocos da Parte A deveriam renderizar');
+    assert.equal(doc.getElementById('blocksAMais').children.length, 28, 'os 28 blocos da Rodada 1 deveriam renderizar');
+    assert.equal(doc.getElementById('blocksAMenos').children.length, 28, 'os 28 blocos da Rodada 2 deveriam renderizar (faseA salva era "menos")');
     assert.equal(doc.getElementById('intensityC').children.length, 12);
     assert.equal(doc.getElementById('nomeDisc').value, 'Fulano');
 
