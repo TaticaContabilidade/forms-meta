@@ -900,3 +900,70 @@ seguem só no histórico do `git log`.
   - `npm test`: 91/91 passando (75 já existentes + 11 de
     `/api/meu-porque`+`/api/meu-porque/pdf` em `server.test.js` + 5 de
     `meu-porque.client.test.js`, novo).
+- **Robustez de escalabilidade — pendências sinalizadas em CLAUDE.md** —
+  pedido do usuário pra trabalhar na lista da seção "Robustez pra >2k
+  participantes simultâneos". Itens que não exigem decisão de infra/custo
+  (rate limiting, PDF bloqueante, monitoramento básico, teste de carga)
+  foram implementados; SQLite→Postgres e múltiplas instâncias do Render
+  continuam fora de escopo (exigem pedido explícito, ver CLAUDE.md).
+  - **Rate limiting** (`express-rate-limit`, novo): 120 req/min por IP em
+    toda `/api/`, 20 req/min só nas 3 rotas de PDF. `app.set('trust proxy',
+    1)` — sem isso o Render (atrás de proxy reverso) faria o limite valer
+    pro IP do proxy, não de cada participante. `DISABLE_RATE_LIMIT=true`
+    desliga os 2 pra rodar o teste de carga localmente (nunca em
+    produção).
+  - **PDF não bloqueia mais o event loop principal**: `src/reports/
+    pdfWorker.js` (novo, roda numa worker_thread) + `pdfWorkerPool.js`
+    (novo, pool fixo de 2 workers — `PDF_WORKER_POOL_SIZE` — reaproveitados
+    entre requisições, round-robin). As 3 rotas `/pdf` viraram `async`,
+    chamando `generatePdfAsync(tipo, data)` em vez de `generate*Pdf(data)
+    .pipe(res)` direto. `generateMetaComercialPdf`/`generateDiscPdf`/
+    `generateMeuPorquePdf` continuam existindo e inalteradas — só quem as
+    chama mudou (de dentro do worker, não mais da thread principal).
+  - **`GET /api/health`** (novo): confirma processo de pé + banco
+    respondendo (`SELECT 1`) — pra monitoramento externo/health check do
+    Render.
+  - **Log de requisição** (`morgan`, novo): método/rota/status/tempo de
+    resposta em toda requisição. Desligado quando `NODE_ENV=test` — sem
+    isso poluiria a saída do `npm test` (`tests/server.test.js` seta essa
+    variável antes de importar o app).
+  - **Log de diagnóstico no boot do banco**: antes, `new
+    Database(DB_PATH)` criava um arquivo novo e vazio, sem erro, se o
+    disco persistente do Render não estivesse montado — falha silenciosa
+    (só perceptível como "os dados sumiram"). Agora loga se está
+    reaproveitando um banco existente (com tamanho em bytes) ou criando
+    um novo, no boot.
+  - **Cluster opcional** (`WEB_CONCURRENCY`, módulo nativo `cluster`):
+    desligado por padrão (ausente ou `1` = idêntico a antes). O plano
+    `starter` atual do Render tem CPU fracionária — ligar isso hoje não
+    ajudaria em nada; fica pronto pra um upgrade de plano futuro.
+  - **Teste de carga real** (`scripts/loadtest.js`, novo, usa `autocannon`
+    como devDependency): 3 rodadas — páginas estáticas, escrita simples
+    (POST /api/metas, /api/disc, /api/meu-porque), geração de PDF (as 3
+    rotas /pdf). Rodado localmente (`npm run load-test`, 50 conexões, 10s
+    cada rodada, `DISABLE_RATE_LIMIT=true`): páginas estáticas ~3.150
+    req/s, escrita simples ~2.415 req/s, PDF ~212 req/s — todos com 0
+    erros/timeouts. Números do hardware local, não do Render — validam a
+    arquitetura (PDF não trava mais o resto), não a capacidade real do
+    plano `starter`.
+    - **Achado no processo**: o arquivo tinha sido criado como
+      `load-test.js` — `node --test` (usado por `npm test`) descobre
+      arquivo de teste sozinho por padrão de nome, e um dos padrões é
+      `*-test.js`. Isso fazia o `npm test` rodar essa carga inteira
+      (30s+, contra um servidor de verdade) como se fosse mais um teste
+      unitário — 91 testes viraram "92", e a suíte inteira passou de
+      ~10s pra ~31s. Renomeado pra `loadtest.js` (sem hífen antes de
+      "test"), resolvido.
+  - `render.yaml`: `buildCommand` agora usa `npm install --omit=dev` —
+    `jsdom`/`supertest`/`autocannon` (devDependencies) não precisam ir
+    pro servidor de produção.
+  - `.env.example`: documenta `WEB_CONCURRENCY`, `PDF_WORKER_POOL_SIZE` e
+    `DISABLE_RATE_LIMIT`, todos opcionais e com padrão que preserva o
+    comportamento de hoje.
+  - Testado ao vivo: rate limiting bloqueando corretamente em rajada
+    (429 com headers `RateLimit-*`/`Retry-After`), health check, PDF
+    gerado via worker com conteúdo conferido, boot log mostrando banco
+    reaproveitado — tudo num servidor local real, não só nos testes
+    automatizados.
+  - `npm test`: 91/91 passando, ~10s (mesma contagem/tempo de antes desta
+    mudança — nenhum teste existente precisou mudar).
