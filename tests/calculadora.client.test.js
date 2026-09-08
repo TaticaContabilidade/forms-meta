@@ -268,6 +268,23 @@ describe('validação e equipe (F-03, F-07, F-08, F-14)', () => {
     row2.querySelector('.del-btn').dispatchEvent(new win.Event('click', { bubbles: true }));
     assert.equal(teamRows(win).length, 1, 'a última linha nunca deve ser removida');
   });
+
+  test('N-04: botão de remover fica desabilitado quando só resta 1 linha, e volta a ativar ao adicionar outra', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    const [row1, row2] = teamRows(win);
+    assert.equal(row1.querySelector('.del-btn').disabled, false, 'com 2 linhas, os botões deveriam estar ativos');
+    assert.equal(row2.querySelector('.del-btn').disabled, false);
+
+    row1.querySelector('.del-btn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    const [ultimaLinha] = teamRows(win);
+    assert.equal(ultimaLinha.querySelector('.del-btn').disabled, true, 'com só 1 linha, o botão deveria ficar desabilitado');
+
+    doc.getElementById('addRow').dispatchEvent(new win.Event('click', { bubbles: true }));
+    teamRows(win).forEach((tr) => {
+      assert.equal(tr.querySelector('.del-btn').disabled, false, 'voltando a ter 2+ linhas, os botões deveriam reativar');
+    });
+  });
 });
 
 describe('persistência local (F-17)', () => {

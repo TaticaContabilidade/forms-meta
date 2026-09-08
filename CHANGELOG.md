@@ -351,3 +351,23 @@ seguem só no histórico do `git log`.
     contatos necessários por mês."
   - 2 testes novos: confirma que os 9 outputs perderam `aria-live` e que
     o resumo não aparece imediatamente após digitar (só depois da pausa).
+- **N-03 do reteste — contraste do `R$`/`%` abaixo do mínimo.**
+  `.field-prefix`/`.field-suffix` usavam `--fg-faint`, calibrado em
+  auditorias anteriores contra `--card`/`--bg` — mas esses prefixos ficam
+  sobre `--input-bg` (um overlay translúcido), fundo diferente. Recalculei:
+  4,12:1 contra o fundo real do campo, abaixo dos 4,5:1 exigidos (bate com
+  os 4,12:1 que o documento reporta). Trocado para `--fg-soft`, que já
+  existe e é usado em outros textos secundários da página — 5,93:1 no
+  mesmo fundo. Confirmado ao vivo via `getComputedStyle` num Chromium
+  real: `rgb(157, 168, 192)` (= `#9DA8C0` = `--fg-soft`).
+- **N-04 do reteste — botão de remover a última linha continuava
+  clicável, sem fazer nada.** O guard (`if (...) return;`) já impedia a
+  remoção, mas o botão não tinha `disabled`, então parecia ativo — clicar
+  e nada acontecer lê como bug. Novo `atualizarBotoesRemover()` em
+  `public/calculadora.html`, chamado toda vez que uma linha é adicionada
+  ou removida: desabilita o(s) botão(ões) quando só resta 1 linha,
+  reativa quando volta a ter 2+. CSS novo (`.del-btn:disabled`) deixa o
+  estado visualmente óbvio (opacidade reduzida, cursor `not-allowed`).
+  1 teste novo confirmando desabilita/reativa; testado também ao vivo
+  num Chromium real (`disabled: true`, `opacity: 0.35`, `cursor:
+  not-allowed` via `getComputedStyle`).
