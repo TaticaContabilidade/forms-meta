@@ -62,6 +62,16 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Item 01 do reteste (2 rodadas da Parte A, ver CLAUDE.md/CHANGELOG):
+   alternar rodada via JS usa o atributo `hidden` (.blocksAMais/.blocksAMenos
+   /.navFaseMais/.navFaseMenos). Sem esta regra, elementos como
+   `.blocks-list`/`.nav-actions` (que declaram `display: flex`) continuam
+   visíveis mesmo com `hidden` — CSS de autor sempre vence a folha de
+   estilo do navegador (que é quem aplica `display:none` a `[hidden]`),
+   independente de especificidade. `!important` garante que `hidden`
+   sempre vença, em qualquer elemento, agora ou no futuro. */
+[hidden] { display: none !important; }
+
 /* D-01 da auditoria: os 348 radios ficavam display:none, o que os tira do
    teclado e da árvore de acessibilidade — não é só ocultação visual. Esta
    regra some com eles visualmente sem tirar o elemento do foco/tab (técnica
@@ -355,22 +365,14 @@ h2 {
   color: var(--fg-soft);
 }
 
-/* Passo a passo (item 01 do reteste — ver CLAUDE.md/CHANGELOG): antes era
-   1 grid de 4 opções, cada uma com 2 botões MAIS/MENOS lado a lado
-   (.choice-options/.choice-option/.choice-radios). Testadores confundiam
-   os 2 grupos simultâneos. Agora são 2 passos sequenciais — cada um com 4
-   cards de escolha única (.choice-step/.choice-cards/.choice-card) — e o
-   Passo 2 desabilita a opção já escolhida no Passo 1 (ver
-   .choice-card.indisponivel abaixo), tornando o conflito impossível em vez
-   de só avisado. */
-.choice-step { padding: 14px 16px; }
-.choice-step + .choice-step { border-top: 1px solid var(--border-solid); }
-.choice-step-title {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--fg-soft);
-  margin: 0 0 10px;
-}
+/* 2 rodadas pelos mesmos 28 blocos (item 01 do reteste — ver CLAUDE.md/
+   CHANGELOG): a Rodada 1 (Mais) e a Rodada 2 (Menos) são 2 listas de
+   blocos separadas (#blocksAMais/#blocksAMenos em disc.html), só uma
+   visível por vez — não 2 passos empilhados dentro do mesmo bloco (versão
+   anterior, ainda confundia). Cada bloco tem só 1 pergunta de escolha
+   única, com 4 cards (.choice-cards/.choice-card). Na Rodada 2, a opção já
+   escolhida como Mais vem `disabled` (ver .choice-card.indisponivel
+   abaixo) — impossível marcar a mesma frase nas 2 rodadas. */
 .choice-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -417,31 +419,19 @@ h2 {
   border-color: rgba(255,255,255,0.25);
 }
 
-/* Passo 2 (Menos) bloqueado até o Passo 1 (Mais) responder, e a opção já
-   escolhida como Mais fica indisponível — impossível marcar a mesma frase
-   nos 2 passos (ver atualizarDisponibilidadeBlocoA em disc.html). */
-.choice-step-menos.bloqueado { opacity: 0.45; }
+/* Na Rodada 2 (Menos), a opção já escolhida como Mais na Rodada 1 vem
+   `disabled` — impossível marcar a mesma frase nas 2 rodadas (ver
+   renderBlocosMenos em disc.html). */
 .choice-card.indisponivel { opacity: 0.5; }
 
-/* Conflito (mesma palavra marcada como MAIS e MENOS) — rede de segurança
-   pra disc_state salvo antes do passo a passo existir; não deveria mais
-   acontecer no preenchimento normal (ver comentário em avaliarBlocoA). */
-.choice-block.conflict {
-  border-color: var(--danger);
-}
-.choice-block.conflict .choice-block-header {
-  background: var(--danger-bg);
-}
-.conflict-msg, .pending-msg {
+.pending-msg {
   display: none;
   font-size: 12px;
   padding: 6px 16px 10px;
   font-weight: 500;
 }
-.conflict-msg { color: var(--danger); }
-.choice-block.conflict .conflict-msg { display: block; }
 
-/* Pendente (ainda falta responder o Passo 1 e/ou o Passo 2) */
+/* Pendente (bloco ainda sem resposta na rodada atual) */
 .choice-block.pending {
   border-color: var(--warning);
 }

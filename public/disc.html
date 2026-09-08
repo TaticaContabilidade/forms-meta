@@ -56,48 +56,55 @@
   </div>
 
   <!-- ========== PARTE A ========== -->
+  <!-- 2 rodadas pelos mesmos 28 blocos, não 2 passos dentro de cada bloco
+       (versão anterior — usuário relatou que ainda confundia ter "1. Mais"
+       e "2. Menos" um embaixo do outro no mesmo bloco). Rodada 1
+       (#faseMais): os 28 blocos, cada um só com a pergunta MAIS. Só depois
+       de responder os 28 é que libera a Rodada 2 (#faseMenos): os mesmos
+       28 blocos de novo, cada um perguntando MENOS entre as que sobraram
+       (a que virou Mais fica indisponível). `mostrarFaseA(fase)` alterna
+       qual rodada fica visível — ver JS perto de renderBlocosMais/Menos. -->
   <div class="part-section active" id="partA">
     <div class="part-header">
       <span class="part-badge">Parte A</span>
       <h2>Perfil natural + adaptado</h2>
     </div>
-    <p class="part-desc">Cada bloco tem 4 frases e se responde em <strong>2 passos</strong>: primeiro escolha, entre as 4, a que é <strong>MAIS</strong> parecida com você. Em seguida, entre as 3 que sobraram, escolha a que é <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
+    <p class="part-desc">Você vai passar pelos mesmos 28 blocos <strong>2 vezes</strong>. Na 1ª rodada, marque em cada bloco só a frase <strong>MAIS</strong> parecida com você. Quando terminar as 28, a 2ª rodada pede pra marcar, entre as que sobraram, a <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
 
-    <!-- Instrução visual pedida pelo usuário: participantes se confundiam
-         mesmo com o texto acima (a versão anterior pedia 2 marcações
-         simultâneas em 2 grupos independentes, o que gerava confusão e até
-         conflito — a mesma frase marcada nos dois). Agora é sequencial: o
-         Passo 2 só libera depois do Passo 1, e a frase escolhida no Passo 1
-         nem fica selecionável no Passo 2 — mostra os 2 passos já resolvidos,
-         com `disabled` nos inputs pra não entrar no tab order nem contar
-         como resposta de verdade. -->
-    <div class="example-wrap" aria-hidden="true">
-      <span class="example-tag">Exemplo de preenchimento</span>
+    <!-- Instrução visual: 1 exemplo por rodada, só o da rodada atual fica
+         visível (mostrarFaseA alterna o `hidden`). `disabled` nos inputs
+         pra não entrar no tab order nem contar como resposta de verdade. -->
+    <div class="example-wrap" id="exemploFaseMais" aria-hidden="true">
+      <span class="example-tag">Exemplo — 1ª rodada (Mais)</span>
       <div class="choice-block example">
         <div class="choice-block-header">
           <span class="block-num">Bloco</span>
-          <span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span>
+          <span class="block-instruction">Marque a frase mais parecida com você</span>
         </div>
-        <div class="choice-step">
-          <p class="choice-step-title">1. Qual frase é <strong>MAIS</strong> parecida com você?</p>
-          <div class="choice-cards">
-            <label class="choice-card mais"><input type="radio" checked disabled><span class="choice-card-text">Decidido: escolho rápido e assumo a consequência</span></label>
-            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Entusiasmado: contagio as pessoas com energia</span></label>
-            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Paciente: espero o tempo certo sem me irritar</span></label>
-            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Preciso: gosto de fazer certo nos detalhes</span></label>
-          </div>
-        </div>
-        <div class="choice-step choice-step-menos">
-          <p class="choice-step-title">2. E qual é <strong>MENOS</strong> parecida?</p>
-          <div class="choice-cards">
-            <label class="choice-card indisponivel"><input type="radio" disabled><span class="choice-card-text">Decidido: escolho rápido e assumo a consequência</span><span class="choice-card-tag">Já é sua Mais</span></label>
-            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Entusiasmado: contagio as pessoas com energia</span></label>
-            <label class="choice-card menos"><input type="radio" checked disabled><span class="choice-card-text">Paciente: espero o tempo certo sem me irritar</span></label>
-            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Preciso: gosto de fazer certo nos detalhes</span></label>
-          </div>
+        <div class="choice-cards">
+          <label class="choice-card"><input type="radio" checked disabled><span class="choice-card-text">Decidido: escolho rápido e assumo a consequência</span><span class="choice-card-tag"></span></label>
+          <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Entusiasmado: contagio as pessoas com energia</span><span class="choice-card-tag"></span></label>
+          <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Paciente: espero o tempo certo sem me irritar</span><span class="choice-card-tag"></span></label>
+          <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Preciso: gosto de fazer certo nos detalhes</span><span class="choice-card-tag"></span></label>
         </div>
       </div>
-      <p class="example-caption">1 frase escolhida como <strong>Mais</strong> no passo 1, 1 escolhida como <strong>Menos</strong> no passo 2 (a que já virou Mais nem aparece disponível), e as outras 2 sem marcação nenhuma — é assim que cada um dos 28 blocos abaixo deve ficar.</p>
+      <p class="example-caption">Marque só a mais parecida em cada um dos 28 blocos — as outras 3 ficam sem marcação por enquanto. Você vai marcar a menos parecida depois, na 2ª rodada.</p>
+    </div>
+    <div class="example-wrap" id="exemploFaseMenos" aria-hidden="true" hidden>
+      <span class="example-tag">Exemplo — 2ª rodada (Menos)</span>
+      <div class="choice-block example">
+        <div class="choice-block-header">
+          <span class="block-num">Bloco</span>
+          <span class="block-instruction">Marque a frase menos parecida, entre as que sobraram</span>
+        </div>
+        <div class="choice-cards">
+          <label class="choice-card indisponivel"><input type="radio" disabled><span class="choice-card-text">Decidido: escolho rápido e assumo a consequência</span><span class="choice-card-tag">Já é sua Mais</span></label>
+          <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Entusiasmado: contagio as pessoas com energia</span><span class="choice-card-tag"></span></label>
+          <label class="choice-card"><input type="radio" checked disabled><span class="choice-card-text">Paciente: espero o tempo certo sem me irritar</span><span class="choice-card-tag"></span></label>
+          <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Preciso: gosto de fazer certo nos detalhes</span><span class="choice-card-tag"></span></label>
+        </div>
+      </div>
+      <p class="example-caption">A frase que você marcou como Mais na 1ª rodada nem aparece disponível aqui. Marque, entre as outras 3, a menos parecida.</p>
     </div>
 
     <div class="progress-wrap">
@@ -105,11 +112,17 @@
       <div class="progress-bar"><div class="progress-fill" id="progressFillA"></div></div>
     </div>
 
-    <div class="blocks-list" id="blocksA"></div>
+    <div class="blocks-list" id="blocksAMais"></div>
+    <div class="blocks-list" id="blocksAMenos" hidden></div>
 
-    <div class="nav-actions">
-      <span class="validation-msg" id="validMsgA">Responda todos os blocos antes de continuar.</span>
+    <div class="nav-actions" id="navFaseMais">
+      <span class="validation-msg" id="validMsgAMais">Responda todos os blocos antes de continuar.</span>
       <span></span>
+      <button type="button" class="btn-primary" id="btnMaisToMenos">Continuar para a 2ª rodada (Menos) →</button>
+    </div>
+    <div class="nav-actions" id="navFaseMenos" hidden>
+      <button type="button" class="btn-secondary" id="btnMenosToMais">← Voltar pro Mais</button>
+      <span class="validation-msg" id="validMsgAMenos">Responda todos os blocos antes de continuar.</span>
       <button type="button" class="btn-primary" id="btnAtoB">Continuar para Parte B →</button>
     </div>
   </div>
@@ -472,6 +485,7 @@ function resolverPerfilDominante(scores) {
 // ============================================================
 let state = {
   part: 'A',
+  faseA: 'mais', // 'mais' | 'menos' — em qual das 2 rodadas da Parte A o participante está
   respostasA: {}, // blockIdx -> { mais: wordIdx, menos: wordIdx } — escolha forçada: só 1 palavra em Mais e só 1 em Menos, garantido pelo radio nativo
   respostasC: {}, // aIdx -> score (1-5) — intensidade (ver comentário perto de INTENSIDADE_C)
 };
@@ -518,6 +532,7 @@ function loadState() {
       const parsed = JSON.parse(s);
       state = {
         part: parsed.part || 'A',
+        faseA: parsed.faseA || 'mais',
         respostasA: normalizarRespostasA(parsed.respostasA),
         respostasC: parsed.respostasC || {},
       };
@@ -530,168 +545,179 @@ function loadState() {
 // ============================================================
 // RENDER PARTE A
 // ============================================================
-// Passo a passo, não mais 2 grupos simultâneos: primeiro escolhe a MAIS
-// parecida (das 4), depois a MENOS parecida (das que sobraram). Vários
-// testadores relataram confusão mesmo com o texto de instrução (formato
-// antigo: 2 grupos de radio lado a lado, dava pra marcar a mesma frase nos
-// 2 — resolvido antes por um alerta + correção automática). O sequencial
-// elimina esse estado por construção: a frase escolhida como Mais fica
-// desabilitada no passo da Menos (ver atualizarDisponibilidadeBlocoA), não
-// dá pra marcar a mesma nas 2 nem por engano.
-function cardHtmlA(bIdx, wIdx, w, grupo, marcado) {
+// 2 rodadas pelos mesmos 28 blocos (não 2 passos dentro de cada bloco —
+// usuário relatou que "1. Mais" e "2. Menos" empilhados no mesmo bloco
+// ainda confundia). Rodada 1 (fase 'mais'): os 28 blocos, cada um só com
+// a pergunta MAIS. Só depois de responder as 28 é que a Rodada 2 (fase
+// 'menos') libera: os mesmos 28 blocos de novo, cada um perguntando MENOS
+// entre as que sobraram (a que virou Mais fica indisponível — elimina o
+// conflito por construção, sem precisar de alerta nem correção depois).
+function cardHtmlA(bIdx, wIdx, w, grupo, marcado, indisponivel) {
   return `
-    <label class="choice-card">
-      <input type="radio" id="opt${grupo}-${bIdx}-${wIdx}" name="a${bIdx}_${grupo}" value="${wIdx}" ${marcado ? 'checked' : ''}>
+    <label class="choice-card${indisponivel ? ' indisponivel' : ''}">
+      <input type="radio" id="opt${grupo}-${bIdx}-${wIdx}" name="a${bIdx}_${grupo}" value="${wIdx}" ${marcado ? 'checked' : ''} ${indisponivel ? 'disabled' : ''}>
       <span class="choice-card-text">${w.text}</span>
-      <span class="choice-card-tag"></span>
+      <span class="choice-card-tag">${indisponivel ? 'Já é sua Mais' : ''}</span>
     </label>
   `;
 }
 
-function renderParteA() {
-  const container = document.getElementById('blocksA');
+// Rodada 1 — construída 1x (não depende de nenhuma outra resposta).
+function renderBlocosMais() {
+  const container = document.getElementById('blocksAMais');
   container.innerHTML = '';
   BLOCOS_A.forEach((bloco, bIdx) => {
     // D-01/D-03 da auditoria: fieldset+legend agrupa as opções pro leitor
-    // de tela. Cada opção agora é um <label> que já embrulha o radio + o
-    // texto da frase — o nome acessível vem sozinho do conteúdo do label,
-    // sem precisar de aria-labelledby (só era necessário antes porque o
-    // texto ficava fora do <label>, compartilhado entre os 2 radios).
+    // de tela. Cada opção é um <label> que já embrulha o radio + o texto
+    // da frase — o nome acessível vem sozinho do conteúdo do label.
     const div = document.createElement('fieldset');
     div.className = 'choice-block';
-    div.id = 'bloco-' + bIdx;
-
-    const maisCardsHtml = bloco.words.map((w, wIdx) =>
-      cardHtmlA(bIdx, wIdx, w, 'mais', state.respostasA[bIdx]?.mais === wIdx)
+    div.id = 'bloco-mais-' + bIdx;
+    const cardsHtml = bloco.words.map((w, wIdx) =>
+      cardHtmlA(bIdx, wIdx, w, 'mais', state.respostasA[bIdx]?.mais === wIdx, false)
     ).join('');
-    const menosCardsHtml = bloco.words.map((w, wIdx) =>
-      cardHtmlA(bIdx, wIdx, w, 'menos', state.respostasA[bIdx]?.menos === wIdx)
-    ).join('');
-
     div.innerHTML = `
-      <legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></legend>
-      <div class="choice-step choice-step-mais">
-        <p class="choice-step-title">1. Qual frase é <strong>MAIS</strong> parecida com você?</p>
-        <div class="choice-cards">${maisCardsHtml}</div>
-      </div>
-      <div class="choice-step choice-step-menos">
-        <p class="choice-step-title">2. E qual é <strong>MENOS</strong> parecida?</p>
-        <div class="choice-cards">${menosCardsHtml}</div>
-      </div>
-      <p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p>
-      <p class="pending-msg">Marque a palavra mais parecida e a menos parecida antes de continuar.</p>
+      <legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque a frase mais parecida com você</span></legend>
+      <div class="choice-cards">${cardsHtml}</div>
+      <p class="pending-msg">Marque a palavra mais parecida antes de continuar.</p>
     `;
     container.appendChild(div);
-
-    // listeners — cada passo avisa updateBlocoA de qual dos 2 (mais/menos)
-    // acabou de mudar, pra resolver a rede de segurança sem desfazer a ação
-    // mais recente do participante (ver updateBlocoA).
     div.querySelectorAll(`input[name="a${bIdx}_mais"]`).forEach(inp => {
-      inp.addEventListener('change', () => updateBlocoA(bIdx, 'mais'));
+      inp.addEventListener('change', () => updateBlocoMais(bIdx));
     });
+  });
+}
+
+// Rodada 2 — reconstruída sempre que a rodada fica visível (ver
+// mostrarFaseA), pra refletir qualquer mudança feita na Rodada 1 desde a
+// última vez (voltar pro Mais e trocar uma resposta muda quem fica
+// indisponível aqui).
+function renderBlocosMenos() {
+  const container = document.getElementById('blocksAMenos');
+  container.innerHTML = '';
+  BLOCOS_A.forEach((bloco, bIdx) => {
+    const maisIdx = state.respostasA[bIdx]?.mais;
+    const div = document.createElement('fieldset');
+    div.className = 'choice-block';
+    div.id = 'bloco-menos-' + bIdx;
+    const cardsHtml = bloco.words.map((w, wIdx) =>
+      cardHtmlA(bIdx, wIdx, w, 'menos', state.respostasA[bIdx]?.menos === wIdx, wIdx === maisIdx)
+    ).join('');
+    div.innerHTML = `
+      <legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque a frase menos parecida, entre as que sobraram</span></legend>
+      <div class="choice-cards">${cardsHtml}</div>
+      <p class="pending-msg">Marque a palavra menos parecida antes de continuar.</p>
+    `;
+    container.appendChild(div);
     div.querySelectorAll(`input[name="a${bIdx}_menos"]`).forEach(inp => {
-      inp.addEventListener('change', () => updateBlocoA(bIdx, 'menos'));
+      inp.addEventListener('change', () => updateBlocoMenos(bIdx));
     });
-
-    atualizarDisponibilidadeBlocoA(bIdx);
-  });
-  updateProgressA();
-}
-
-// Passo 2 (Menos) só libera depois do Passo 1 (Mais) responder, e a opção
-// igual à escolhida no Passo 1 fica `disabled` — impossível marcar a mesma
-// frase nos 2 passos. Diferente do modelo anterior (2 grupos de radio
-// simultâneos e independentes), onde só um alerta *avisava* do conflito
-// depois de já ter acontecido.
-function atualizarDisponibilidadeBlocoA(bIdx) {
-  const bloco = document.getElementById('bloco-' + bIdx);
-  const maisIdx = state.respostasA[bIdx]?.mais;
-  const stepMenos = bloco.querySelector('.choice-step-menos');
-  const aindaBloqueado = maisIdx === undefined;
-  stepMenos.classList.toggle('bloqueado', aindaBloqueado);
-
-  BLOCOS_A[bIdx].words.forEach((_, wIdx) => {
-    const inputMenos = bloco.querySelector(`input[name="a${bIdx}_menos"][value="${wIdx}"]`);
-    const cardMenos = inputMenos.closest('.choice-card');
-    const ehAMaisEscolhida = wIdx === maisIdx;
-    inputMenos.disabled = aindaBloqueado || ehAMaisEscolhida;
-    cardMenos.classList.toggle('indisponivel', ehAMaisEscolhida);
-    cardMenos.querySelector('.choice-card-tag').textContent = ehAMaisEscolhida ? 'Já é sua Mais' : '';
   });
 }
 
-// Blocos cujo alerta inline já pode aparecer — só depois que o participante
-// interagiu com aquele bloco (evita mostrar "pendente" nos 28 de cara, antes
-// de qualquer clique), ou depois que tentou avançar pelo botão (aí sinaliza
-// todos os pendentes, mesmo os nunca tocados — ver clique de btnAtoB).
-let blocosAlertaVisivel = new Set();
+// Blocos cujo alerta de "pendente" já pode aparecer — só depois que o
+// participante interagiu com aquele bloco, ou depois que tentou avançar
+// pelo botão da rodada sem terminar (aí sinaliza todos de uma vez, mesmo
+// os nunca tocados). Um Set por rodada — são 2 árvores de DOM diferentes.
+let blocosAlertaVisivelMais = new Set();
+let blocosAlertaVisivelMenos = new Set();
 
-// Escolha forçada: um bloco é respondido quando exatamente 1 palavra foi
-// marcada como Mais e 1 como Menos, e não é a mesma palavra nos dois passos
-// (o Passo 2 desabilita a opção igual à Mais — ver
-// atualizarDisponibilidadeBlocoA — não dá pra marcar 2 mesmo tentando).
-// `overlap` (mesma palavra nos 2 passos) não deveria mais acontecer durante
-// o preenchimento normal — mas fica aqui como rede de segurança pra um
-// `disc_state` salvo antes dessa correção existir.
-function avaliarBlocoA(bIdx) {
+function avaliarBlocoMais(bIdx) {
+  return state.respostasA[bIdx]?.mais !== undefined;
+}
+// Rede de segurança: normalmente impossível ter menos===mais (a Rodada 2
+// desabilita essa opção — ver renderBlocosMenos) — só chegaria aqui com um
+// disc_state salvo antes dessa correção existir, e mesmo assim a pessoa
+// não consegue confirmar essa opção de novo (fica disabled), então ela se
+// autocorrige na primeira interação com o bloco.
+function avaliarBlocoMenos(bIdx) {
   const r = state.respostasA[bIdx] || {};
-  const overlap = r.mais !== undefined && r.menos !== undefined && r.mais === r.menos;
-  const completo = r.mais !== undefined && r.menos !== undefined && !overlap;
-  return { overlap, completo };
+  return r.menos !== undefined && r.menos !== r.mais;
 }
 function blocoARespondido(bIdx) {
-  return avaliarBlocoA(bIdx).completo;
+  return avaliarBlocoMais(bIdx) && avaliarBlocoMenos(bIdx);
 }
 
-function renderAlertaBlocoA(bIdx) {
-  const { overlap, completo } = avaliarBlocoA(bIdx);
-  const bloco = document.getElementById('bloco-' + bIdx);
-  const mostrar = blocosAlertaVisivel.has(bIdx) && !completo;
-  bloco.classList.toggle('conflict', mostrar && overlap);
-  bloco.classList.toggle('pending', mostrar && !overlap);
+function renderAlertaBlocoMais(bIdx) {
+  const bloco = document.getElementById('bloco-mais-' + bIdx);
+  bloco.classList.toggle('pending', blocosAlertaVisivelMais.has(bIdx) && !avaliarBlocoMais(bIdx));
+}
+function renderAlertaBlocoMenos(bIdx) {
+  const bloco = document.getElementById('bloco-menos-' + bIdx);
+  bloco.classList.toggle('pending', blocosAlertaVisivelMenos.has(bIdx) && !avaliarBlocoMenos(bIdx));
 }
 
-function updateBlocoA(bIdx, grupoAlterado) {
-  const maisEl = document.querySelector(`input[name="a${bIdx}_mais"]:checked`);
-  const menosEl = document.querySelector(`input[name="a${bIdx}_menos"]:checked`);
-  let mais = maisEl ? parseInt(maisEl.value) : undefined;
-  let menos = menosEl ? parseInt(menosEl.value) : undefined;
-
-  // Rede de segurança: normalmente impossível chegar aqui com mais===menos
-  // (o Passo 2 desabilita essa opção — ver atualizarDisponibilidadeBlocoA),
-  // mas um disc_state salvo antes dessa correção existir pode carregar os
-  // 2 apontando pra mesma palavra. Limpa a ponta que NÃO acabou de mudar —
-  // preserva a ação mais recente do participante, igual ao comportamento
-  // já existente antes desta mudança.
-  if (mais !== undefined && menos !== undefined && mais === menos) {
-    if (grupoAlterado === 'mais') {
-      menos = undefined;
-      if (menosEl) menosEl.checked = false;
-    } else {
-      mais = undefined;
-      if (maisEl) maisEl.checked = false;
-    }
-  }
+function updateBlocoMais(bIdx) {
+  const maisEl = document.querySelector(`#bloco-mais-${bIdx} input[name="a${bIdx}_mais"]:checked`);
+  const mais = maisEl ? parseInt(maisEl.value) : undefined;
 
   if (!state.respostasA[bIdx]) state.respostasA[bIdx] = {};
+  // Se uma Menos já respondida numa rodada anterior apontava pra essa
+  // mesma palavra que virou a nova Mais, limpa — a pessoa vai ter que
+  // escolher de novo na Rodada 2 (a opção ficará indisponível pra ela).
+  if (state.respostasA[bIdx].menos === mais) state.respostasA[bIdx].menos = undefined;
   state.respostasA[bIdx].mais = mais;
-  state.respostasA[bIdx].menos = menos;
 
-  atualizarDisponibilidadeBlocoA(bIdx);
-  blocosAlertaVisivel.add(bIdx);
-  renderAlertaBlocoA(bIdx);
+  blocosAlertaVisivelMais.add(bIdx);
+  renderAlertaBlocoMais(bIdx);
   saveState();
   updateProgressA();
 }
 
+function updateBlocoMenos(bIdx) {
+  const menosEl = document.querySelector(`#bloco-menos-${bIdx} input[name="a${bIdx}_menos"]:checked`);
+  const menos = menosEl ? parseInt(menosEl.value) : undefined;
+
+  if (!state.respostasA[bIdx]) state.respostasA[bIdx] = {};
+  state.respostasA[bIdx].menos = menos;
+
+  blocosAlertaVisivelMenos.add(bIdx);
+  renderAlertaBlocoMenos(bIdx);
+  saveState();
+  updateProgressA();
+}
+
+function validateMais() {
+  return BLOCOS_A.every((_, i) => avaliarBlocoMais(i));
+}
+function validateMenos() {
+  return BLOCOS_A.every((_, i) => avaliarBlocoMenos(i));
+}
+
+// Alterna qual rodada fica visível — chamada na navegação entre elas e na
+// restauração de uma avaliação salva no meio da Parte A.
+function mostrarFaseA(fase) {
+  state.faseA = fase;
+  const ehMais = fase === 'mais';
+  document.getElementById('exemploFaseMais').hidden = !ehMais;
+  document.getElementById('exemploFaseMenos').hidden = ehMais;
+  document.getElementById('blocksAMais').hidden = !ehMais;
+  document.getElementById('blocksAMenos').hidden = ehMais;
+  document.getElementById('navFaseMais').hidden = !ehMais;
+  document.getElementById('navFaseMenos').hidden = ehMais;
+  if (!ehMais) renderBlocosMenos(); // sempre reconstrói, reflete o Mais mais recente
+  updateProgressA();
+  saveState();
+  if (window.scrollTo) window.scrollTo(0, 0);
+}
+
 function updateProgressA() {
+  const ehMais = (state.faseA || 'mais') === 'mais';
   let done = 0;
   BLOCOS_A.forEach((_, i) => {
-    if (blocoARespondido(i)) done++;
+    if (ehMais ? avaliarBlocoMais(i) : avaliarBlocoMenos(i)) done++;
   });
   const pct = (done / BLOCOS_A.length) * 100;
   document.getElementById('progressFillA').style.width = pct + '%';
-  document.getElementById('progressLabelA').textContent = done + ' de ' + BLOCOS_A.length + ' blocos respondidos';
+  document.getElementById('progressLabelA').textContent =
+    done + ' de ' + BLOCOS_A.length + ' blocos respondidos (' + (ehMais ? 'Mais' : 'Menos') + ')';
+}
+
+// Constrói a Rodada 1 (sempre) e mostra a rodada salva (útil ao carregar
+// uma avaliação em andamento direto na Rodada 2).
+function renderParteA() {
+  renderBlocosMais();
+  mostrarFaseA(state.faseA || 'mais');
 }
 
 // ============================================================
@@ -907,9 +933,9 @@ function renderBars(containerId, scores, total) {
 // ============================================================
 // VALIDAÇÕES
 // ============================================================
-function validateA() {
-  return BLOCOS_A.every((_, i) => blocoARespondido(i));
-}
+// validateMais()/validateMenos() (gate entre as 2 rodadas da Parte A) ficam
+// perto de renderBlocosMais/Menos, onde são usadas.
+
 // "Parte B" na UI (intensidade) — ver comentário perto de INTENSIDADE_C.
 function validateB() {
   return Object.keys(state.respostasC).length === INTENSIDADE_C.length;
@@ -1051,27 +1077,50 @@ renderParteA();
 renderParteB();
 
 // Botões
-document.getElementById('btnAtoB').addEventListener('click', () => {
-  if (!validateA()) {
-    document.getElementById('validMsgA').style.display = 'inline';
+document.getElementById('btnMaisToMenos').addEventListener('click', () => {
+  if (!validateMais()) {
+    document.getElementById('validMsgAMais').style.display = 'inline';
     // Sinaliza TODOS os blocos pendentes de uma vez (mesmo os nunca
     // tocados), não só o primeiro — mesmo padrão de validarObrigatorios()
     // na calculadora.
     let primeiroPendente = null;
     BLOCOS_A.forEach((_, i) => {
-      if (!blocoARespondido(i)) {
-        blocosAlertaVisivel.add(i);
-        renderAlertaBlocoA(i);
+      if (!avaliarBlocoMais(i)) {
+        blocosAlertaVisivelMais.add(i);
+        renderAlertaBlocoMais(i);
         if (primeiroPendente === null) primeiroPendente = i;
       }
     });
     if (primeiroPendente !== null) {
-      const bloco = document.getElementById('bloco-' + primeiroPendente);
+      const bloco = document.getElementById('bloco-mais-' + primeiroPendente);
       if (bloco.scrollIntoView) bloco.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     return;
   }
-  document.getElementById('validMsgA').style.display = 'none';
+  document.getElementById('validMsgAMais').style.display = 'none';
+  mostrarFaseA('menos');
+});
+
+document.getElementById('btnMenosToMais').addEventListener('click', () => mostrarFaseA('mais'));
+
+document.getElementById('btnAtoB').addEventListener('click', () => {
+  if (!validateMenos()) {
+    document.getElementById('validMsgAMenos').style.display = 'inline';
+    let primeiroPendente = null;
+    BLOCOS_A.forEach((_, i) => {
+      if (!avaliarBlocoMenos(i)) {
+        blocosAlertaVisivelMenos.add(i);
+        renderAlertaBlocoMenos(i);
+        if (primeiroPendente === null) primeiroPendente = i;
+      }
+    });
+    if (primeiroPendente !== null) {
+      const bloco = document.getElementById('bloco-menos-' + primeiroPendente);
+      if (bloco.scrollIntoView) bloco.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
+  document.getElementById('validMsgAMenos').style.display = 'none';
   showPart('B');
 });
 
@@ -1108,7 +1157,7 @@ document.getElementById('confirmResetYes').addEventListener('click', () => {
   confirmReset.style.display = 'none';
   document.getElementById('nomeDisc').value = '';
   document.getElementById('empresaDisc').value = '';
-  state = { part: 'A', respostasA: {}, respostasC: {} };
+  state = { part: 'A', faseA: 'mais', respostasA: {}, respostasC: {} };
   try { localStorage.removeItem('disc_state'); } catch(e){}
   renderParteA();
   renderParteB();
