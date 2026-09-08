@@ -443,3 +443,14 @@ seguem só no histórico do `git log`.
   - Testado também ao vivo num Chromium real, preenchendo a avaliação
     inteira: confirma que a frase "pontos em relação" não aparece em
     nenhum lugar da tela de resultado.
+- **Registra as 7 features novas da seção 05 do reteste como backlog no
+  `CLAUDE.md`**, ordenadas por barateamento — usuário decidiu fechar a
+  entrega atual (todos os achados de bug do reteste corrigidos) antes de
+  entrar na fase de refinamento/features. Da mais barata pra mais cara:
+  (08) frase de rodapé sobre o instrumento não ser de seleção, (05)
+  selo de confiabilidade expandido, (07) painel de turma pro instrutor,
+  (04) norma da própria base, (03) escore no servidor — a "robustez" já
+  adiada antes —, (06) cadastro único com relatório combinado, (01)
+  aposentar a Parte B e derivar os 2 perfis da Parte A (a reformulação
+  grande que foi recusada como correção do N-06). Nenhum código mudou
+  nesta entrada — só documentação.

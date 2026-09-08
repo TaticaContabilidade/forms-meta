@@ -161,6 +161,56 @@ PostgreSQL gerenciado do Render — mas isso exige reescrever a camada de
 banco (`better-sqlite3` → `pg`) em `src/server.js`, não é só configuração de
 infraestrutura. Não faça essa migração sem pedido explícito.
 
+## Backlog: features novas (não são bugs)
+
+A seção "05 — Como seria a plataforma" de `reteste-e-plataforma-ideal.md`
+(documento de reteste externo, não versionado — ver convenção de prefixo `_`
+abaixo, embora este não tenha o prefixo por não ter sido pedido) lista 8
+ideias de evolução da plataforma. O item 02 (escolha forçada com radio
+agrupado) já foi entregue — era o N-05, ver CHANGELOG. Os outros 7 são
+**features novas, não correções** — ficam pra fase de refinamento, depois
+que a entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
+
+1. **Uma linha sobre o que o instrumento não é** (item 08) — uma frase de
+   rodapé no relatório e no PDF ("leitura de estilo comportamental para
+   desenvolvimento, não instrumento de seleção"). Sem lógica nova, sem
+   schema novo. O mais barato de longe.
+2. **Selo de confiabilidade da resposta, expandido** (item 05) — o aviso de
+   "respostas pouco diferenciadas" (D-05) já existe; falta capturar tempo
+   de preenchimento e sequência de respostas idênticas. Precisa de campos
+   novos (timestamps, ou um log leve de interação) mas não toca no cálculo
+   existente.
+3. **Painel de turma pro instrutor** (item 07) — `admin.html` já lista/
+   exporta/apaga; falta agregar (distribuição de perfis, metas impossíveis,
+   incoerências de distribuição). Os dados já estão no banco — é só
+   consulta e UI novas, sem mudar o que já é gravado.
+4. **Norma da própria base** (item 04) — parecido com o item 07 (consulta
+   agregada sobre dados já existentes: "2º mais D entre os 40"), mas só
+   fica útil com volume real de respondentes na base — sem massa crítica,
+   não compensa implementar ainda.
+5. **Escore no servidor, não no navegador** (item 03) — hoje o cliente
+   calcula `d_natural` etc. e o servidor só recalcula `perfil_dominante`/
+   `arquetipo` a partir disso, confiando no valor que o cliente mandou
+   (`Number(b.d_natural) || 0` em `src/server.js`) — dá pra abrir o console
+   e fabricar um perfil. Exige mover `calcNatural()`/`calcAdaptado()`/
+   `calcIntensidade()` (hoje só em `disc.html`) pro backend, recebendo as
+   respostas cruas em vez dos escores prontos — muda o contrato da API.
+   Isso é a "robustez" que o usuário já pediu pra adiar antes (ver decisão
+   registrada na conversa) — não iniciar sem pedido explícito de retomar.
+6. **Um cadastro, um participante, duas ferramentas** (item 06) — hoje
+   nome/empresa são digitados 2x, cada ferramenta com seu `localStorage` e
+   PDF separados. Precisa de um identificador compartilhado entre as duas
+   ferramentas e um relatório combinado novo (meta comercial + perfil
+   DISC) — maior que os itens acima, mexe na identidade de dados das duas
+   tabelas.
+7. **Um instrumento, dois gráficos** (item 01) — aposentar a Parte B
+   inteira, derivando natural e adaptado das mesmas 28 marcações da Parte
+   A (MAIS forma um perfil, MENOS forma o outro). Foi cogitado como
+   correção "de verdade" do N-06 e recusado por enquanto — reformulação
+   grande da Parte A/B já testada e estável; só reconsiderar com pedido
+   explícito, avaliando o que isso muda no banco (`disc_respostas`), no
+   PDF e nos ~30 testes que cobrem o fluxo atual.
+
 ## Fluxo de commit
 
 Sempre que o usuário pedir para commitar (ex.: "comita", "pode commitar",
