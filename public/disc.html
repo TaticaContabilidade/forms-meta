@@ -66,7 +66,55 @@
       <span class="part-badge">Parte A</span>
       <h2>Perfil natural</h2>
     </div>
-    <p class="part-desc">Em cada bloco, marque qual palavra é <strong>MAIS</strong> parecida com você e qual é a <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
+    <p class="part-desc">Cada bloco tem 4 frases. Marque, entre as 4, a que é <strong>MAIS</strong> parecida com você e a que é <strong>MENOS</strong> parecida — só uma de cada, nunca a mesma frase nos dois grupos. As outras 2 ficam sem marcação nenhuma. Responda como você é — não como gostaria de ser.</p>
+
+    <!-- Instrução visual pedida pelo usuário: participantes se confundiam
+         no momento de preencher (marcavam mais de uma por grupo, ou achavam
+         que precisavam marcar as 4). Mostra um bloco de exemplo já
+         preenchido — mesma marcação HTML de um bloco real (com
+         `disabled`, pra não entrar no tab order nem contar como resposta),
+         então o "+Mais"/"−Menos" verde aparece exatamente como no
+         preenchimento de verdade. -->
+    <div class="example-wrap" aria-hidden="true">
+      <span class="example-tag">Exemplo de preenchimento</span>
+      <div class="choice-block example">
+        <div class="choice-block-header">
+          <span class="block-num">Bloco</span>
+          <span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span>
+        </div>
+        <div class="choice-options">
+          <div class="choice-option">
+            <span class="choice-option-text">Decidido: escolho rápido e assumo a consequência</span>
+            <div class="choice-radios">
+              <label><input type="radio" checked disabled><span>+ Mais</span></label>
+              <label><input type="radio" disabled><span>− Menos</span></label>
+            </div>
+          </div>
+          <div class="choice-option">
+            <span class="choice-option-text">Entusiasmado: contagio as pessoas com energia</span>
+            <div class="choice-radios">
+              <label><input type="radio" disabled><span>+ Mais</span></label>
+              <label><input type="radio" disabled><span>− Menos</span></label>
+            </div>
+          </div>
+          <div class="choice-option">
+            <span class="choice-option-text">Paciente: espero o tempo certo sem me irritar</span>
+            <div class="choice-radios">
+              <label><input type="radio" disabled><span>+ Mais</span></label>
+              <label><input type="radio" checked disabled><span>− Menos</span></label>
+            </div>
+          </div>
+          <div class="choice-option">
+            <span class="choice-option-text">Preciso: gosto de fazer certo nos detalhes</span>
+            <div class="choice-radios">
+              <label><input type="radio" disabled><span>+ Mais</span></label>
+              <label><input type="radio" disabled><span>− Menos</span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="example-caption">1 frase marcada como <strong>+ Mais</strong>, 1 marcada como <strong>− Menos</strong>, e as outras 2 sem nenhuma marcação — é assim que cada um dos 28 blocos abaixo deve ficar.</p>
+    </div>
 
     <div class="progress-wrap">
       <div class="progress-label" id="progressLabelA" aria-live="polite">0 de 28 blocos respondidos</div>
