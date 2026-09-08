@@ -855,3 +855,48 @@ seguem só no histórico do `git log`.
     esquerda, cartão de download, imagem do funil com legenda).
   - `npm test`: 75/75 passando (o teste de `GET /` só checa "Priscila
     Galindo" e "ferramentas.html", ambos inalterados).
+- **Nova ferramenta: "Meu Porquê"** — 3ª dinâmica do treinamento, pedida
+  via `nova dinamica simples.md` (não versionado, mesma convenção de
+  material de referência). 4 perguntas abertas de reflexão (objetivo,
+  sonho, mudança, visão de futuro), sem cálculo nem perfil — só grava a
+  resposta, relacionada ao participante. Confirmado com o usuário antes de
+  implementar: sem cadastro unificado com calculadora/DISC (identidade
+  própria, mesmo padrão de sempre); inicialmente sem PDF, depois pedido
+  explicitamente durante a implementação — acabou saindo com PDF também,
+  no mesmo padrão das outras 2 ferramentas.
+  - `src/server.js`: tabela `meu_porque_respostas` (nome_participante,
+    empresa, objetivo, sonho, mudanca, visao_futuro) e as rotas `POST
+    /api/meu-porque` (grava), `POST /api/meu-porque/pdf` (gera PDF, não
+    grava — mesmo padrão de `/api/metas/pdf` e `/api/disc/pdf`), `GET
+    /api/meu-porque` + `.csv` (admin) e `DELETE /api/meu-porque/:id`
+    (admin).
+  - `src/reports/meuPorqueReport.js` (novo) — relatório simples: as 4
+    perguntas como títulos de seção, a resposta de cada uma como texto
+    corrido (sem caixa/callout), reaproveitando a base compartilhada de
+    `pdfLayout.js`. Nome do arquivo: `${participante} meu porque.pdf`
+    (mesma convenção D-13 — por participante, não por empresa).
+  - `public/meu-porque.html` (novo) + `public/style/meu-porque.css` (novo)
+    — página com identidade (nome/empresa) + as 4 perguntas em
+    `<textarea>`, dentro de `<fieldset>`s (mesmo padrão de acessibilidade
+    do DISC). Persistência local (`localStorage`, chave
+    `meu_porque_state`) — reflexão pode levar tempo pra escrever, perder o
+    texto num reload seria frustrante. "Enviar minhas respostas" e "Salvar
+    PDF" reaproveitam a mesma função de validação (nome + as 4 perguntas
+    respondidas, sinalizando todos os blocos pendentes de uma vez, mesmo
+    padrão da calculadora/DISC).
+  - `public/ferramentas.html`: 3º card no grid (`.tool-card.porque`, cor
+    coral, span de largura total já que o grid é de 2 colunas), chips do
+    hero atualizados. Aproveitado pra corrigir uma descrição desatualizada
+    do card do DISC ("56 questões em 3 partes" — já eram 40/2 desde a
+    mudança do item 01 do reteste, ver entradas anteriores).
+  - `public/admin.html`: 3ª aba "Meu Porquê" — mesmo padrão de
+    listar/exportar CSV/apagar das outras 2 abas. Respostas são texto
+    livre (podem ser longas) — a tabela trunca em 60 caracteres com "…" e
+    deixa o texto inteiro no `title` (tooltip).
+  - Testado ao vivo: envio real gravando no banco, PDF gerado e baixado
+    (conteúdo conferido com `pdftotext`), aba nova do admin mostrando o
+    registro corretamente, card novo no menu de ferramentas — tudo
+    verificado num Chromium real.
+  - `npm test`: 91/91 passando (75 já existentes + 11 de
+    `/api/meu-porque`+`/api/meu-porque/pdf` em `server.test.js` + 5 de
+    `meu-porque.client.test.js`, novo).

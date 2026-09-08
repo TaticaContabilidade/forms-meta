@@ -13,7 +13,7 @@
 </head>
 <body>
   <h1>Painel de dados</h1>
-  <p class="sub">Metas recebidas e perfis DISC dos participantes.</p>
+  <p class="sub">Metas recebidas, perfis DISC e respostas do Meu Porquê dos participantes.</p>
 
   <div class="toolbar" style="margin-bottom:16px;">
     <input type="password" id="token" placeholder="Token de admin">
@@ -24,6 +24,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="metas">Calculadora de Metas</button>
     <button class="tab-btn" data-tab="disc">Avaliação DISC</button>
+    <button class="tab-btn" data-tab="porque">Meu Porquê</button>
   </div>
 
   <!-- ABA METAS -->
@@ -75,6 +76,28 @@
     </div>
   </div>
 
+  <!-- ABA MEU PORQUÊ -->
+  <div class="tab-pane" id="tab-porque">
+    <div class="toolbar" style="margin-bottom:16px;">
+      <a class="btn" id="csvPorqueLink" href="#" target="_blank"><button id="csvPorqueBtn">Exportar CSV Meu Porquê</button></a>
+      <span class="count" id="countPorque"></span>
+    </div>
+    <div class="scroll">
+      <table id="tablePorque" style="display:none;">
+        <thead>
+          <tr>
+            <th>Data</th><th>Nome</th><th>Empresa</th>
+            <th>Objetivo</th><th>Sonho</th><th>Mudança</th><th>Visão de futuro</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbodyPorque"></tbody>
+      </table>
+      <div class="empty" id="emptyPorque" style="display:none;">Nenhuma resposta do Meu Porquê recebida ainda.</div>
+      <div class="err" id="errPorque" style="display:none;"></div>
+    </div>
+  </div>
+
 <script>
   const $ = id => document.getElementById(id);
   const fmtBRL = n => (Number(n)||0).toLocaleString('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits:0 });
@@ -106,10 +129,16 @@
     $('csvDiscLink').href = '/api/disc.csv?token=' + encodeURIComponent(t);
   });
 
+  $('csvPorqueBtn').addEventListener('click', (e) => {
+    const t = getToken();
+    if (!t) { e.preventDefault(); alert('Informe o token antes de exportar.'); return; }
+    $('csvPorqueLink').href = '/api/meu-porque.csv?token=' + encodeURIComponent(t);
+  });
+
   async function loadAll() {
     const token = getToken();
     if (!token) { showErrMetas('Informe o token de admin.'); return; }
-    await Promise.all([loadMetas(token), loadDisc(token)]);
+    await Promise.all([loadMetas(token), loadDisc(token), loadPorque(token)]);
   }
 
   async function loadMetas(token) {
@@ -138,8 +167,22 @@
     } catch (e) { showErrDisc('Não foi possível conectar ao servidor.'); }
   }
 
+  async function loadPorque(token) {
+    $('errPorque').style.display = 'none';
+    $('emptyPorque').style.display = 'none';
+    $('tablePorque').style.display = 'none';
+    try {
+      const resp = await fetch('/api/meu-porque', { headers: { 'x-admin-token': token } });
+      if (resp.status === 401) { showErrPorque('Token inválido.'); return; }
+      if (!resp.ok) { showErrPorque('Erro ao carregar dados.'); return; }
+      const rows = await resp.json();
+      renderPorque(rows);
+    } catch (e) { showErrPorque('Não foi possível conectar ao servidor.'); }
+  }
+
   function showErrMetas(msg){ $('errMetas').textContent = msg; $('errMetas').style.display = 'block'; }
   function showErrDisc(msg){ $('errDisc').textContent = msg; $('errDisc').style.display = 'block'; }
+  function showErrPorque(msg){ $('errPorque').textContent = msg; $('errPorque').style.display = 'block'; }
 
   function renderMetas(rows) {
     $('countMetas').textContent = rows.length + ' registro(s)';
@@ -199,6 +242,36 @@
       tbody.appendChild(tr);
     });
     $('tableDisc').style.display = 'table';
+    bindDelBtns();
+  }
+
+  // respostas do Meu Porquê são texto livre (podem ser longas) — trunca na
+  // tabela com "…" e deixa o texto inteiro no title (tooltip ao passar o mouse).
+  function truncar(texto, max) {
+    const s = String(texto || '');
+    return s.length > max ? s.slice(0, max) + '…' : s;
+  }
+
+  function renderPorque(rows) {
+    $('countPorque').textContent = rows.length + ' registro(s)';
+    if (rows.length === 0) { $('emptyPorque').style.display = 'block'; return; }
+    const tbody = $('tbodyPorque');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.criado_em || ''}</td>
+        <td>${escapeHtml(r.nome_participante)}</td>
+        <td>${escapeHtml(r.empresa)}</td>
+        <td title="${escapeHtml(r.objetivo)}">${escapeHtml(truncar(r.objetivo, 60))}</td>
+        <td title="${escapeHtml(r.sonho)}">${escapeHtml(truncar(r.sonho, 60))}</td>
+        <td title="${escapeHtml(r.mudanca)}">${escapeHtml(truncar(r.mudanca, 60))}</td>
+        <td title="${escapeHtml(r.visao_futuro)}">${escapeHtml(truncar(r.visao_futuro, 60))}</td>
+        <td><button class="del" data-id="${r.id}" data-tipo="meu-porque">remover</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    $('tablePorque').style.display = 'table';
     bindDelBtns();
   }
 
