@@ -797,3 +797,24 @@ seguem só no histórico do `git log`.
     Rodada 1 preenchida, transição pra Rodada 2 com a opção certa
     desabilitada + tag, resultado final e PDF gerados corretamente.
   - `npm test`: 75/75 passando.
+- **Responsividade da Rodada 2 (Menos) da Parte A no celular** — usuário
+  relatou que a opção com a tag "Já é sua Mais" ficava fora do
+  enquadramento no celular. Causa: o breakpoint mobile
+  (`@media max-width:600px` em `public/style/disc.css`) nunca tinha
+  ganhado uma regra pra `.choice-cards` — os cards continuavam em grade
+  de 2 colunas mesmo em telas estreitas, e o texto da frase + a tag lado
+  a lado num card estreito não cabiam. O breakpoint ainda tinha
+  `.choice-options`/`.choice-option` (classes da versão anterior à atual,
+  já não existem no HTML) — removidas.
+  - `.choice-cards { grid-template-columns: 1fr; }` no mobile — 1 coluna,
+    cards com largura total.
+  - `.choice-card { flex-wrap: wrap; }` + `.choice-card-tag { flex-basis:
+    100%; margin-left: 0; margin-top: 4px; }` — a tag quebra pra linha
+    própria embaixo do texto em vez de espremer ao lado. Desktop não muda
+    (2 colunas, tag inline ao lado do texto, como já era).
+  - Testado visualmente num Chromium real com viewport de celular
+    (375×700, `Emulation.setDeviceMetricsOverride`) — confirmado que a
+    opção "Já é sua Mais" agora cabe inteira, sem cortar nem sair do
+    card.
+  - `npm test`: 75/75 passando (mudança só de CSS, sem alterar
+    comportamento testado).
