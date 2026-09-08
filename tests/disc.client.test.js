@@ -130,7 +130,7 @@ describe('N-05 do reteste: Parte A volta a ser escolha forçada (radio, 1 Mais +
     assert.ok(!mais[0].checked, 'o radio nativo deveria ter desmarcado a marcação anterior — não dá pra ter 2 Mais no mesmo bloco');
   });
 
-  test('marcar a mesma palavra como Mais e Menos continua sendo bloqueado (conflito) e não conta como respondido', () => {
+  test('marcar a mesma palavra como Mais e Menos se resolve sozinho (sorteia a outra ponta, mantém a marcação mais recente)', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
     const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
@@ -141,10 +141,21 @@ describe('N-05 do reteste: Parte A volta a ser escolha forçada (radio, 1 Mais +
     menos[1].checked = true; change(win, menos[1]);
     assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
 
-    // marca a palavra 0 (já em Mais) também em Menos -> conflito
+    // marca a palavra 0 (já em Mais) também em Menos -> conflito. Em vez de
+    // bloquear, o sistema sorteia outra palavra pro Mais (o grupo que o
+    // participante NÃO acabou de mexer) e mantém o Menos que ele acabou de
+    // marcar.
     menos[0].checked = true; change(win, menos[0]);
-    assert.ok(fieldset.classList.contains('conflict'), 'marcar a mesma opção nos 2 grupos deveria sinalizar conflito');
-    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
+
+    assert.ok(!fieldset.classList.contains('conflict'), 'conflito deveria se resolver sozinho, nunca ficar visível');
+    assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/, 'bloco deveria continuar respondido após o ajuste automático');
+
+    const maisChecado = fieldset.querySelector('input[name="a0_mais"]:checked');
+    const menosChecado = fieldset.querySelector('input[name="a0_menos"]:checked');
+    assert.ok(menosChecado, 'menos deveria continuar marcado');
+    assert.equal(menosChecado.value, '0', 'a marcação mais recente do participante (Menos = palavra 0) não deveria ser desfeita');
+    assert.ok(maisChecado, 'mais deveria ter sido resorteado pra outra palavra automaticamente');
+    assert.notEqual(maisChecado.value, '0', 'o Mais sorteado não pode ser a mesma palavra do Menos');
   });
 
   test('bloco com só Mais ou só Menos marcado (não os dois) não conta como respondido e mostra o alerta de pendente', () => {
