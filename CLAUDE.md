@@ -61,16 +61,27 @@ Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
 arquivo do header `Content-Disposition` da resposta — não usam mais
 `window.print()`.
 
-**Parte A permite marcar mais de uma palavra por grupo.** Cada bloco tem 2
-grupos de escolha (Mais/Menos), cada um com `<input type="checkbox">` (não
-`radio` — Partes B e C continuam `radio`, são escolha única). Um bloco conta
-como respondido (`blocoARespondido(bIdx)` em `disc.html`, via
-`avaliarBlocoA(bIdx)`) quando **todas** as palavras do bloco foram
-classificadas — cada uma em Mais ou em Menos, nenhuma de fora — **e** nenhuma
-palavra está marcada nos 2 grupos ao mesmo tempo (conflito). Não é mais "pelo
-menos 1 em cada grupo": um bloco com as 4 palavras em Mais e 0 em Menos conta
-como respondido igual. `calcNatural()` soma/subtrai o traço de **cada**
-palavra marcada, não só da 1ª.
+**Parte A é escolha forçada de verdade — `<input type="radio">`, não
+`checkbox`.** Cada bloco tem 2 grupos de escolha (Mais/Menos), e o radio
+nativo garante no máximo 1 palavra marcada por grupo — não dá pra marcar 2
+como Mais mesmo tentando. Isso existiu diferente por um tempo: entre o
+commit que trocou pra `checkbox` (permitindo marcar várias palavras por
+grupo) e o N-05 do reteste externo (`reteste-e-plataforma-ideal.md`), que
+apontou que isso quebrava a propriedade **ipsativa** do instrumento — com
+`checkbox` o total de pontos por pessoa deixava de ser constante (a soma dos
+4 traços podia variar de 0 a -56 dependendo de quantas palavras a pessoa
+marcava por bloco), o que invalida qualquer comparação entre perfis de
+pessoas diferentes. Voltou a ser `radio` (histórico no CHANGELOG). Um bloco
+conta como respondido (`blocoARespondido(bIdx)` em `disc.html`, via
+`avaliarBlocoA(bIdx)`) quando exatamente 1 palavra foi marcada em Mais **e**
+1 em Menos, e não é a mesma palavra nos dois grupos (conflito — só isso o
+radio não impede sozinho, já que Mais e Menos são 2 grupos independentes).
+`calcNatural()` soma o traço da palavra em Mais e subtrai o da palavra em
+Menos — sempre exatamente ±1 por bloco, nunca mais que isso.
+
+**Não reintroduza múltipla escolha na Parte A sem entender a implicação
+psicométrica** (ver seção 04 do documento de reteste) — o instrumento clássico
+depende do total ser constante entre respondentes pra ser comparável.
 
 Cada bloco tem 2 alertas inline (`.conflict-msg`/`.pending-msg`, classes
 `.conflict`/`.pending` no `<fieldset>`, cores `--danger`/`--warning`):
@@ -98,9 +109,12 @@ formato antigo na leitura (ver `normalizarRespostasA`) — nunca assumir que o
 `localStorage` de quem já estava com uma avaliação em andamento vai estar no
 formato novo. `renderParteA()`/B()/C() rodam em sequência, sem try/catch,
 direto no topo do script; uma exceção em qualquer uma trava as três (nenhum
-bloco aparece) — já aconteceu uma vez (mudança de `mais`/`menos` de valor
-único pra array) e não foi pego pelos testes existentes até então porque
-nenhum simulava um `disc_state` no formato anterior.
+bloco aparece). Já aconteceu duas vezes com `respostasA[bIdx].mais`/`.menos`
+(valor único → array, no commit que trocou pra `checkbox`; array → valor
+único de novo, no revert do N-05) — nenhuma das duas vezes foi pega pelos
+testes existentes até então porque nenhum simulava um `disc_state` no
+formato anterior. `normalizarRespostasA()` sempre precisa saber ler o
+formato imediatamente anterior ao atual, não só o "correto".
 
 ### Identidade visual (favicon)
 

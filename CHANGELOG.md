@@ -371,3 +371,49 @@ seguem só no histórico do `git log`.
   1 teste novo confirmando desabilita/reativa; testado também ao vivo
   num Chromium real (`disabled: true`, `opacity: 0.35`, `cursor:
   not-allowed` via `getComputedStyle`).
+- **N-05 do reteste — CRÍTICO: reverte a Parte A do DISC de volta pra
+  escolha forçada (radio), abandonando a múltipla escolha (checkbox).**
+  A mudança que permitiu marcar mais de uma palavra por grupo (commit
+  `081debd`, branch `feat/disc-parte-a-multipla-escolha`) quebrou a
+  propriedade **ipsativa** do instrumento: com `checkbox`, o total de
+  pontos por pessoa deixava de ser constante — a soma dos 4 traços podia
+  ser 0 (2 Mais + 2 Menos por bloco) ou -56 (1 Mais + 3 Menos), dependendo
+  de quantas palavras cada um marcava por bloco. Duas pessoas respondendo
+  com a mesma sinceridade saíam em réguas diferentes, invalidando qualquer
+  comparação entre perfis — exatamente o problema que a escolha forçada
+  clássica (1 Mais + 1 Menos, nunca mais que isso) existe pra evitar.
+  Verifiquei isso rodando os dois cenários de preenchimento e confirmando
+  a diferença de soma antes de decidir reverter.
+  - `public/disc.html`: `<input type="checkbox">` volta a ser
+    `type="radio"` nos 2 grupos (Mais/Menos) de cada bloco — o radio
+    nativo garante no máximo 1 marcação por grupo sozinho, sem precisar de
+    JS extra. `state.respostasA[bIdx]` volta de
+    `{ mais: wordIdx[], menos: wordIdx[] }` pra `{ mais: wordIdx, menos:
+    wordIdx }` (escalar). `avaliarBlocoA()`/`blocoARespondido()`,
+    `updateBlocoA()` e `calcNatural()` reescritos pra escalar — bloco
+    respondido volta a ser "1 Mais + 1 Menos, diferentes" (não mais "as 4
+    classificadas"). Textos de instrução voltam à forma clássica ("Marque
+    o MAIS e o MENOS parecido com você").
+  - Os alertas inline de conflito/pendente (introduzidos durante o período
+    de múltipla escolha) foram mantidos — são uma melhoria de UX
+    independente do radio vs. checkbox. "Pendente" agora significa "falta
+    o Mais ou o Menos" (não mais "faltam palavras a classificar").
+  - `normalizarRespostasA()` inverte de sentido: migra array (formato do
+    período de múltipla escolha) → escalar, pegando a última marcação de
+    cada array — antes fazia o caminho contrário.
+  - `public/style/disc.css`: `.choice-radios input[type=checkbox]` e os
+    seletores `label:has(input[type=checkbox]:...)` voltam a
+    `[type=radio]`.
+  - Efeito colateral positivo confirmado no documento de reteste: menos
+    paradas de tabulação na Parte A (224 → 56) — um grupo de radios nativo
+    conta como 1 parada de Tab só (as setas navegam dentro do grupo),
+    enquanto 8 checkboxes por bloco contavam 8 cada.
+  - `tests/disc.client.test.js`: os 4 testes específicos de múltipla
+    escolha foram trocados por 4 novos testes de escolha forçada (inclusive
+    um confirmando que a soma dos 4 traços é sempre 0, testado com 2
+    padrões de preenchimento diferentes — a propriedade ipsativa que
+    justificou o revert). O teste de regressão do `disc_state` antigo
+    inverteu de sentido (agora testa array→escalar).
+  - Testado também ao vivo num Chromium real com clique de verdade
+    (`.click()`, não só `dispatchEvent` sintético): confirma que marcar
+    uma 2ª palavra como Mais desmarca a 1ª automaticamente.

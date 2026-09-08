@@ -66,7 +66,7 @@
       <span class="part-badge">Parte A</span>
       <h2>Perfil natural</h2>
     </div>
-    <p class="part-desc">Em cada bloco, classifique <strong>todas as 4 palavras</strong>: marque cada uma como <strong>MAIS</strong> ou <strong>MENOS</strong> parecida com você — pode marcar mais de uma em cada grupo. Responda como você é — não como gostaria de ser.</p>
+    <p class="part-desc">Em cada bloco, marque qual palavra é <strong>MAIS</strong> parecida com você e qual é a <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
 
     <div class="progress-wrap">
       <div class="progress-label" id="progressLabelA" aria-live="polite">0 de 28 blocos respondidos</div>
@@ -594,7 +594,7 @@ function resolverPerfilDominante(scores) {
 // ============================================================
 let state = {
   part: 'A',
-  respostasA: {}, // blockIdx -> { mais: wordIdx[], menos: wordIdx[] } — cada palavra do bloco entra em só 1 dos 2 grupos, e o bloco só é respondido quando TODAS entram em algum
+  respostasA: {}, // blockIdx -> { mais: wordIdx, menos: wordIdx } — escolha forçada: só 1 palavra em Mais e só 1 em Menos, garantido pelo radio nativo
   respostasB: {}, // sIdx -> optionIdx
   respostasC: {}, // aIdx -> score (1-5)
 };
@@ -613,20 +613,23 @@ function saveState() {
     localStorage.setItem('disc_state', JSON.stringify(toSave));
   } catch(e){}
 }
-// Até a mudança que permitiu marcar mais de uma palavra por grupo na Parte A,
-// respostasA[bIdx] guardava { mais: wordIdx, menos: wordIdx } (valor único).
-// Quem tinha uma avaliação em andamento salva no localStorage nesse formato
-// antigo travava a página inteira ao recarregar: renderParteA() chamava
-// .includes() num número, lançava TypeError não tratado, e como
-// renderParteA()/B()/C() rodam em sequência no topo do script, a exceção
-// interrompia as três — nenhum bloco aparecia. Normaliza pro formato atual
-// (array) na leitura, sem exigir que quem tinha progresso salvo o perdesse.
+// N-05 do reteste: entre um certo período a Parte A permitiu marcar mais de
+// uma palavra por grupo (checkbox), o que quebrava a escolha forçada — o
+// total de pontos deixava de ser constante entre pessoas, e dois perfis
+// deixavam de ser comparáveis (ver CHANGELOG). Voltou a ser radio (1 palavra
+// por grupo). respostasA[bIdx] guardava { mais: wordIdx[], menos: wordIdx[] }
+// (array) nesse período — normaliza pro formato escalar atual na leitura
+// (pega a última marcação de cada array), sem quebrar quem tinha uma
+// avaliação em andamento salva nesse formato.
 function normalizarRespostasA(respostasA) {
   const normalizado = {};
   Object.keys(respostasA || {}).forEach((bIdx) => {
     const r = respostasA[bIdx] || {};
-    const paraArray = (v) => (Array.isArray(v) ? v : (v === undefined || v === null ? [] : [v]));
-    normalizado[bIdx] = { mais: paraArray(r.mais), menos: paraArray(r.menos) };
+    const paraEscalar = (v) => {
+      if (Array.isArray(v)) return v.length > 0 ? v[v.length - 1] : undefined;
+      return v === null ? undefined : v;
+    };
+    normalizado[bIdx] = { mais: paraEscalar(r.mais), menos: paraEscalar(r.menos) };
   });
   return normalizado;
 }
@@ -664,23 +667,23 @@ function renderParteA() {
     div.className = 'choice-block';
     div.id = 'bloco-' + bIdx;
 
-    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Classifique as ${bloco.words.length} palavras como MAIS ou MENOS parecidas com você</span></legend>`;
+    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></legend>`;
     const optionsHtml = bloco.words.map((w, wIdx) => {
       const textId = `optText-${bIdx}-${wIdx}`;
       const maisId = `optMais-${bIdx}-${wIdx}`;
       const menosId = `optMenos-${bIdx}-${wIdx}`;
-      const marcadoMais = (state.respostasA[bIdx]?.mais || []).includes(wIdx);
-      const marcadoMenos = (state.respostasA[bIdx]?.menos || []).includes(wIdx);
+      const marcadoMais = state.respostasA[bIdx]?.mais === wIdx;
+      const marcadoMenos = state.respostasA[bIdx]?.menos === wIdx;
       return `
       <div class="choice-option">
         <span class="choice-option-text" id="${textId}">${w.text}</span>
         <div class="choice-radios">
           <label>
-            <input type="checkbox" name="a${bIdx}_mais" value="${wIdx}" aria-labelledby="${textId} ${maisId}" ${marcadoMais ? 'checked' : ''}>
+            <input type="radio" name="a${bIdx}_mais" value="${wIdx}" aria-labelledby="${textId} ${maisId}" ${marcadoMais ? 'checked' : ''}>
             <span id="${maisId}">+ Mais</span>
           </label>
           <label>
-            <input type="checkbox" name="a${bIdx}_menos" value="${wIdx}" aria-labelledby="${textId} ${menosId}" ${marcadoMenos ? 'checked' : ''}>
+            <input type="radio" name="a${bIdx}_menos" value="${wIdx}" aria-labelledby="${textId} ${menosId}" ${marcadoMenos ? 'checked' : ''}>
             <span id="${menosId}">− Menos</span>
           </label>
         </div>
@@ -688,7 +691,7 @@ function renderParteA() {
     `;
     }).join('');
 
-    div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p><p class="pending-msg">Classifique as ${bloco.words.length} palavras como MAIS ou MENOS antes de continuar.</p>`;
+    div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p><p class="pending-msg">Marque a palavra mais parecida e a menos parecida antes de continuar.</p>`;
     container.appendChild(div);
 
     // listeners
@@ -705,16 +708,15 @@ function renderParteA() {
 // todos os pendentes, mesmo os nunca tocados — ver clique de btnAtoB).
 let blocosAlertaVisivel = new Set();
 
-// Um bloco é respondido quando TODAS as palavras foram classificadas (MAIS ou
-// MENOS) e nenhuma palavra está marcada nos dois grupos ao mesmo tempo — não
-// depende mais de ter pelo menos 1 em cada grupo (pode ser, por exemplo, 3
-// MAIS e 1 MENOS, ou até as 4 MAIS).
+// Escolha forçada: um bloco é respondido quando exatamente 1 palavra foi
+// marcada como Mais e 1 como Menos, e não é a mesma palavra nos dois grupos
+// (o radio nativo já garante no máximo 1 marcação por grupo — não dá pra
+// marcar 2 como Mais mesmo tentando).
 function avaliarBlocoA(bIdx) {
-  const r = state.respostasA[bIdx] || { mais: [], menos: [] };
-  const total = BLOCOS_A[bIdx].words.length;
-  const overlap = r.mais.some((v) => r.menos.includes(v));
-  const classificadas = new Set([...r.mais, ...r.menos]);
-  return { overlap, completo: !overlap && classificadas.size === total };
+  const r = state.respostasA[bIdx] || {};
+  const overlap = r.mais !== undefined && r.menos !== undefined && r.mais === r.menos;
+  const completo = r.mais !== undefined && r.menos !== undefined && !overlap;
+  return { overlap, completo };
 }
 function blocoARespondido(bIdx) {
   return avaliarBlocoA(bIdx).completo;
@@ -729,8 +731,10 @@ function renderAlertaBlocoA(bIdx) {
 }
 
 function updateBlocoA(bIdx) {
-  const mais = Array.from(document.querySelectorAll(`input[name="a${bIdx}_mais"]:checked`)).map((el) => parseInt(el.value));
-  const menos = Array.from(document.querySelectorAll(`input[name="a${bIdx}_menos"]:checked`)).map((el) => parseInt(el.value));
+  const maisEl = document.querySelector(`input[name="a${bIdx}_mais"]:checked`);
+  const menosEl = document.querySelector(`input[name="a${bIdx}_menos"]:checked`);
+  const mais = maisEl ? parseInt(maisEl.value) : undefined;
+  const menos = menosEl ? parseInt(menosEl.value) : undefined;
 
   if (!state.respostasA[bIdx]) state.respostasA[bIdx] = {};
   state.respostasA[bIdx].mais = mais;
@@ -852,14 +856,10 @@ function calcNatural() {
   BLOCOS_A.forEach((bloco, bIdx) => {
     if (!blocoARespondido(bIdx)) return;
     const r = state.respostasA[bIdx];
-    r.mais.forEach((wIdx) => {
-      const w = bloco.words[wIdx];
-      if (w) scores[w.trait] = (scores[w.trait] || 0) + 1;
-    });
-    r.menos.forEach((wIdx) => {
-      const w = bloco.words[wIdx];
-      if (w) scores[w.trait] = (scores[w.trait] || 0) - 1;
-    });
+    const wMais = bloco.words[r.mais];
+    const wMenos = bloco.words[r.menos];
+    if (wMais) scores[wMais.trait] = (scores[wMais.trait] || 0) + 1;
+    if (wMenos) scores[wMenos.trait] = (scores[wMenos.trait] || 0) - 1;
   });
   return scores;
 }

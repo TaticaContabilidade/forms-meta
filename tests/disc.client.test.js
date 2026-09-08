@@ -63,11 +63,9 @@ function completarParteBC(win) {
   click(win, doc.getElementById('btnFinish'));
 }
 
-// Completa a Parte A (as 4 palavras de cada bloco, sem conflito) e clica
-// "Continuar para Parte B". D sempre Mais, I sempre Menos — mantém D/I
-// determinístico (+28/-28). S e C alternam de grupo a cada bloco (14 blocos
-// pares, 14 ímpares) pra se cancelarem e continuarem em 0, preservando o
-// resultado que os testes de resultado (D-04, D-05...) esperam.
+// Completa a Parte A (escolha forçada: 1 Mais + 1 Menos por bloco) e clica
+// "Continuar para Parte B". D sempre Mais, I sempre Menos, em todos os 28
+// blocos — natural determinístico D+28, I-28, S0, C0.
 function completarParteA(win) {
   const doc = win.document;
   doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
@@ -75,13 +73,6 @@ function completarParteA(win) {
     const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
     mais[0].checked = true; change(win, mais[0]); // D
     menos[1].checked = true; change(win, menos[1]); // I
-    if (bIdx % 2 === 0) {
-      mais[2].checked = true; change(win, mais[2]); // S
-      menos[3].checked = true; change(win, menos[3]); // C
-    } else {
-      menos[2].checked = true; change(win, menos[2]); // S
-      mais[3].checked = true; change(win, mais[3]); // C
-    }
   });
   click(win, doc.getElementById('btnAtoB'));
 }
@@ -124,23 +115,19 @@ describe('estrutura de foco/marcação (D-01, D-03)', () => {
   });
 });
 
-describe('Parte A permite marcar mais de uma palavra por grupo (Mais/Menos)', () => {
-  test('marcar 2 opções como Mais (e 2 como Menos) no mesmo bloco não é bloqueado, e o bloco conta como respondido', () => {
+describe('N-05 do reteste: Parte A volta a ser escolha forçada (radio, 1 Mais + 1 Menos por bloco)', () => {
+  test('marcar uma 2ª palavra como Mais desmarca a 1ª automaticamente — exclusividade nativa do radio', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
     const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
     const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
-    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
 
     mais[0].checked = true; change(win, mais[0]);
-    mais[3].checked = true; change(win, mais[3]);
-    menos[1].checked = true; change(win, menos[1]);
-    menos[2].checked = true; change(win, menos[2]);
+    assert.ok(mais[0].checked);
 
-    assert.ok(mais[0].checked && mais[3].checked, 'as duas opções marcadas como Mais deveriam continuar marcadas');
-    assert.ok(menos[1].checked && menos[2].checked, 'as duas opções marcadas como Menos deveriam continuar marcadas');
-    assert.ok(!fieldset.classList.contains('conflict'), 'marcar 2 opções distintas em cada grupo não é conflito');
-    assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
+    mais[3].checked = true; change(win, mais[3]);
+    assert.ok(mais[3].checked, 'a nova marcação deveria ficar marcada');
+    assert.ok(!mais[0].checked, 'o radio nativo deveria ter desmarcado a marcação anterior — não dá pra ter 2 Mais no mesmo bloco');
   });
 
   test('marcar a mesma palavra como Mais e Menos continua sendo bloqueado (conflito) e não conta como respondido', () => {
@@ -150,11 +137,8 @@ describe('Parte A permite marcar mais de uma palavra por grupo (Mais/Menos)', ()
     const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
     const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
 
-    // classifica as 4 palavras sem conflito: 0 e 3 em Mais, 1 e 2 em Menos
     mais[0].checked = true; change(win, mais[0]);
-    mais[3].checked = true; change(win, mais[3]);
     menos[1].checked = true; change(win, menos[1]);
-    menos[2].checked = true; change(win, menos[2]);
     assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
 
     // marca a palavra 0 (já em Mais) também em Menos -> conflito
@@ -163,52 +147,41 @@ describe('Parte A permite marcar mais de uma palavra por grupo (Mais/Menos)', ()
     assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
   });
 
-  test('bloco com alguma palavra sem classificar (nem Mais nem Menos) não conta como respondido e mostra o alerta de pendente', () => {
+  test('bloco com só Mais ou só Menos marcado (não os dois) não conta como respondido e mostra o alerta de pendente', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
     const fieldset = doc.querySelectorAll('#blocksA fieldset')[0];
     const mais = fieldset.querySelectorAll('input[name="a0_mais"]');
-    const menos = fieldset.querySelectorAll('input[name="a0_menos"]');
 
-    // só classifica 3 das 4 palavras (falta a de índice 3)
-    mais[0].checked = true; change(win, mais[0]);
-    menos[1].checked = true; change(win, menos[1]);
-    mais[2].checked = true; change(win, mais[2]);
+    mais[0].checked = true; change(win, mais[0]); // só o Mais, falta o Menos
 
-    assert.ok(!fieldset.classList.contains('conflict'), 'não há conflito, só falta classificar');
-    assert.ok(fieldset.classList.contains('pending'), 'deveria sinalizar como pendente por faltar 1 palavra');
+    assert.ok(!fieldset.classList.contains('conflict'), 'não há conflito, só falta o Menos');
+    assert.ok(fieldset.classList.contains('pending'), 'deveria sinalizar como pendente por faltar o Menos');
     assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
   });
 
-  test('o cálculo do perfil natural soma/subtrai o traço de cada palavra marcada, mesmo com múltiplas por grupo', () => {
+  test('o total de pontos do perfil natural é sempre o mesmo (28 blocos x ±1), não varia por padrão de preenchimento — propriedade ipsativa', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
 
+    // Preenchimento diferente do completarParteA (D sempre Mais, mas Menos
+    // varia entre I e S de bloco pra bloco) — o que importa é que CADA
+    // bloco continua contribuindo exatamente +1 e -1 (nunca mais que isso),
+    // então a soma dos 4 traços continua sempre 0.
     doc.querySelectorAll('#blocksA fieldset').forEach((fs, bIdx) => {
       const mais = fs.querySelectorAll(`input[name="a${bIdx}_mais"]`);
       const menos = fs.querySelectorAll(`input[name="a${bIdx}_menos"]`);
-      if (bIdx === 0) {
-        // Bloco 0: Mais em D (idx0) e C (idx3); Menos em I (idx1) e S (idx2).
-        mais[0].checked = true; change(win, mais[0]);
-        mais[3].checked = true; change(win, mais[3]);
-        menos[1].checked = true; change(win, menos[1]);
-        menos[2].checked = true; change(win, menos[2]);
-      } else {
-        // Demais 27 blocos: Mais em D e S; Menos em I e C — as 4 palavras
-        // classificadas, como a regra atual exige.
-        mais[0].checked = true; change(win, mais[0]);
-        mais[2].checked = true; change(win, mais[2]);
-        menos[1].checked = true; change(win, menos[1]);
-        menos[3].checked = true; change(win, menos[3]);
-      }
+      mais[0].checked = true; change(win, mais[0]); // D
+      const menosIdx = bIdx % 2 === 0 ? 1 : 2; // alterna I/S
+      menos[menosIdx].checked = true; change(win, menos[menosIdx]);
     });
     click(win, doc.getElementById('btnAtoB'));
     completarParteBC(win);
 
-    // 27 blocos "padrão": D+27, I-27, S+27, C-27. Bloco 0 inverte S e C:
-    // D+1, I-1, S-1, C+1. Total: D+28, I-28, S+26, C-26.
-    const barras = [...doc.querySelectorAll('#barsNatural .bar-value')].map((el) => el.textContent);
-    assert.deepEqual(barras, ['+28', '-28', '+26', '-26']);
+    const barras = [...doc.querySelectorAll('#barsNatural .bar-value')].map((el) => parseInt(el.textContent, 10));
+    const soma = barras.reduce((acc, v) => acc + v, 0);
+    assert.equal(soma, 0, 'a soma dos 4 traços deveria ser sempre 0 (28 blocos, +1 e -1 cada) — é isso que torna o escore ipsativo e os perfis comparáveis entre pessoas');
+    assert.equal(barras[0], 28, 'D deveria ser +28 (Mais em todos os 28 blocos)');
   });
 });
 
@@ -351,16 +324,17 @@ describe('persistência de identidade (D-08)', () => {
 });
 
 describe('compatibilidade com disc_state salvo no formato antigo (regressão)', () => {
-  // Antes da Parte A permitir múltipla escolha, respostasA[bIdx] guardava
-  // { mais: wordIdx, menos: wordIdx } (valor único, não array). Quem tinha
-  // uma avaliação em andamento salva nesse formato não pode ficar com a
-  // página quebrada ao recarregar depois do deploy da mudança.
-  test('disc_state com mais/menos como número único (formato pré-múltipla-escolha) não quebra o carregamento da página', () => {
+  // Durante o período em que a Parte A permitiu múltipla escolha (revertido
+  // pelo N-05 do reteste — ver CHANGELOG), respostasA[bIdx] guardava
+  // { mais: wordIdx[], menos: wordIdx[] } (array). Quem tinha uma avaliação
+  // em andamento salva nesse formato não pode ficar com a página quebrada
+  // ao recarregar depois do revert de volta pro formato escalar (radio).
+  test('disc_state com mais/menos como array (formato do período de múltipla escolha) migra pro escalar sem quebrar', () => {
     const estadoAntigo = JSON.stringify({
       part: 'A',
       nomeDisc: 'Fulano',
       empresaDisc: 'Empresa Z',
-      respostasA: { 0: { mais: 2, menos: 1 } },
+      respostasA: { 0: { mais: [0, 3], menos: [1] } }, // array — normalizarRespostasA() pega a última marcação
       respostasB: {},
       respostasC: {},
     });
@@ -372,12 +346,11 @@ describe('compatibilidade com disc_state salvo no formato antigo (regressão)', 
     assert.equal(doc.getElementById('intensityC').children.length, 12);
     assert.equal(doc.getElementById('nomeDisc').value, 'Fulano');
 
-    // a marcação antiga (mais=2, menos=1) foi migrada e continua marcada
-    assert.ok(doc.querySelector('input[name="a0_mais"][value="2"]').checked);
+    // pega a última marcação do array: mais=3 (não a 1ª, que era 0)
+    assert.ok(doc.querySelector('input[name="a0_mais"][value="3"]').checked);
+    assert.ok(!doc.querySelector('input[name="a0_mais"][value="0"]').checked, 'só a última marcação do array antigo deveria sobreviver');
     assert.ok(doc.querySelector('input[name="a0_menos"][value="1"]').checked);
-    // só 2 das 4 palavras estavam classificadas nesse registro antigo — a
-    // regra atual exige as 4, então o bloco não conta como respondido (mas
-    // também não trava nem perde a marcação já feita)
-    assert.match(doc.getElementById('progressLabelA').textContent, /^0 de 28/);
+    // mais e menos definidos e diferentes -> bloco conta como respondido
+    assert.match(doc.getElementById('progressLabelA').textContent, /^1 de 28/);
   });
 });
