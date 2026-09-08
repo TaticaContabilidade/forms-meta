@@ -105,49 +105,63 @@ de "Parte C" nas variáveis/funções (`INTENSIDADE_C`, `respostasC`,
 `calcIntensidade`, `#intensityC`) por convenção histórica do instrumento;
 não é um bug, é só uma discrepância de nome entre código e UI.
 
-**Parte A é passo a passo — Passo 1 escolhe a MAIS parecida (das 4), Passo
-2 escolhe a MENOS parecida (só das 3 que sobraram).** Existiu diferente por
-duas fases antes disso: 1) `<input type="checkbox">` permitindo marcar
+**Parte A tem 2 rodadas pelos mesmos 28 blocos — Rodada 1 (Mais) primeiro,
+Rodada 2 (Menos) só depois de terminar a Rodada 1.** Passou por três
+formatos antes deste: 1) `<input type="checkbox">` permitindo marcar
 várias palavras por grupo (quebrava a propriedade **ipsativa** — a soma dos
 4 traços deixava de ser constante entre pessoas, invalidando qualquer
 comparação de perfis — corrigido pelo N-05 do reteste); 2) `<input
-type="radio">` com os 2 grupos (Mais/Menos) simultâneos lado a lado —
-tecnicamente correto (radio garante no máximo 1 marcação por grupo), mas
-testadores continuaram relatando confusão mesmo com texto de instrução e
-exemplo visual, e ainda dava pra marcar a mesma frase nos 2 grupos (mesma
-palavra em Mais e Menos — resolvido na época com um sorteio automático em
-`updateBlocoA`). O passo a passo elimina esse conflito **por construção**:
-o Passo 2 (`.choice-step-menos`) começa com todas as opções `disabled` até
-o Passo 1 responder (`atualizarDisponibilidadeBlocoA(bIdx)`), e a opção
-igual à escolhida no Passo 1 fica `disabled` + marcada com a tag "Já é sua
-Mais" — não dá pra marcar a mesma frase nas 2 nem tentando, sem precisar de
-alerta nem sorteio depois do fato. Cada opção é um `<label class="choice-
-card">` que já embrulha o radio + o texto da frase (nome acessível vem do
-próprio conteúdo do label — não precisa mais de `aria-labelledby`, que só
-era necessário quando o texto ficava fora do `<label>`, compartilhado entre
-os 2 radios do modelo anterior). Um bloco conta como respondido
-(`blocoARespondido(bIdx)`, via `avaliarBlocoA(bIdx)`) quando exatamente 1
-palavra foi marcada em Mais **e** 1 em Menos, e não é a mesma palavra
-(`overlap` — não deveria mais acontecer via UI normal, mas continua como
-rede de segurança pra um `disc_state` salvo antes dessa correção existir;
-`updateBlocoA` também limpa a ponta que não acabou de mudar se ainda assim
-detectar `mais === menos`, ex.: trocar a Mais depois de já ter respondido
-a Menos, pra a mesma palavra que virou a nova Mais).
+type="radio">` com os 2 grupos (Mais/Menos) simultâneos lado a lado no
+mesmo bloco — tecnicamente correto, mas testadores relatavam confusão e
+ainda dava pra marcar a mesma frase nos 2 grupos (resolvido na época com
+sorteio automático); 3) 2 passos sequenciais dentro do MESMO bloco ("1.
+Mais" em cima, "2. Menos" embaixo) — ainda confundia, segundo relato do
+usuário depois de testar. O formato atual separa os 2 passos em **rodadas
+inteiras**, não mais dentro do bloco: `#blocksAMais` (28 blocos, só
+pergunta Mais) e `#blocksAMenos` (28 blocos, só pergunta Menos) são 2
+listas/árvores de DOM diferentes, só uma visível por vez
+(`mostrarFaseA('mais' | 'menos')`, estado em `state.faseA`, persistido no
+`disc_state`). `#blocksAMenos` só é construído (`renderBlocosMenos()`)
+quando a Rodada 2 é aberta — nunca antes — e sempre reconstruído nesse
+momento, refletindo qualquer mudança feita na Rodada 1 desde a última vez
+(voltar pra Rodada 1 e trocar uma resposta invalida a Menos daquele bloco
+específico, ver `updateBlocoMais`). Na Rodada 2, a opção igual à escolhida
+como Mais vem com `disabled` + tag "Já é sua Mais" — impossível marcar a
+mesma frase nas 2 rodadas **por construção**, sem precisar de alerta nem
+correção depois do fato. Cada opção é um `<label class="choice-card">` que
+já embrulha o radio + o texto da frase (nome acessível vem do próprio
+conteúdo do label — não precisa de `aria-labelledby`, que só era necessário
+no formato 2, quando o texto ficava fora do `<label>`, compartilhado entre
+2 radios). Um bloco conta como respondido (`blocoARespondido(bIdx)` =
+`avaliarBlocoMais(bIdx) && avaliarBlocoMenos(bIdx)`) quando tem Mais **e**
+Menos definidos e diferentes — `avaliarBlocoMenos` rejeita `menos ===
+mais` como rede de segurança pra um `disc_state` salvo antes dessa correção
+existir (na prática impossível de criar via UI, já que a opção fica
+desabilitada; se acontecer, o bloco só fica pendente até a pessoa escolher
+de novo, sem nenhuma mensagem especial de "conflito").
 
 **Não reintroduza múltipla escolha na Parte A sem entender a implicação
 psicométrica** (ver seção 04 do documento de reteste) — o instrumento
 clássico depende do total ser constante entre respondentes pra ser
 comparável.
 
-Cada bloco tem 2 alertas inline (`.conflict-msg`/`.pending-msg`, classes
-`.conflict`/`.pending` no `<fieldset>`, cores `--danger`/`--warning`):
-conflito (rede de segurança, ver acima) e pendente (falta responder o
-Passo 1 e/ou o Passo 2). Um `Set` em memória (`blocosAlertaVisivel`, não
-vai pro `localStorage`) controla quando cada alerta pode aparecer — assim
-que o participante mexe naquele bloco (`updateBlocoA`), ou em todos os
-blocos pendentes de uma vez quando ele clica "Continuar para Parte B" sem
-terminar (mesmo os nunca tocados) — pra não mostrar "pendente" nos 28
-blocos de cara, antes de qualquer interação.
+Cada bloco tem 1 alerta inline (`.pending-msg`, classe `.pending` no
+`<fieldset>`, cor `--warning`) por rodada — falta responder aquele bloco na
+rodada atual. 2 `Set`s em memória (`blocosAlertaVisivelMais`/`...Menos`,
+não vão pro `localStorage`, um por rodada porque são 2 árvores de DOM
+diferentes) controlam quando cada alerta pode aparecer — assim que o
+participante mexe naquele bloco, ou em todos os blocos pendentes de uma vez
+quando clica "Continuar" sem terminar a rodada (mesmo os nunca tocados) —
+pra não mostrar "pendente" nos 28 blocos de cara, antes de qualquer
+interação. **Cuidado com `[hidden]`:** `.blocks-list`/`.nav-actions`
+declaram `display: flex`, que sempre vence a folha de estilo do navegador
+(que é quem aplica `display:none` a `[hidden]`) — sem a regra `[hidden] {
+display: none !important; }` no topo de `disc.css`, alternar rodada via JS
+(`hidden = true`) não escondia nada visualmente, só passou despercebido nos
+testes porque jsdom não renderiza CSS de verdade (só foi pego testando num
+Chromium real). Qualquer elemento novo que use `hidden` deve continuar
+confiando nessa regra — não declare `display` direto num seletor que
+também possa ficar `hidden`, ou garanta que o `!important` global cobre.
 
 **Compatibilidade do `disc_state` salvo:** sempre que o formato de
 `respostasA`/`respostasC` mudar, `loadState()` precisa migrar o formato

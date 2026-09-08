@@ -747,3 +747,53 @@ seguem só no histórico do `git log`.
     responder, tag "Já é sua Mais" na opção indisponível, e o PDF gerado
     de ponta a ponta confirmando natural/adaptado corretos na escala nova.
   - `npm test`: 75/75 passando.
+- **Parte A vira 2 rodadas pelos mesmos 28 blocos, não 2 passos empilhados
+  dentro do mesmo bloco** — usuário testou o passo a passo (entrada
+  anterior) e relatou que "1. Mais" em cima e "2. Menos" embaixo, no
+  mesmo bloco, ainda confundia. Pedido: deixar todos os 28 blocos só como
+  Mais, e assim que os 28 forem preenchidos passar pra rodada do Menos.
+  - `public/disc.html`: Parte A agora tem 2 listas de blocos separadas —
+    `#blocksAMais` (28 blocos, só a pergunta Mais, construída 1x no
+    carregamento) e `#blocksAMenos` (28 blocos, só a pergunta Menos,
+    **não existe até terminar a Rodada 1** — só é construída quando a
+    Rodada 2 abre, e sempre reconstruída nesse momento pra refletir
+    qualquer mudança feita na Rodada 1 desde a última vez). Só uma fica
+    visível por vez (`mostrarFaseA('mais' | 'menos')`), controlada por
+    `state.faseA` (novo campo no `disc_state`, persistido).
+  - Na Rodada 2, a opção igual à escolhida como Mais naquele bloco vem
+    `disabled` + tag "Já é sua Mais" (mesma ideia da versão anterior, só
+    que agora calculada 1x na construção da rodada, não a cada clique).
+  - Botões: `btnMaisToMenos` (Rodada 1 → 2, valida os 28 Mais antes),
+    `btnMenosToMais` (volta pra Rodada 1), `btnAtoB` (Rodada 2 → Parte B,
+    valida os 28 Menos antes). `updateBlocoMais` limpa a Menos de um
+    bloco se a pessoa voltar e trocar a Mais pra palavra que já era a
+    Menos naquele bloco (rede de segurança, caso raro mas alcançável
+    voltando/mudando de ideia).
+  - Removido o conceito de "conflito" (`.conflict-msg`, classe
+    `.conflict`) — como a opção correspondente já vem desabilitada na
+    Rodada 2, não tem mais como um `disc_state` corrompido (`mais ===
+    menos`) travar a UI com uma mensagem especial; o bloco só fica
+    pendente até a pessoa escolher de novo (autocorretivo, sem aviso
+    dedicado).
+  - **Bug encontrado só em teste visual (Chromium real, não pego pelos
+    testes jsdom):** `.blocks-list`/`.nav-actions` declaram `display:
+    flex`, que sempre vence a folha de estilo do navegador (quem aplica
+    `display:none` a `[hidden]`) — sem uma regra de autor equivalente,
+    alternar `hidden` via JS não escondia nada visualmente; a Rodada 2
+    aparecia sobreposta/misturada com a Rodada 1 na tela real, mesmo com
+    `hidden=true` correto no DOM (por isso os testes jsdom, que checam a
+    propriedade `hidden`, não pegos essa por não renderizar CSS de
+    verdade). Corrigido com `[hidden] { display: none !important; }` no
+    topo de `disc.css`.
+  - `public/style/disc.css`: removido `.choice-step`/`.choice-step-title`
+    /`.choice-step-menos.bloqueado` (o conceito de 2 passos dentro do
+    bloco não existe mais) e o bloco de CSS do `.conflict`.
+  - Testes: `tests/disc.client.test.js` reescrito pro modelo de 2 rodadas
+    (novo describe, fixtures usando `#blocksAMais`/`#blocksAMenos`,
+    incluindo teste da rede de segurança pro `disc_state` corrompido sem
+    a mensagem de conflito).
+  - Testado visualmente num Chromium real com `localStorage.clear()`
+    entre execuções (senão a Parte A retomava de uma sessão anterior) —
+    Rodada 1 preenchida, transição pra Rodada 2 com a opção certa
+    desabilitada + tag, resultado final e PDF gerados corretamente.
+  - `npm test`: 75/75 passando.
