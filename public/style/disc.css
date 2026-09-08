@@ -810,9 +810,13 @@ h2 {
   header.hero { padding: 32px 20px 28px; margin: 16px 0 32px; }
   .how-grid { grid-template-columns: 1fr; }
   .identity-fields { grid-template-columns: 1fr; }
-  .choice-options { grid-template-columns: 1fr; }
-  .choice-option { border-right: none; border-bottom: 1px solid var(--border-solid); }
-  .choice-option:last-child { border-bottom: none; }
+  /* Rodada 2 (Menos): a opção com "Já é sua Mais" some fora do
+     enquadramento em 2 colunas — cada card fica estreito demais pro
+     texto + a tag lado a lado. 1 coluna dá largura total, e a tag quebra
+     pra linha própria (flex-wrap) em vez de espremer ao lado do texto. */
+  .choice-cards { grid-template-columns: 1fr; }
+  .choice-card { flex-wrap: wrap; }
+  .choice-card-tag { flex-basis: 100%; margin-left: 0; margin-top: 4px; }
   .profiles-grid { grid-template-columns: 1fr; }
   .disc-cards { grid-template-columns: 1fr; }
   .intensity-bar-row { grid-template-columns: 90px 1fr 36px; }

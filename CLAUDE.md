@@ -163,6 +163,14 @@ Chromium real). Qualquer elemento novo que use `hidden` deve continuar
 confiando nessa regra — não declare `display` direto num seletor que
 também possa ficar `hidden`, ou garanta que o `!important` global cobre.
 
+**Responsivo (mobile, `@media max-width:600px`):** `.choice-cards` vira 1
+coluna (não 2, como no desktop) e `.choice-card` ganha `flex-wrap: wrap`
+com `.choice-card-tag` em `flex-basis: 100%` — sem isso a tag "Já é sua
+Mais" (Rodada 2) não cabia ao lado do texto da frase num card de 2 colunas
+estreito, ficando cortada/fora do enquadramento (relatado por usuário
+testando no celular). Qualquer novo texto auxiliar dentro de `.choice-card`
+(tag, badge etc.) precisa do mesmo cuidado de quebra em telas estreitas.
+
 **Compatibilidade do `disc_state` salvo:** sempre que o formato de
 `respostasA`/`respostasC` mudar, `loadState()` precisa migrar o formato
 antigo na leitura (ver `normalizarRespostasA`) — nunca assumir que o
