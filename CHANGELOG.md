@@ -459,3 +459,33 @@ seguem só no histórico do `git log`.
   no `CLAUDE.md` fica com 6 itens em vez de 7; o item 01 não é mais
   reconsiderado sem pedido novo (nota deixada no próprio `CLAUDE.md`).
   Nenhum código mudou — só documentação.
+- **Adiciona landing page institucional em `index.html`, pra fechar a
+  entrega.** `index.html` (o menu com as 2 dinâmicas + QR code) virou
+  `ferramentas.html` — conteúdo idêntico, só mudou de rota — e o
+  `index.html` novo conta a história da Tática pela voz da fundadora
+  Priscila Galindo, com um botão logo abaixo do header ("Acessar as
+  ferramentas do treinamento") levando pra `ferramentas.html`.
+  - Texto adaptado de `texto_auxiliar.md` (não versionado): a trajetória
+    de Priscila, por que a empresa saiu de "a dona vende tudo" pra um
+    setor comercial estruturado, e 2 citações dela em destaque
+    ("as pessoas precisam comprar a empresa, não a dona" / "documento
+    comercial não é burocracia").
+  - 2 trechos extraídos de `politica_comercial.docx` (não versionado —
+    é o protocolo interno da área comercial, com informação sensível
+    demais pra publicar inteiro) ilustram a fala dela com artefato real:
+    os 3 níveis de meta (Mínima/Esperada/Excelência) e os 5 rituais da
+    área comercial (Daily/Semanal/Feedback/Fechamento/Revisão de ciclo)
+    — não a tabela de comissionamento nem os limites de desconto, que
+    ficam fora por serem informação comercial sensível.
+  - Foto de Priscila (`public/img/priscila-galindo.jpg`, redimensionada
+    de 1320×1292 pra 900×881, ~103KB) — veio de
+    `public/img/WhatsApp Image 2026-09-07 at 14.55.17.jpeg`, renomeada.
+  - `public/calculadora.html`/`disc.html`: o link "← Voltar ao menu"
+    (antes `href="/"`) passa a apontar pra `/ferramentas.html`, já que
+    `/` não é mais o menu.
+  - `tests/server.test.js`: `GET /` agora confirma o conteúdo da landing
+    (nome da Priscila + link pro botão), e novo teste cobre
+    `GET /ferramentas.html`.
+  - Testado ao vivo num Chromium real: as 3 rotas (`/`, `/ferramentas.html`,
+    e os 2 "Voltar ao menu") navegam pro lugar certo; screenshot da
+    landing inteira conferida visualmente.
