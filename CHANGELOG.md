@@ -588,3 +588,32 @@ seguem só no histórico do `git log`.
     Testado também manualmente via jsdom no sentido inverso (Mais
     alterado por último) pra confirmar que os dois sentidos funcionam.
   - `npm test`: 75/75 passando.
+- **Preview do valor interpretado no ticket médio da calculadora** —
+  testador digitou "2000663" (sem vírgula) no campo "Qual o seu ticket
+  médio mensal?" e a linha 10 (contratos/mês) saiu "0 contratos" sem
+  aviso nenhum. Diagnóstico: não é bug de cálculo — `parseBRNumber()` lê
+  exatamente o que está documentado (`.` = milhar, `,` = decimal; sem
+  nenhum dos dois, o valor vira um inteiro literal), então "2000663" virou
+  R$ 2.000.663,00, um ticket ~1000x maior que o pretendido, fazendo
+  meta mensal ÷ ticket arredondar pra menos de 1 contrato.
+  - Avaliada e descartada a opção de por um teto/validação de valor
+    máximo no campo (decisão do usuário: ticket médio real varia demais
+    entre empresas clientes — uma pode legitimamente ter ticket de
+    R$ 100.000 — travar um limite rejeitaria gente de verdade).
+  - Implementado em vez disso: `atualizarPreviewTicket()` em
+    `calculadora.html` mostra ao vivo, abaixo do campo, o valor que o
+    sistema está lendo (`= R$ 2.000.663,00`, sempre com centavos via
+    `fmtBRLComCentavos()`, diferente do `fmtBRL()` usado nos resultados
+    calculados, que arredonda) — sem bloquear nem limitar nada, só
+    deixando visível o que foi interpretado, pra quem esqueceu a vírgula
+    perceber e corrigir sozinho.
+  - Novo elemento `#ticket-preview` (`.field-preview` no CSS,
+    `public/style/index.css`) entre o campo e a mensagem de alerta;
+    ligado no `input` do ticket, na carga inicial (depois de
+    `loadState()`, que popula o campo direto sem passar pelo listener) e
+    no reset do formulário.
+  - Testado via jsdom (preview aparece/some conforme o campo é
+    preenchido/limpo) e visualmente num Chromium real, confirmando o
+    cenário relatado ("2000663" → preview "= R$ 2.000.663,00" ao lado de
+    "0 contratos").
+  - `npm test`: 75/75 passando.

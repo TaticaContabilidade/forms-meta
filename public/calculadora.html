@@ -137,8 +137,9 @@
         <p class="row-help" id="ticket-help">Valor médio de uma mensalidade nova. Ex.: R$ 900</p>
         <div class="field">
           <span class="field-prefix">R$</span>
-          <input type="text" inputmode="decimal" id="ticket" name="ticket" placeholder="900" aria-describedby="ticket-help ticket-alert">
+          <input type="text" inputmode="decimal" id="ticket" name="ticket" placeholder="900" aria-describedby="ticket-help ticket-preview ticket-alert">
         </div>
+        <p class="field-preview" id="ticket-preview" aria-live="polite"></p>
         <p class="field-alert" id="ticket-alert" role="alert"></p>
       </div>
 
@@ -266,6 +267,13 @@
     if (!isFinite(n)) n = 0;
     return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
   };
+  // Sempre com centavos (diferente de fmtBRL, que arredonda) — é o que o
+  // preview do ticket usa pra deixar visível um "2000663" sem vírgula
+  // virando R$ 2.000.663,00 (não R$ 2.000,66), sem cortar as casas decimais.
+  const fmtBRLComCentavos = (n) => {
+    if (!isFinite(n)) n = 0;
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
   const fmtQtd = (n, singular, plural) => {
     const v = isFinite(n) ? n : 0;
     const casas = Number.isInteger(v) ? 0 : 1;
@@ -378,6 +386,28 @@
     el.closest('.field').classList.toggle('tem-alerta', !!mensagem);
   }
 
+  // Bug relatado por um testador: digitar "2000663" (sem vírgula) no ticket
+  // médio é lido como R$ 2.000.663,00 (convenção pt-BR: sem separador =
+  // número inteiro), não R$ 2.000,66 — daí a meta mensal ÷ ticket dá menos
+  // de 1 contrato e a tela mostra "0 contratos" sem nenhuma pista do porquê.
+  // Não há teto/validação de valor aqui de propósito — o ticket médio real
+  // varia demais entre empresas pra travar um limite. Só mostra ao vivo o
+  // valor que o sistema está lendo, pra quem esqueceu a vírgula perceber e
+  // se corrigir sozinho.
+  function atualizarPreviewTicket() {
+    const el = els.ticket;
+    const previewEl = $('ticket-preview');
+    const bruto = el.value.trim();
+    if (!bruto) {
+      previewEl.textContent = '';
+      previewEl.classList.remove('visivel');
+      return;
+    }
+    const valor = parseBRNumber(el.value);
+    previewEl.textContent = '= ' + fmtBRLComCentavos(valor);
+    previewEl.classList.add('visivel');
+  }
+
   let metaMensal = 0; // linha 8, alvo da parte 2 e da tabela de time
   let lastValues = {}; // snapshot dos últimos cálculos, usado no envio
 
@@ -474,6 +504,7 @@
   Object.entries(els).forEach(([id, el]) => {
     el.addEventListener('input', () => {
       filtrarDigitacaoNumerica(el);
+      if (id === 'ticket') atualizarPreviewTicket();
       recalc();
       validarCampo(id, { mostrarObrigatorio: false });
     });
@@ -807,6 +838,7 @@
     teamBody.innerHTML = '';
     addRow(); addRow();
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    atualizarPreviewTicket();
     recalc();
     suprimirSave = false;
   }
@@ -826,6 +858,7 @@
     addRow();
     addRow();
   }
+  atualizarPreviewTicket();
   recalc();
 })();
 </script>

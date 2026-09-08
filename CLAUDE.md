@@ -168,6 +168,28 @@ testes existentes até então porque nenhum simulava um `disc_state` no
 formato anterior. `normalizarRespostasA()` sempre precisa saber ler o
 formato imediatamente anterior ao atual, não só o "correto".
 
+### Calculadora de meta comercial: números pt-BR
+
+`parseBRNumber()` em `calculadora.html` segue a convenção pt-BR: `.` é
+sempre separador de milhar, `,` é sempre separador decimal (ver F-01/F-02
+no CHANGELOG — os campos eram `type="number"` antes, que quebrava com
+qualquer separador). Isso significa que digitar um número **sem nenhum
+separador** é lido como inteiro — "2000663" vira R$ 2.000.663,00, não
+R$ 2.000,66. Um testador caiu nisso no campo ticket médio (linha 9): o
+valor gigante gerado fez a conta de contratos/mês (linha 8 ÷ linha 9)
+arredondar pra "0 contratos" sem nenhuma pista do porquê.
+
+**Não colocamos teto/validação de valor no ticket médio de propósito** —
+decisão do usuário: o ticket médio real varia demais entre empresas
+clientes pra travar um limite (uma empresa pode legitimamente ter ticket de
+R$ 100.000). Em vez disso, `atualizarPreviewTicket()` mostra ao vivo,
+abaixo do campo (`#ticket-preview`, `.field-preview` no CSS), o valor que
+o sistema está lendo (`= R$ 2.000.663,00`) — pra quem esqueceu a vírgula
+perceber na hora e se corrigir sozinho, sem bloquear ninguém com ticket
+alto de verdade. Chamado no `input` do campo ticket, na carga inicial
+(depois de `loadState()`, que popula `els.ticket.value` direto, sem passar
+pelo listener) e no reset do formulário (mesma razão).
+
 ### Identidade visual (favicon)
 
 `public/favicon.ico` e `public/img/favicon-{16,32}.png` /
