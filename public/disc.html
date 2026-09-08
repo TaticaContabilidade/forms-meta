@@ -1096,32 +1096,25 @@ function showPart(part) {
 // ============================================================
 // ENVIO
 // ============================================================
-function montarPayloadBase(data) {
+// Robustez: o servidor agora recalcula natural/adaptado/intensidade/
+// perfil_dominante/arquetipo sozinho, a partir de `respostas` (ver
+// src/discScoring.js) — nunca mais confia no que o cliente mandar. Por
+// isso o payload não leva mais esses campos prontos: só identidade +
+// respostas cruas. `data` (natural/adaptado/intensidade/perfil/infos) ainda
+// existe e é usado pra desenhar a tela de resultado, só não viaja mais no
+// payload.
+function montarPayloadBase() {
   const nome = document.getElementById('nomeDisc').value.trim();
   const empresa = document.getElementById('empresaDisc').value.trim();
   return {
     nome_participante: nome,
     empresa: empresa,
-    d_natural: data.natural.D,
-    i_natural: data.natural.I,
-    s_natural: data.natural.S,
-    c_natural: data.natural.C,
-    d_adaptado: data.adaptado.D,
-    i_adaptado: data.adaptado.I,
-    s_adaptado: data.adaptado.S,
-    c_adaptado: data.adaptado.C,
-    d_intensidade: data.intensidade.D,
-    i_intensidade: data.intensidade.I,
-    s_intensidade: data.intensidade.S,
-    c_intensidade: data.intensidade.C,
-    perfil_dominante: data.perfil.traits.join('+'), // "D" (claro) ou "D+I" (empate técnico)
-    arquetipo: data.infos.map(i => i.nome).join(' + '),
   };
 }
 
 async function sendResultado(data) {
   const statusEl = document.getElementById('sendStatus');
-  const payload = montarPayloadBase(data);
+  const payload = montarPayloadBase();
 
   if (!payload.nome_participante) {
     statusEl.textContent = 'Preencha seu nome no início do formulário para registrar.';
@@ -1159,7 +1152,13 @@ async function sendResultado(data) {
 
 async function baixarPdf(data) {
   const statusEl = document.getElementById('sendStatus');
-  const payload = montarPayloadBase(data);
+  const payload = montarPayloadBase();
+  // Antes desta mudança o servidor confiava nos escores prontos que o
+  // payload mandava, então esse PDF funcionava mesmo sem `respostas`. Agora
+  // que POST /api/disc/pdf recalcula tudo a partir das respostas cruas
+  // (mesma robustez do POST /api/disc), sem isso o PDF sairia com os 4
+  // traços zerados em todo lugar.
+  payload.respostas = { a: state.respostasA, b: state.respostasB, c: state.respostasC };
   const btnPdf = document.getElementById('btnPdf');
   const btnPdfDefaultText = btnPdf.textContent;
 

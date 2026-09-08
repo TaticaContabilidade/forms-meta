@@ -186,17 +186,27 @@ describe('API /api/metas/pdf', () => {
 describe('API /api/disc', () => {
   let createdId;
 
+  // Blocos 0-7 da Parte A: mais=0 (palavra D) e menos=1 (palavra I) em cada
+  // um -> natural D=+8, I=-8, S=0, C=0 (BLOCOS_A tem sempre D,I,S,C nessa
+  // ordem por bloco). d_natural/i_natural/etc e perfil_dominante/arquetipo
+  // abaixo são propositalmente "errados" (robustez: o servidor ignora
+  // qualquer escore pronto que o cliente mandar e recalcula tudo a partir
+  // de `respostas` — ver src/discScoring.js).
+  const respostasComDDominante = {
+    a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 0, menos: 1 }])),
+    b: {},
+    c: {},
+  };
+
   const payloadValido = {
     nome_participante: 'Ciclana Souza',
     empresa: 'Empresa Y',
-    d_natural: 8, i_natural: 5, s_natural: 3, c_natural: 4,
-    d_adaptado: 7, i_adaptado: 6, s_adaptado: 4, c_adaptado: 3,
-    d_intensidade: 1, i_intensidade: -1, s_intensidade: 1, c_intensidade: -1,
-    // valores propositalmente "errados" — o servidor deve ignorá-los e
-    // recalcular perfil_dominante/arquetipo a partir dos escores brutos
+    d_natural: 1, i_natural: 1, s_natural: 99, c_natural: 1,
+    d_adaptado: 1, i_adaptado: 1, s_adaptado: 1, c_adaptado: 1,
+    d_intensidade: 1, i_intensidade: 1, s_intensidade: 1, c_intensidade: 1,
     perfil_dominante: 'C',
     arquetipo: 'valor que o cliente não deveria conseguir forçar',
-    respostas: { bloco1: ['a', 'b'] },
+    respostas: respostasComDDominante,
   };
 
   test('POST sem nome_participante retorna 400', async () => {
@@ -222,8 +232,10 @@ describe('API /api/disc', () => {
     assert.equal(res.status, 200);
     const row = res.body.find(r => r.id === createdId);
     assert.ok(row);
-    assert.equal(row.perfil_dominante, 'D'); // maior escore natural é D=8, não o 'C' enviado
+    assert.equal(row.perfil_dominante, 'D'); // recalculado de `respostas` (D=+8), não o 'C' enviado
     assert.equal(row.arquetipo, 'O Executor');
+    assert.equal(row.d_natural, 8); // também recalculado — o d_natural=1 enviado foi ignorado
+    assert.equal(row.i_natural, -8);
     assert.deepEqual(JSON.parse(row.respostas_json), payloadValido.respostas);
   });
 
@@ -247,9 +259,16 @@ describe('API /api/disc', () => {
   test('empate técnico entre dois traços vira perfil combinado, nunca dominância falsa de um só', async () => {
     // D e I empatados em 14, S bem abaixo — antes desse fix, Math.max com
     // ordem fixa D,I,S,C fazia o empate cair sempre em D "por posição".
+    // Construído via `respostas` de verdade (não d_natural direto): blocos
+    // 0-13 marcam D (mais) e S (menos); blocos 14-27 marcam I (mais) e S
+    // (menos) -> D=+14, I=+14, S=-28, C=0.
+    const respostasEmpate = { a: {}, b: {}, c: {} };
+    for (let i = 0; i < 14; i++) respostasEmpate.a[i] = { mais: 0, menos: 2 }; // D, S
+    for (let i = 14; i < 28; i++) respostasEmpate.a[i] = { mais: 1, menos: 2 }; // I, S
+
     const create = await request(app).post('/api/disc').send({
       nome_participante: 'Empate Teste',
-      d_natural: 14, i_natural: 14, s_natural: -28, c_natural: 0,
+      respostas: respostasEmpate,
     });
     assert.equal(create.status, 201);
 
@@ -258,19 +277,28 @@ describe('API /api/disc', () => {
     assert.ok(row);
     assert.equal(row.perfil_dominante, 'D+I');
     assert.equal(row.arquetipo, 'O Executor + O Comunicador');
+    assert.equal(row.d_natural, 14);
+    assert.equal(row.i_natural, 14);
+    assert.equal(row.s_natural, -28);
+    assert.equal(row.c_natural, 0);
 
     await request(app).delete(`/api/disc/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 
 describe('API /api/disc/pdf', () => {
+  // 8 blocos com mais=0 (D), menos=1 (I) -> natural D=+8, I=-8, S=0, C=0
+  // (mesma ideia do describe de /api/disc — robustez: o PDF também
+  // recalcula tudo a partir de `respostas`, nunca confia em d_natural/etc
+  // prontos).
+  const respostasComDDominante = {
+    a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 0, menos: 1 }])),
+  };
+
   const payloadValido = {
     nome_participante: 'Ciclana Souza',
     empresa: 'Empresa Y',
-    d_natural: 8, i_natural: 5, s_natural: 3, c_natural: 4,
-    d_adaptado: 7, i_adaptado: 6, s_adaptado: 4, c_adaptado: 3,
-    d_intensidade: 4.3, i_intensidade: 2.1, s_intensidade: 1.7, c_intensidade: 3.3,
-    perfil_dominante: 'D',
+    respostas: respostasComDDominante,
   };
 
   test('gera um PDF com o nome de arquivo "${nome do participante} perfil disc.pdf"', async () => {
@@ -287,31 +315,42 @@ describe('API /api/disc/pdf', () => {
     assert.match(res.headers['content-disposition'], /filename="Perfil DISC\.pdf"/);
   });
 
-  test('não exige nome_participante nem perfil_dominante (relatório não é salvo no banco)', async () => {
+  test('não exige nome_participante nem respostas (relatório não é salvo no banco)', async () => {
     const res = await request(app).post('/api/disc/pdf').send({});
     assert.equal(res.status, 200);
     assert.equal(res.headers['content-type'], 'application/pdf');
   });
 
-  test('sem perfil_dominante, deduz o arquétipo pelo maior escore natural', async () => {
+  test('escore vem de `respostas`, não de i_natural/d_natural enviados prontos', async () => {
+    // 8 blocos com mais=1 (I), menos=0 (D) -> I=+8, D=-8. Os campos
+    // i_natural/d_natural enviados no body são "errados" de propósito — o
+    // servidor deve ignorá-los e recalcular a partir de `respostas`.
+    const respostasComIDominante = {
+      a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 1, menos: 0 }])),
+    };
     const res = await request(app)
       .post('/api/disc/pdf')
-      .send({ nome_participante: 'Fulano', i_natural: 20, d_natural: 1, s_natural: 1, c_natural: 1 });
+      .send({ nome_participante: 'Fulano', i_natural: 1, d_natural: 20, respostas: respostasComIDominante });
     assert.equal(res.status, 200);
     assert.equal(res.headers['content-type'], 'application/pdf');
   });
 
   test('empate técnico entre traços não quebra a geração do PDF (nunca dominância falsa)', async () => {
     // Mesmo caso do bug crítico D-02: D e I empatados, S bem abaixo.
-    // O PDF sempre recalcula a partir dos escores brutos, então nem precisa
-    // enviar perfil_dominante — e mesmo enviando um valor de traço único
-    // "errado", o relatório deve reconhecer o empate.
+    // Construído via `respostas` de verdade — blocos 0-13 marcam D e S;
+    // blocos 14-27 marcam I e S -> D=+14, I=+14, S=-28, C=0. Mesmo
+    // enviando um d_natural/perfil_dominante "errado", o PDF ignora e
+    // recalcula a partir de `respostas`.
+    const respostasEmpate = { a: {} };
+    for (let i = 0; i < 14; i++) respostasEmpate.a[i] = { mais: 0, menos: 2 }; // D, S
+    for (let i = 14; i < 28; i++) respostasEmpate.a[i] = { mais: 1, menos: 2 }; // I, S
+
     const res = await request(app)
       .post('/api/disc/pdf')
       .send({
         nome_participante: 'Empate Teste',
-        d_natural: 14, i_natural: 14, s_natural: -28, c_natural: 0,
-        perfil_dominante: 'D',
+        d_natural: 1, perfil_dominante: 'D',
+        respostas: respostasEmpate,
       });
     assert.equal(res.status, 200);
     assert.equal(res.headers['content-type'], 'application/pdf');
