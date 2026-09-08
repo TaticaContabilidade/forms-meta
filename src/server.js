@@ -1,31 +1,83 @@
 const path = require('path');
+const fs = require('fs');
+const cluster = require('cluster');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const Database = require('better-sqlite3');
 const QRCode = require('qrcode');
 const {
-  generateMetaComercialPdf,
   metaComercialFilename,
   contentDispositionFilename,
 } = require('./reports/metaComercialReport');
 const {
-  generateDiscPdf,
   discFilename,
   resolverPerfilDominante,
   ARQUETIPO_MAP,
 } = require('./reports/discReport');
 const { calcNatural, calcAdaptado, calcIntensidade } = require('./discScoring');
-const {
-  generateMeuPorquePdf,
-  meuPorqueFilename,
-} = require('./reports/meuPorqueReport');
+const { meuPorqueFilename } = require('./reports/meuPorqueReport');
+// Geração de PDF acontece num worker à parte (pdfkit é síncrono/bloqueante
+// — ver comentário perto das 3 rotas /pdf), não mais chamando
+// generate*Pdf() direto aqui na thread principal.
+const { generatePdfAsync } = require('./reports/pdfWorkerPool');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'troque-isto';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'db', 'metas.db');
 
 const app = express();
+
+// Robustez: o Render fica atrás de um proxy reverso — sem isso, `req.ip`
+// (usado pelo rate limiting abaixo) enxergaria sempre o IP do proxy, não o
+// do participante de verdade, e o limite acabaria valendo pra todo mundo
+// junto em vez de por pessoa. `1` confia só no 1º proxy da cadeia
+// (X-Forwarded-For), que é exatamente o caso do Render.
+app.set('trust proxy', 1);
+
+// Log de requisição (método, rota, status, tempo de resposta) — hoje não
+// existe nenhuma visibilidade de latência/erro além do que cada rota loga
+// manualmente. Desligado durante os testes (ver tests/server.test.js, que
+// seta NODE_ENV=test) pra não poluir a saída do `npm test`.
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan(':method :url :status :response-time ms - :res[content-length]b'));
+}
+
 app.use(express.json());
+
+// Rate limiting — nada impedia uma rajada de requisições (intencional ou
+// não) de sobrecarregar a única instância. Limite geral generoso em toda
+// /api (uso legítimo, mesmo em pico de palestra, não chega perto disso);
+// limite bem mais apertado só nas 3 rotas de PDF, que são as mais caras de
+// CPU (pdfkit é síncrono — ver generatePdfAsync/pdfWorkerPool.js).
+//
+// DISABLE_RATE_LIMIT=true desliga os 2 limites — só pra rodar teste de
+// carga (scripts/load-test.js) contra uma cópia local/staging e medir a
+// capacidade de verdade do servidor, sem o limite mascarando o resultado.
+// Nunca deve ser setado em produção.
+const RATE_LIMITING_ATIVO = process.env.DISABLE_RATE_LIMIT !== 'true';
+const semLimite = (req, res, next) => next();
+
+const apiLimiter = RATE_LIMITING_ATIVO
+  ? rateLimit({
+      windowMs: 60 * 1000,
+      limit: 120,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: 'Muitas requisições em pouco tempo. Aguarde um instante e tente de novo.' },
+    })
+  : semLimite;
+const pdfLimiter = RATE_LIMITING_ATIVO
+  ? rateLimit({
+      windowMs: 60 * 1000,
+      limit: 20,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: 'Muitos PDFs gerados em pouco tempo. Aguarde um instante e tente de novo.' },
+    })
+  : semLimite;
+app.use('/api/', apiLimiter);
 
 // ---------- QR Code (deve ficar ANTES do express.static) ----------
 
@@ -60,8 +112,37 @@ app.get('/api/qr/download', (req, res) => {
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ---------- banco ----------
+// Robustez: `new Database(DB_PATH)` cria um arquivo novo e vazio, sem erro
+// nenhum, se o caminho não existir ainda — se o disco persistente do
+// Render não estiver de fato montado num deploy, o servidor sobe normal e
+// parece funcionar, só que com um banco zerado (falha silenciosa, só
+// perceptível como "os dados sumiram"). Loga se está reaproveitando um
+// banco existente ou criando um novo, pra esse tipo de problema aparecer
+// nos logs do Render em vez de passar despercebido.
+if (require.main === module) {
+  const bancoJaExistia = fs.existsSync(DB_PATH);
+  if (bancoJaExistia) {
+    const tamanho = fs.statSync(DB_PATH).size;
+    console.log(`Banco existente reaproveitado: ${DB_PATH} (${tamanho} bytes)`);
+  } else {
+    console.log(`Banco novo sendo criado: ${DB_PATH} (nenhum arquivo encontrado nesse caminho)`);
+  }
+}
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
+
+// Health check — pra monitoramento externo (uptime, Render health check
+// automático). Confirma não só que o processo está de pé, mas que o banco
+// responde de verdade (SELECT rápido), sem depender de nenhuma tabela
+// específica.
+app.get('/api/health', (req, res) => {
+  try {
+    db.prepare('SELECT 1').get();
+    res.json({ status: 'ok', uptime_s: Math.round(process.uptime()), timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({ status: 'error', error: 'Banco de dados não respondeu.' });
+  }
+});
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS metas (
@@ -211,7 +292,7 @@ app.post('/api/metas', (req, res) => {
 
 // gera o relatório em PDF da meta comercial preenchida (não salva no banco —
 // o participante pode baixar o relatório mesmo sem ter enviado a meta antes)
-app.post('/api/metas/pdf', (req, res) => {
+app.post('/api/metas/pdf', pdfLimiter, async (req, res) => {
   const b = req.body || {};
 
   const nome_participante = String(b.nome_participante || '').slice(0, 200);
@@ -237,9 +318,14 @@ app.post('/api/metas/pdf', (req, res) => {
   };
 
   const filename = metaComercialFilename(nome_participante);
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', contentDispositionFilename(filename));
-  generateMetaComercialPdf(data).pipe(res);
+  try {
+    const buffer = await generatePdfAsync('metaComercial', data);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', contentDispositionFilename(filename));
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao gerar o PDF.' });
+  }
 });
 
 // lista tudo (admin)
@@ -333,16 +419,17 @@ app.post('/api/disc', (req, res) => {
 
 // gera o relatório em PDF do perfil DISC (não salva no banco — o
 // participante pode baixar o relatório mesmo sem ter enviado o perfil antes)
-app.post('/api/disc/pdf', (req, res) => {
+app.post('/api/disc/pdf', pdfLimiter, async (req, res) => {
   const b = req.body || {};
   const respostas = b.respostas || {};
 
   // Mesma robustez do POST /api/disc: recalcula os escores a partir das
   // respostas cruas, não confia no que o cliente mandar. perfil_dominante
-  // nem é lido do body — generateDiscPdf() já sempre recalcula a partir
-  // dos escores (nunca usou o que vinha nesse campo, então nem faz
-  // diferença esse valor estar certo ou não). natural e adaptado vêm os 2
-  // de `respostas.a` — ver comentário equivalente em POST /api/disc.
+  // nem é lido do body — generateDiscPdf() (dentro do worker) já sempre
+  // recalcula a partir dos escores (nunca usou o que vinha nesse campo,
+  // então nem faz diferença esse valor estar certo ou não). natural e
+  // adaptado vêm os 2 de `respostas.a` — ver comentário equivalente em
+  // POST /api/disc.
   const natural = calcNatural(respostas.a);
   const adaptado = calcAdaptado(respostas.a);
   const intensidade = calcIntensidade(respostas.c);
@@ -365,9 +452,14 @@ app.post('/api/disc/pdf', (req, res) => {
   };
 
   const filename = discFilename(data.nome_participante);
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', contentDispositionFilename(filename));
-  generateDiscPdf(data).pipe(res);
+  try {
+    const buffer = await generatePdfAsync('disc', data);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', contentDispositionFilename(filename));
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao gerar o PDF.' });
+  }
 });
 
 // lista resultados DISC (admin)
@@ -429,7 +521,7 @@ app.post('/api/meu-porque', (req, res) => {
 // gera o relatório em PDF do Meu Porquê (não salva no banco — o
 // participante pode baixar o relatório mesmo sem ter enviado as respostas
 // antes, mesmo padrão de POST /api/metas/pdf e POST /api/disc/pdf)
-app.post('/api/meu-porque/pdf', (req, res) => {
+app.post('/api/meu-porque/pdf', pdfLimiter, async (req, res) => {
   const b = req.body || {};
 
   const data = {
@@ -442,9 +534,14 @@ app.post('/api/meu-porque/pdf', (req, res) => {
   };
 
   const filename = meuPorqueFilename(data.nome_participante);
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', contentDispositionFilename(filename));
-  generateMeuPorquePdf(data).pipe(res);
+  try {
+    const buffer = await generatePdfAsync('meuPorque', data);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', contentDispositionFilename(filename));
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao gerar o PDF.' });
+  }
 });
 
 // lista respostas do Meu Porquê (admin)
@@ -473,12 +570,34 @@ app.delete('/api/meu-porque/:id', requireAdmin, (req, res) => {
   res.status(204).end();
 });
 
+// Cluster opcional (desligado por padrão — WEB_CONCURRENCY ausente ou 1 se
+// comporta exatamente como antes, um processo só). O plano atual do Render
+// (starter) tem CPU fracionária, então ligar isso hoje não ajuda em nada
+// (pode até piorar, por causa do overhead de trocar de contexto entre
+// processos) — existe pronto pra quando/se o plano for atualizado pra ter
+// mais de 1 núcleo de verdade. Cada worker forkado reexecuta este arquivo
+// inteiro do zero, então abre sua própria conexão com o SQLite (WAL
+// suporta múltiplos processos lendo/escrevendo o mesmo arquivo — só não
+// escala entre INSTÂNCIAS separadas do Render, que é um problema
+// diferente, ver seção de robustez em CLAUDE.md).
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Servidor no ar em http://localhost:${PORT}`);
-    console.log(`Painel admin em http://localhost:${PORT}/admin.html`);
-    console.log(`QR Code em    http://localhost:${PORT}/api/qr`);
-  });
+  const webConcurrency = Number(process.env.WEB_CONCURRENCY) || 1;
+
+  if (webConcurrency > 1 && cluster.isPrimary) {
+    console.log(`Cluster: iniciando ${webConcurrency} processos worker (WEB_CONCURRENCY=${webConcurrency})`);
+    for (let i = 0; i < webConcurrency; i++) cluster.fork();
+    cluster.on('exit', (worker, code, signal) => {
+      console.log(`Worker ${worker.process.pid} encerrado (${signal || code}) — reiniciando`);
+      cluster.fork();
+    });
+  } else {
+    app.listen(PORT, () => {
+      const papel = cluster.isWorker ? ` (worker ${process.pid})` : '';
+      console.log(`Servidor no ar em http://localhost:${PORT}${papel}`);
+      console.log(`Painel admin em http://localhost:${PORT}/admin.html`);
+      console.log(`QR Code em    http://localhost:${PORT}/api/qr`);
+    });
+  }
 }
 
 module.exports = app;

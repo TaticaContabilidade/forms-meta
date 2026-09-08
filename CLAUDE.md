@@ -279,12 +279,71 @@ PostgreSQL gerenciado do Render — mas isso exige reescrever a camada de
 banco (`better-sqlite3` → `pg`) em `src/server.js`, não é só configuração de
 infraestrutura. Não faça essa migração sem pedido explícito.
 
-### Robustez pra >2k participantes simultâneos — dívida reconhecida, não mais adiada
+### Robustez pra >2k participantes simultâneos — dívida reconhecida, trabalho em andamento
 
 Práticas de DevOpsSec não foram levadas em conta desde o início do projeto —
-deveriam ter sido. Chegamos perto da entrega e o sistema, do jeito que está
-hoje, não aguenta os >2.000 participantes simultâneos de uma palestra ao
-vivo. Isso passa a ser trabalho ativo, não mais "adiar pra depois":
+deveriam ter sido. Boa parte dos gargalos identificados já foi corrigida;
+os que restam exigem uma decisão de infraestrutura/custo antes de mexer
+(sinalizados abaixo) — não são mais "esquecidos", são adiados
+conscientemente até esse pedido acontecer.
+
+**Já corrigido:**
+
+- **Rate limiting** (`express-rate-limit`, `src/server.js`) — limite geral
+  de 120 req/min por IP em toda `/api/`, e um limite bem mais apertado (20
+  req/min) só nas 3 rotas de PDF, que são as mais caras de CPU. `app.set
+  ('trust proxy', 1)` precisa continuar ligado pro Render (proxy reverso)
+  não fazer o limite valer pra todo mundo junto pelo IP do proxy em vez do
+  IP de quem faz a requisição de verdade. `DISABLE_RATE_LIMIT=true`
+  desliga os 2 limites — só pra rodar `scripts/loadtest.js` localmente
+  (nunca em produção, ver `.env.example`).
+- **Geração de PDF não bloqueia mais o event loop principal.**
+  `src/reports/pdfWorker.js` + `pdfWorkerPool.js` — um pool fixo de
+  `worker_threads` (`PDF_WORKER_POOL_SIZE`, padrão 2) gera os PDFs numa
+  thread separada da que atende as requisições HTTP; as 3 rotas `/pdf`
+  agora são `async` e usam `generatePdfAsync(tipo, data)` em vez de chamar
+  `generate*Pdf(data).pipe(res)` direto. Medido localmente (ver "Teste de
+  carga" abaixo): ~210 req/s sustentados nas 3 rotas de PDF juntas, sem
+  travar as demais rotas.
+- **Health check** — `GET /api/health` confirma processo de pé + banco
+  respondendo (`SELECT 1`), pra monitoramento externo (uptime, health
+  check automático do Render).
+- **Log de requisição** (`morgan`, `src/server.js`) — método, rota,
+  status, tempo de resposta, em toda requisição. Desligado quando
+  `NODE_ENV=test` (ver `tests/server.test.js`) pra não poluir `npm test`.
+- **Log de diagnóstico no boot do banco** — antes, `new Database(DB_PATH)`
+  criava um arquivo novo e vazio, sem erro nenhum, se o disco persistente
+  do Render não estivesse de fato montado (falha silenciosa — só
+  perceptível como "os dados sumiram"). Agora loga se está reaproveitando
+  um banco existente (com tamanho) ou criando um novo, no boot.
+- **Cluster opcional** (`WEB_CONCURRENCY`, `src/server.js`, módulo nativo
+  `cluster`) — desligado por padrão (`WEB_CONCURRENCY` ausente ou `1` =
+  comportamento idêntico a antes, 1 processo só). O plano `starter` atual
+  do Render tem CPU fracionária — ligar isso hoje não ajuda em nada (pode
+  até piorar, por overhead de troca de contexto). Existe pronto pra
+  quando/se o plano for atualizado pra ter mais de 1 núcleo de verdade.
+  Cada worker forkado reexecuta o arquivo inteiro e abre sua própria
+  conexão SQLite (WAL suporta múltiplos processos no mesmo arquivo — isso
+  não resolve o problema de múltiplas *instâncias* do Render, só de
+  múltiplos processos numa *mesma* instância).
+- **Teste de carga real rodado** (`scripts/loadtest.js`, usa `autocannon`
+  como devDependency) — 3 rodadas (páginas estáticas, escrita simples,
+  geração de PDF) contra uma URL alvo, imprime requisições/s e latência
+  de verdade em vez de estimativa por leitura de código. Rodado
+  localmente (não é o hardware do Render, então os números absolutos não
+  transferem 1:1, mas a validação relativa vale): páginas estáticas ~3.150
+  req/s, escrita simples ~2.415 req/s, as 3 rotas de PDF juntas ~212
+  req/s — todos com 0 erros/timeouts em 50 conexões simultâneas por 10s.
+  **Nome do arquivo sem hífen antes de "test" de propósito** — `node
+  --test` descobre arquivo de teste sozinho por padrão de nome, e um dos
+  padrões é `*-test.js`; "load-test.js" fazia o `npm test` rodar essa
+  carga inteira (30s+, contra um servidor de verdade) como se fosse mais
+  um teste unitário. Não renomeie de volta.
+- **`buildCommand` do Render usa `--omit=dev`** — `jsdom`/`supertest`/
+  `autocannon` (devDependencies) não precisam ir pro servidor de produção,
+  só são usados por `npm test`/`npm run load-test`.
+
+**Ainda pendente, decisão de infra/custo antes de mexer:**
 
 - **SQLite não escala horizontalmente.** Um único arquivo num único disco
   montado (ver acima) não pode ser compartilhado entre múltiplas instâncias
@@ -292,25 +351,18 @@ vivo. Isso passa a ser trabalho ativo, não mais "adiar pra depois":
   não adicionando instâncias. Migrar pra Postgres (ver acima) é o que
   desbloqueia isso, mas é uma decisão que exige pedido explícito por
   reescrever a camada de banco inteira.
-- **Um único processo Node, sem cluster** (`src/server.js`, `require.main
-  === module` chama `app.listen` direto) — não usa todos os núcleos da
-  instância.
-- **Geração de PDF é síncrona/bloqueante dentro do handler da requisição**
-  (`pdfkit` em `src/reports/*.js`) — uma rajada de downloads de PDF
-  simultâneos trava o event loop pra todo mundo, não só quem pediu o PDF.
-  Perfil natural igual bug encontrado no reteste (falta serializado versus
-  paralelo) — considerar fila/worker se o volume de PDFs simultâneos for
-  alto.
 - **`render.yaml` roda 1 instância `starter`** — sem plano de múltiplas
-  instâncias nem load balancer configurado.
-- **Sem rate limiting** em nenhuma rota — nada impede uma rajada de
-  requisições (intencional ou não) de derrubar a única instância.
-- **Nenhum teste de carga real foi rodado** — os números acima são
-  diagnóstico por leitura de código, não medição. Antes de prometer
-  suporte a 2k pessoas, rodar uma carga sintética de verdade (ex.: `k6`,
-  `autocannon`) contra uma cópia de staging.
-- **Sem monitoramento/alerta** — hoje não há visibilidade de erro/latência
-  em produção além dos logs do Render.
+  instâncias nem load balancer configurado. Exige upgrade de plano
+  (custo) — não faça sem pedido explícito.
+- **Sem monitoramento/alerta externo** (Sentry, Datadog etc.) — o log de
+  requisição (`morgan`) e o health check acima ajudam, mas não substituem
+  um serviço de verdade com alerta ativo; exigiria conta/API key que não
+  temos configurada.
+- **Teste de carga só rodou local, nunca contra staging/produção** — os
+  números acima validam a arquitetura (PDF não trava mais o resto), mas
+  não equivalem à capacidade real do plano `starter` do Render. Rodar
+  `scripts/loadtest.js` contra uma cópia de staging antes de prometer
+  suporte a 2k pessoas de verdade.
 
 Qualquer mudança de UX/instrumento (DISC ou calculadora) deve ser avaliada
 também por este ângulo antes de implementar — não só "melhora a

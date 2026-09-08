@@ -10,14 +10,21 @@ const dbPath = path.join(os.tmpdir(), `metas-test-${process.pid}-${Date.now()}.d
 process.env.DB_PATH = dbPath;
 process.env.ADMIN_TOKEN = ADMIN_TOKEN;
 process.env.PORT = '0';
+// Desliga o log de requisição (morgan) durante os testes — só polui a
+// saída do `npm test`, não ajuda em nada (ver src/server.js).
+process.env.NODE_ENV = 'test';
 
 const request = require('supertest');
 const app = require('../src/server');
+const { closePool } = require('../src/reports/pdfWorkerPool');
 
-after(() => {
+after(async () => {
   for (const ext of ['', '-shm', '-wal']) {
     fs.rmSync(dbPath + ext, { force: true });
   }
+  // Sem isso, as worker_threads do pool de PDF ficam penduradas e o
+  // processo do `node --test` não encerra sozinho depois dos testes.
+  await closePool();
 });
 
 describe('rotas estáticas', () => {
