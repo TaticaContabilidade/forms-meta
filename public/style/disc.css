@@ -67,10 +67,8 @@
    regra some com eles visualmente sem tirar o elemento do foco/tab (técnica
    padrão de "visually hidden"). O estado marcado/hover continua pintado no
    <label> ao redor via :has(:checked); o foco via :has(:focus-visible),
-   uma regra por grupo, perto de cada .choice-radios/.situation-options/
-   .intensity-scale. */
-.choice-radios input[type=radio],
-.situation-options input[type=radio],
+   uma regra por grupo, perto de cada .choice-cards/.intensity-scale. */
+.choice-cards input[type=radio],
 .intensity-scale input[type=radio] {
   position: absolute;
   width: 1px; height: 1px;
@@ -158,7 +156,7 @@ h1 {
 /* Grid "como funciona" */
 .how-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 .how-card {
@@ -357,70 +355,77 @@ h2 {
   color: var(--fg-soft);
 }
 
-.choice-options {
+/* Passo a passo (item 01 do reteste — ver CLAUDE.md/CHANGELOG): antes era
+   1 grid de 4 opções, cada uma com 2 botões MAIS/MENOS lado a lado
+   (.choice-options/.choice-option/.choice-radios). Testadores confundiam
+   os 2 grupos simultâneos. Agora são 2 passos sequenciais — cada um com 4
+   cards de escolha única (.choice-step/.choice-cards/.choice-card) — e o
+   Passo 2 desabilita a opção já escolhida no Passo 1 (ver
+   .choice-card.indisponivel abaixo), tornando o conflito impossível em vez
+   de só avisado. */
+.choice-step { padding: 14px 16px; }
+.choice-step + .choice-step { border-top: 1px solid var(--border-solid); }
+.choice-step-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg-soft);
+  margin: 0 0 10px;
+}
+.choice-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
-.choice-option {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border-right: 1px solid var(--border-solid);
-}
-.choice-option:last-child { border-right: none; }
-.choice-option-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-faint);
-}
-.choice-option-text {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--fg);
-}
-.choice-option-desc {
-  font-size: 12px;
-  color: var(--fg-soft);
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-/* Botões MAIS / MENOS */
-.choice-radios { display: flex; gap: 6px; flex-wrap: wrap; }
-.choice-radios label {
+.choice-card {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 5px 12px;
-  border-radius: 999px;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-solid);
   background: var(--input-bg);
-  color: var(--fg-soft);
+  cursor: pointer;
   user-select: none;
   transition: all 0.15s;
 }
-.choice-radios label:has(input[type=radio]:focus-visible) {
+.choice-card-text {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--fg);
+  line-height: 1.35;
+}
+.choice-card-tag {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-faint);
+}
+.choice-card:has(input:focus-visible) {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-.choice-radios label:has(input[type=radio]:checked) {
+.choice-card:has(input:checked) {
   background: var(--primary);
-  color: var(--primary-fg);
   border-color: var(--primary);
 }
-.choice-radios label:hover {
+.choice-card:has(input:checked) .choice-card-text { color: var(--primary-fg); }
+.choice-card:hover:not(:has(input:disabled)) {
   border-color: rgba(255,255,255,0.25);
-  color: var(--fg);
 }
 
-/* Conflito (mesma palavra marcada como MAIS e MENOS) */
+/* Passo 2 (Menos) bloqueado até o Passo 1 (Mais) responder, e a opção já
+   escolhida como Mais fica indisponível — impossível marcar a mesma frase
+   nos 2 passos (ver atualizarDisponibilidadeBlocoA em disc.html). */
+.choice-step-menos.bloqueado { opacity: 0.45; }
+.choice-card.indisponivel { opacity: 0.5; }
+
+/* Conflito (mesma palavra marcada como MAIS e MENOS) — rede de segurança
+   pra disc_state salvo antes do passo a passo existir; não deveria mais
+   acontecer no preenchimento normal (ver comentário em avaliarBlocoA). */
 .choice-block.conflict {
   border-color: var(--danger);
 }
@@ -436,7 +441,7 @@ h2 {
 .conflict-msg { color: var(--danger); }
 .choice-block.conflict .conflict-msg { display: block; }
 
-/* Pendente (ainda falta classificar alguma das 4 palavras) */
+/* Pendente (ainda falta responder o Passo 1 e/ou o Passo 2) */
 .choice-block.pending {
   border-color: var(--warning);
 }
@@ -446,82 +451,10 @@ h2 {
 .pending-msg { color: var(--warning); }
 .choice-block.pending .pending-msg { display: block; }
 
-/* ====== PARTE B — SITUAÇÕES ====== */
-.situations-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 48px;
-}
-.situation-card {
-  background: var(--card);
-  border: 1px solid var(--border-solid);
-  border-radius: var(--radius);
-  padding: 22px;
-}
-.situation-num {
-  /* virou <span> dentro de <legend> (era <p>) — precisa de block explícito */
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-faint);
-  margin-bottom: 8px;
-}
-.situation-text {
-  display: block;
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--fg);
-  margin-bottom: 16px;
-  line-height: 1.5;
-}
-.situation-options {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.situation-options label {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 11px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-solid);
-  background: var(--input-bg);
-  color: var(--fg-soft);
-  user-select: none;
-  transition: all 0.15s;
-  line-height: 1.5;
-}
-.situation-options label:has(input[type=radio]:focus-visible) {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-.situation-options label:has(input[type=radio]:checked) {
-  background: rgba(170,220,78,0.1);
-  color: var(--fg);
-  border-color: var(--primary);
-}
-.situation-options label:hover {
-  border-color: rgba(255,255,255,0.2);
-  color: var(--fg);
-}
-
-/* Pendente (nenhuma opção escolhida) */
-.situation-card.pending {
-  border-color: var(--warning);
-}
-.situation-card .pending-msg {
-  margin: 12px 0 0;
-}
-.situation-card.pending .pending-msg { display: block; }
-
-/* ====== PARTE C — INTENSIDADE ====== */
+/* ====== PARTE B — INTENSIDADE ====== */
+/* Chamada de "Parte C" nas classes/ids abaixo (.intensity-*, #intensityC)
+   por convenção histórica do instrumento — a antiga Parte B (situações)
+   foi aposentada, ver comentário em disc.html perto de INTENSIDADE_C. */
 .intensity-list {
   display: flex;
   flex-direction: column;
@@ -704,7 +637,13 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--fg-faint);
-  margin-bottom: 18px;
+  margin-bottom: 4px;
+}
+.profile-card-sub {
+  font-size: 12.5px;
+  color: var(--fg-soft);
+  margin: 0 0 16px;
+  line-height: 1.5;
 }
 .profile-bars { display: flex; flex-direction: column; gap: 14px; }
 .bar-row {

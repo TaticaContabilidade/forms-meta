@@ -678,3 +678,72 @@ seguem só no histórico do `git log`.
   Render sem load balancer, sem rate limiting, nenhum teste de carga real
   rodado, sem monitoramento/alerta) como trabalho ativo, e passa a exigir
   que toda mudança de UX/instrumento também seja avaliada por esse ângulo.
+- **Parte A do DISC vira passo a passo, e a Parte B (situações) é
+  aposentada** (item 01 do reteste-e-plataforma-ideal.md, reaberto por
+  pedido do usuário depois de vários testadores relatarem confusão na
+  Parte A mesmo com o texto de instrução e o exemplo visual da mudança
+  anterior). Decisão do usuário: registros de teste já coletados sob o
+  modelo antigo podem ser apagados sem migração — não há um script de
+  recálculo dos dados históricos.
+  - **UX (public/disc.html, public/style/disc.css):** cada bloco agora
+    responde em 2 passos sequenciais — Passo 1 escolhe a frase MAIS
+    parecida (das 4), Passo 2 escolhe a MENOS parecida (só das 3 que
+    sobraram). O Passo 2 (`.choice-step-menos`) começa com todas as opções
+    `disabled` até o Passo 1 responder, e a opção igual à escolhida no
+    Passo 1 fica `disabled` + tag "Já é sua Mais" —
+    `atualizarDisponibilidadeBlocoA(bIdx)` cuida disso a cada mudança, sem
+    reconstruir o DOM (evita perder foco/posição do teclado). Elimina o
+    conflito (mesma frase marcada como Mais e Menos) **por construção** —
+    a versão anterior (2 grupos de radio simultâneos, resolvidos com um
+    sorteio automático quando colidiam) ainda deixava as pessoas confusas.
+    Cada opção virou um `<label class="choice-card">` que já embrulha o
+    radio + o texto — nome acessível vem do próprio conteúdo, sem precisar
+    mais de `aria-labelledby` (só era necessário quando o texto ficava
+    fora do `<label>`, compartilhado entre os 2 radios do modelo anterior).
+    `updateBlocoA` mantém uma rede de segurança: se `mais === menos`
+    (só possível via `disc_state` salvo antes dessa correção existir, ou
+    trocar a Mais depois de já ter respondido a Menos pra a mesma palavra
+    que virou a nova Mais), limpa a ponta que não acabou de mudar.
+  - **Escore (public/disc.html, src/discScoring.js, src/server.js):** os
+    2 perfis (natural e adaptado) agora vêm das mesmas 28 marcações da
+    Parte A — `calcNatural()` conta quantas vezes cada traço foi MENOS
+    (o que exige menos esforço), `calcAdaptado()` conta quantas vezes foi
+    MAIS (o que aparece quando o ambiente pede diferente). Os 2 viraram
+    contagens sem sinal, 0 a 28 — mesma escala, ao contrário do modelo
+    antigo (natural -28..+28 combinando Mais(+1)/Menos(-1); adaptado 0..16
+    de uma Parte B separada de 16 situações) que produzia o N-06 (réguas
+    incompatíveis). `calcAdaptado()` mudou de assinatura: recebia
+    `respostasB` (situações), agora recebe `respostasA` (mesmo array da
+    Parte A) — `POST /api/disc`/`POST /api/disc/pdf` em `src/server.js`
+    chamam `calcAdaptado(respostas.a)`, não mais `respostas.b`.
+    `SITUACOES_B` removida de `disc.html` e `discScoring.js` (as duas
+    cópias, mesma convenção do `BLOCOS_A`/`INTENSIDADE_C`).
+  - **PDF (src/reports/discReport.js):** `drawSignedBarSection()` (barra
+    "com sinal", -ref a +ref — fazia sentido pro natural antigo, já era
+    meio forçado pro adaptado 0..16) virou `drawUnsignedBarSection()`
+    (contagem simples, 0 a `ref`) — os 2 perfis chamam com `ref=28` agora.
+    Títulos/subtítulos das seções "Perfil natural"/"Perfil adaptado"
+    reescritos (o antigo "Perfil adaptado (trabalho)" descrevia as 16
+    situações de trabalho, que não existem mais).
+  - **UI (public/disc.html):** hero/`.how-grid` de 3 cards (Parte
+    A/B/C) virou 2 cards (Parte A = natural+adaptado, Parte B =
+    intensidade). A antiga "Parte C" (intensidade) virou "Parte B" na UI
+    (`#partB`, badge, `btnAtoB`/`btnBtoA`, `validMsgB`) — internamente as
+    variáveis/funções continuam com sufixo "C" (`INTENSIDADE_C`,
+    `respostasC`, `calcIntensidade`, `#intensityC`) por convenção
+    histórica do instrumento, documentado no código pra não confundir.
+    `LIMIAR_EMPATE_TRACOS` (empate técnico) mantido em 2 — mesma ordem de
+    grandeza da escala nova (0-28), mas não foi revalidado com dado real;
+    fica registrado como pendência se um dia houver volume de respostas
+    pra calibrar de verdade.
+  - **Testes:** `tests/disc.client.test.js` reescrito (novo describe
+    "Parte A vira passo a passo", removido o describe da Parte B de
+    situações, `completarParteA`/`completarIntensidade` atualizados,
+    propriedade ipsativa testada como "soma sempre 28" em vez de "soma
+    sempre 0"). `tests/server.test.js`: os 2 describes de `/api/disc` e
+    `/api/disc/pdf` com fixtures reconstruídas pro novo modelo (natural
+    vem de MENOS, adaptado vem de MAIS).
+  - Testado visualmente num Chromium real: Passo 2 bloqueado até o Passo 1
+    responder, tag "Já é sua Mais" na opção indisponível, e o PDF gerado
+    de ponta a ponta confirmando natural/adaptado corretos na escala nova.
+  - `npm test`: 75/75 passando.

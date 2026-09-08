@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Avaliação DISC | Perfil Comportamental</title>
-<meta name="description" content="Avaliação DISC Profunda: 56 perguntas em 3 partes que revelam seu perfil natural, comportamento sob pressão e a intensidade de cada traço D/I/S/C.">
+<meta name="description" content="Avaliação DISC Profunda: 40 perguntas em 2 partes que revelam seu perfil natural, adaptado e a intensidade de cada traço D/I/S/C.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
@@ -31,16 +31,11 @@
     <div class="how-grid">
       <div class="how-card">
         <p class="how-label">Parte A · 28 blocos</p>
-        <p class="how-title">Perfil natural</p>
-        <p>Escolha forçada: o que é MAIS e MENOS parecido com você.</p>
+        <p class="how-title">Perfil natural + adaptado</p>
+        <p>Escolha forçada, em 2 passos: qual frase é MAIS parecida com você, depois qual é MENOS. Os 2 perfis saem daqui — mesma escala, direto comparáveis.</p>
       </div>
       <div class="how-card">
-        <p class="how-label">Parte B · 16 situações</p>
-        <p class="how-title">Perfil adaptado</p>
-        <p>Situações reais de trabalho: o que você faria de verdade.</p>
-      </div>
-      <div class="how-card">
-        <p class="how-label">Parte C · 12 afirmações</p>
+        <p class="how-label">Parte B · 12 afirmações</p>
         <p class="how-title">Intensidade</p>
         <p>Escala de 1 a 5 para medir a força de cada traço.</p>
       </div>
@@ -64,17 +59,18 @@
   <div class="part-section active" id="partA">
     <div class="part-header">
       <span class="part-badge">Parte A</span>
-      <h2>Perfil natural</h2>
+      <h2>Perfil natural + adaptado</h2>
     </div>
-    <p class="part-desc">Cada bloco tem 4 frases. Marque, entre as 4, a que é <strong>MAIS</strong> parecida com você e a que é <strong>MENOS</strong> parecida — só uma de cada, nunca a mesma frase nos dois grupos. As outras 2 ficam sem marcação nenhuma. Responda como você é — não como gostaria de ser.</p>
+    <p class="part-desc">Cada bloco tem 4 frases e se responde em <strong>2 passos</strong>: primeiro escolha, entre as 4, a que é <strong>MAIS</strong> parecida com você. Em seguida, entre as 3 que sobraram, escolha a que é <strong>MENOS</strong> parecida. Responda como você é — não como gostaria de ser.</p>
 
     <!-- Instrução visual pedida pelo usuário: participantes se confundiam
-         no momento de preencher (marcavam mais de uma por grupo, ou achavam
-         que precisavam marcar as 4). Mostra um bloco de exemplo já
-         preenchido — mesma marcação HTML de um bloco real (com
-         `disabled`, pra não entrar no tab order nem contar como resposta),
-         então o "+Mais"/"−Menos" verde aparece exatamente como no
-         preenchimento de verdade. -->
+         mesmo com o texto acima (a versão anterior pedia 2 marcações
+         simultâneas em 2 grupos independentes, o que gerava confusão e até
+         conflito — a mesma frase marcada nos dois). Agora é sequencial: o
+         Passo 2 só libera depois do Passo 1, e a frase escolhida no Passo 1
+         nem fica selecionável no Passo 2 — mostra os 2 passos já resolvidos,
+         com `disabled` nos inputs pra não entrar no tab order nem contar
+         como resposta de verdade. -->
     <div class="example-wrap" aria-hidden="true">
       <span class="example-tag">Exemplo de preenchimento</span>
       <div class="choice-block example">
@@ -82,38 +78,26 @@
           <span class="block-num">Bloco</span>
           <span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span>
         </div>
-        <div class="choice-options">
-          <div class="choice-option">
-            <span class="choice-option-text">Decidido: escolho rápido e assumo a consequência</span>
-            <div class="choice-radios">
-              <label><input type="radio" checked disabled><span>+ Mais</span></label>
-              <label><input type="radio" disabled><span>− Menos</span></label>
-            </div>
+        <div class="choice-step">
+          <p class="choice-step-title">1. Qual frase é <strong>MAIS</strong> parecida com você?</p>
+          <div class="choice-cards">
+            <label class="choice-card mais"><input type="radio" checked disabled><span class="choice-card-text">Decidido: escolho rápido e assumo a consequência</span></label>
+            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Entusiasmado: contagio as pessoas com energia</span></label>
+            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Paciente: espero o tempo certo sem me irritar</span></label>
+            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Preciso: gosto de fazer certo nos detalhes</span></label>
           </div>
-          <div class="choice-option">
-            <span class="choice-option-text">Entusiasmado: contagio as pessoas com energia</span>
-            <div class="choice-radios">
-              <label><input type="radio" disabled><span>+ Mais</span></label>
-              <label><input type="radio" disabled><span>− Menos</span></label>
-            </div>
-          </div>
-          <div class="choice-option">
-            <span class="choice-option-text">Paciente: espero o tempo certo sem me irritar</span>
-            <div class="choice-radios">
-              <label><input type="radio" disabled><span>+ Mais</span></label>
-              <label><input type="radio" checked disabled><span>− Menos</span></label>
-            </div>
-          </div>
-          <div class="choice-option">
-            <span class="choice-option-text">Preciso: gosto de fazer certo nos detalhes</span>
-            <div class="choice-radios">
-              <label><input type="radio" disabled><span>+ Mais</span></label>
-              <label><input type="radio" disabled><span>− Menos</span></label>
-            </div>
+        </div>
+        <div class="choice-step choice-step-menos">
+          <p class="choice-step-title">2. E qual é <strong>MENOS</strong> parecida?</p>
+          <div class="choice-cards">
+            <label class="choice-card indisponivel"><input type="radio" disabled><span class="choice-card-text">Decidido: escolho rápido e assumo a consequência</span><span class="choice-card-tag">Já é sua Mais</span></label>
+            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Entusiasmado: contagio as pessoas com energia</span></label>
+            <label class="choice-card menos"><input type="radio" checked disabled><span class="choice-card-text">Paciente: espero o tempo certo sem me irritar</span></label>
+            <label class="choice-card"><input type="radio" disabled><span class="choice-card-text">Preciso: gosto de fazer certo nos detalhes</span></label>
           </div>
         </div>
       </div>
-      <p class="example-caption">1 frase marcada como <strong>+ Mais</strong>, 1 marcada como <strong>− Menos</strong>, e as outras 2 sem nenhuma marcação — é assim que cada um dos 28 blocos abaixo deve ficar.</p>
+      <p class="example-caption">1 frase escolhida como <strong>Mais</strong> no passo 1, 1 escolhida como <strong>Menos</strong> no passo 2 (a que já virou Mais nem aparece disponível), e as outras 2 sem marcação nenhuma — é assim que cada um dos 28 blocos abaixo deve ficar.</p>
     </div>
 
     <div class="progress-wrap">
@@ -131,31 +115,14 @@
   </div>
 
   <!-- ========== PARTE B ========== -->
+  <!-- Era "Parte C" (intensidade) — a antiga Parte B (situações) foi
+       aposentada: os 2 perfis (natural + adaptado) agora vêm só da Parte A
+       (item 01 do reteste-e-plataforma-ideal.md, ver CLAUDE.md/CHANGELOG).
+       Reaproveita o id "partB" liberado pela remoção, pra não pular de
+       "Parte A" direto pra "Parte C" na frente do participante. -->
   <div class="part-section" id="partB">
     <div class="part-header">
       <span class="part-badge">Parte B</span>
-      <h2>Perfil adaptado</h2>
-    </div>
-    <p class="part-desc">Para cada situação abaixo, escolha a opção que mais se aproxima do que você faria de verdade no trabalho.</p>
-
-    <div class="progress-wrap">
-      <div class="progress-label" id="progressLabelB" aria-live="polite">0 de 16 situações respondidas</div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFillB"></div></div>
-    </div>
-
-    <div class="situations-list" id="situationsB"></div>
-
-    <div class="nav-actions">
-      <button type="button" class="btn-secondary" id="btnBtoA">← Voltar</button>
-      <span class="validation-msg" id="validMsgB">Responda todas as situações antes de continuar.</span>
-      <button type="button" class="btn-primary" id="btnBtoC">Continuar para Parte C →</button>
-    </div>
-  </div>
-
-  <!-- ========== PARTE C ========== -->
-  <div class="part-section" id="partC">
-    <div class="part-header">
-      <span class="part-badge">Parte C</span>
       <h2>Intensidade de cada traço</h2>
     </div>
     <p class="part-desc">Para cada afirmação abaixo, dê uma nota de 1 (discordo totalmente) a 5 (concordo totalmente). Vá rápido — a primeira impressão é a mais precisa.</p>
@@ -163,8 +130,8 @@
     <div class="intensity-list" id="intensityC"></div>
 
     <div class="nav-actions" style="margin-top:24px;">
-      <button type="button" class="btn-secondary" id="btnCtoB">← Voltar</button>
-      <span class="validation-msg" id="validMsgC">Avalie todas as afirmações antes de finalizar.</span>
+      <button type="button" class="btn-secondary" id="btnBtoA">← Voltar</button>
+      <span class="validation-msg" id="validMsgB">Avalie todas as afirmações antes de finalizar.</span>
       <button type="button" class="btn-primary" id="btnFinish">Ver meu resultado →</button>
     </div>
   </div>
@@ -181,22 +148,25 @@
     <div class="profiles-grid">
       <div class="profile-card">
         <p class="profile-card-title">Perfil natural</p>
+        <p class="profile-card-sub">O que exige menos esforço de você — seu estilo em repouso, sem pressão do ambiente.</p>
         <div class="profile-bars" id="barsNatural"></div>
       </div>
       <div class="profile-card">
-        <p class="profile-card-title">Perfil adaptado (trabalho)</p>
+        <p class="profile-card-title">Perfil adaptado</p>
+        <p class="profile-card-sub">O que você mostra mais quando o ambiente pede um comportamento diferente do natural.</p>
         <div class="profile-bars" id="barsAdaptado"></div>
       </div>
     </div>
 
-    <!-- N-06 do reteste: um bloco aqui comparava natural x adaptado com uma
-         frase de "sobe/cai X pontos" (era a correção do D-04 da auditoria
-         anterior), mas os dois perfis não estão na mesma escala — natural
-         vai de -28 a +28 (28 blocos, +1/-1), adaptado vai de 0 a 16 (16
-         situações, só +1). Subtrair um do outro não produz "pontos" de
-         coisa nenhuma; o traço natural mais negativo sempre "vencia" essa
-         conta, artificialmente. Removido — só as duas barras lado a lado,
-         cada uma na sua própria escala, sem comparação numérica entre elas. -->
+    <!-- Item 01 do reteste-e-plataforma-ideal.md (ver CLAUDE.md/CHANGELOG):
+         os 2 perfis agora vêm das mesmas 28 marcações da Parte A — MENOS
+         forma o natural, MAIS forma o adaptado — em vez do natural vir da
+         Parte A e o adaptado de uma Parte B (situações) separada. Antes
+         disso (N-06 do reteste) os 2 perfis não estavam na mesma escala
+         (natural -28..+28, adaptado 0..16) e não dava pra comparar um com o
+         outro. Agora os 2 são contagens de 0 a 28 (mesma escala de verdade),
+         mas ainda mostradas lado a lado sem um número de delta — um
+         comparativo textual é uma evolução futura, não decidida ainda. -->
 
     <div class="intensity-section">
       <h3>Intensidade por traço</h3>
@@ -421,155 +391,10 @@ const BLOCOS_A = [
   ]},
 ];
 
-// Parte B — 16 situações (perfil adaptado)
-const SITUACOES_B = [
-  {
-    text: 'Meta em risco — Faltam 8 dias para fechar o mês e você está 35% abaixo da meta.',
-    options: [
-      { text: 'Reúno o time, cobro números um a um e assumo as negociações grandes', trait: 'D' },
-      { text: 'Faço uma campanha relâmpago, animo o time e ligo para a minha rede', trait: 'I' },
-      { text: 'Vou junto com cada pessoa, apoio e mantenho a rotina firme até o fim', trait: 'S' },
-      { text: 'Abro o funil, vejo onde está travando e ataco o gargalo com dado', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Negociação travada — O cliente sumiu depois da proposta e não responde há duas semanas.',
-    options: [
-      { text: 'Ligo e peço uma posição clara: sim ou não, com prazo', trait: 'D' },
-      { text: 'Mando um áudio leve, retomo a relação e crio um novo motivo de conversa', trait: 'I' },
-      { text: 'Mantenho contato constante e sem pressão até ele voltar', trait: 'S' },
-      { text: 'Reviso a proposta, mando um comparativo novo e um estudo de retorno', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Conflito no time — Dois dos seus melhores profissionais brigaram na frente de todos.',
-    options: [
-      { text: 'Corto na hora, defino a regra e digo que não se repete', trait: 'D' },
-      { text: 'Converso com os dois, alivio o clima e recoloco o time no jogo', trait: 'I' },
-      { text: 'Chamo cada um em separado, escuto e mediei com calma', trait: 'S' },
-      { text: 'Investigo o que gerou o conflito e crio um processo para evitar', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Decisão sem dados — Surgiu uma oportunidade grande e você tem 24h para responder, sem números completos.',
-    options: [
-      { text: 'Decido no instinto e ajusto no caminho', trait: 'D' },
-      { text: 'Falo com pessoas de confiança e decido pela leitura do jogo', trait: 'I' },
-      { text: 'Peço mais prazo e evito arriscar o que já está estável', trait: 'S' },
-      { text: 'Monto um cenário rápido e só avanço se o pior caso for aceitável', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Cliente irritado — Um cliente importante liga aos gritos por um erro da sua equipe.',
-    options: [
-      { text: 'Assumo, resolvo na hora e defino quem vai responder por isso', trait: 'D' },
-      { text: 'Acalmo pelo relacionamento, reconheço e reconquisto a confiança', trait: 'I' },
-      { text: 'Escuto até o fim, peço desculpas e acompanho pessoalmente a solução', trait: 'S' },
-      { text: 'Levanto exatamente o que aconteceu e apresento a correção documentada', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Prazo estourando — Um projeto vai atrasar e você precisa escolher o que sacrificar.',
-    options: [
-      { text: 'Corto escopo e entrego o essencial no prazo', trait: 'D' },
-      { text: 'Negocio com o cliente e vendo o novo prazo com transparência', trait: 'I' },
-      { text: 'Puxo o time junto e trabalho a mais para não frustrar ninguém', trait: 'S' },
-      { text: 'Refaço o cronograma real e entrego com a qualidade preservada', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Contratação — Dois candidatos: um agressivo em vendas e desorganizado; outro metódico e mais lento.',
-    options: [
-      { text: 'Fico com o agressivo — número resolve o resto', trait: 'D' },
-      { text: 'Fico com quem tem mais presença e encanta o cliente', trait: 'I' },
-      { text: 'Fico com quem vai ficar mais tempo e conviver melhor com o time', trait: 'S' },
-      { text: 'Fico com o metódico — consistência vale mais que pico', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Precificação — O concorrente baixou o preço 20% e seus clientes começaram a pedir desconto.',
-    options: [
-      { text: 'Não baixo: reforço valor e vou pra cima da carteira dele', trait: 'D' },
-      { text: 'Crio uma oferta com bônus e comunico forte no mercado', trait: 'I' },
-      { text: 'Protejo os clientes atuais com uma condição especial de fidelidade', trait: 'S' },
-      { text: 'Refaço a margem, calculo o impacto e decido por faixa de cliente', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Feedback duro — Alguém do time entrega abaixo há três meses seguidos.',
-    options: [
-      { text: 'Sou direto: mostro o número e dou um prazo final', trait: 'D' },
-      { text: 'Converso motivando, mostro o potencial e reacendo o ânimo', trait: 'I' },
-      { text: 'Entendo o que está acontecendo na vida dele antes de cobrar', trait: 'S' },
-      { text: 'Levo o histórico, aponto exatamente onde falhou e faço um plano escrito', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Reunião de resultado — Você tem 30 minutos com a equipe para virar o jogo do trimestre.',
-    options: [
-      { text: 'Ponho a meta na parede e distribuo responsabilidades', trait: 'D' },
-      { text: 'Faço um discurso que mexe com o time e cria movimento', trait: 'I' },
-      { text: 'Ouço as dificuldades de cada um antes de definir o caminho', trait: 'S' },
-      { text: 'Apresento os indicadores e o plano detalhado por etapa', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Mudança de processo — A empresa vai trocar o CRM e o time reclama.',
-    options: [
-      { text: 'Determino a data e sigo: quem não entrar, fica pra trás', trait: 'D' },
-      { text: 'Vendo a mudança como oportunidade e engajo os influentes primeiro', trait: 'I' },
-      { text: 'Faço a transição gradual, com treino e apoio', trait: 'S' },
-      { text: 'Documento o novo processo e treino com manual e checklist', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Crise de caixa — O caixa apertou e você precisa agir esta semana.',
-    options: [
-      { text: 'Corto custo rápido e forço entrada de receita', trait: 'D' },
-      { text: 'Ativo a rede, negocio prazos e trago negócio novo pela relação', trait: 'I' },
-      { text: 'Preservo o time e busco a saída menos traumática', trait: 'S' },
-      { text: 'Monto o fluxo de caixa detalhado e decido por prioridade', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Delegar — Você está sobrecarregado e precisa passar uma frente importante.',
-    options: [
-      { text: 'Passo com meta e prazo, cobro o resultado e não o caminho', trait: 'D' },
-      { text: 'Passo pra quem tem energia e acompanho junto, animando', trait: 'I' },
-      { text: 'Passo aos poucos, ensinando e ficando por perto', trait: 'S' },
-      { text: 'Passo com procedimento escrito e pontos de controle', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Erro seu — Você tomou uma decisão que custou caro à empresa.',
-    options: [
-      { text: 'Assumo rápido, corrijo a rota e sigo em frente', trait: 'D' },
-      { text: 'Assumo publicamente e uso o episódio pra unir o time', trait: 'I' },
-      { text: 'Fico incomodado por dias e trabalho dobrado pra compensar', trait: 'S' },
-      { text: 'Faço a análise do que falhou e crio uma trava pra não repetir', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Prospecção fria — É preciso abrir 20 contas novas em um mercado onde ninguém te conhece.',
-    options: [
-      { text: 'Vou pra cima: volume, ligação e insistência até entrar', trait: 'D' },
-      { text: 'Uso rede, eventos e indicação para chegar pelo relacionamento', trait: 'I' },
-      { text: 'Construo aos poucos, com contato constante e paciência', trait: 'S' },
-      { text: 'Estudo o mercado, seleciono os melhores alvos e abordo com material forte', trait: 'C' },
-    ]
-  },
-  {
-    text: 'Sociedade — Seu sócio quer acelerar de um jeito que você acha arriscado.',
-    options: [
-      { text: 'Discuto de frente até chegar numa decisão clara', trait: 'D' },
-      { text: 'Converso, busco um meio-termo e mantenho a relação leve', trait: 'I' },
-      { text: 'Cedo para não brigar, mas fico incomodado', trait: 'S' },
-      { text: 'Levo números e cenários para provar o risco', trait: 'C' },
-    ]
-  },
-];
-
-// Parte C — 12 afirmações de intensidade (3 por traço)
+// Intensidade — 12 afirmações (3 por traço). Chamado de "Parte C" no nome
+// da variável/funções (INTENSIDADE_C, respostasC, calcIntensidade) por
+// convenção histórica do instrumento — na UI isso é a "Parte B" (a antiga
+// Parte B de situações foi aposentada, ver comentário mais abaixo).
 const INTENSIDADE_C = [
   { text: 'Eu tomo decisões difíceis sem precisar da aprovação de ninguém.', trait: 'D' },
   { text: 'Confronto direto não me tira do sério — se preciso, eu bato de frente.', trait: 'D' },
@@ -648,8 +473,7 @@ function resolverPerfilDominante(scores) {
 let state = {
   part: 'A',
   respostasA: {}, // blockIdx -> { mais: wordIdx, menos: wordIdx } — escolha forçada: só 1 palavra em Mais e só 1 em Menos, garantido pelo radio nativo
-  respostasB: {}, // sIdx -> optionIdx
-  respostasC: {}, // aIdx -> score (1-5)
+  respostasC: {}, // aIdx -> score (1-5) — intensidade (ver comentário perto de INTENSIDADE_C)
 };
 
 // D-08 da auditoria: o disc_state guardava a parte atual e as três listas
@@ -695,7 +519,6 @@ function loadState() {
       state = {
         part: parsed.part || 'A',
         respostasA: normalizarRespostasA(parsed.respostasA),
-        respostasB: parsed.respostasB || {},
         respostasC: parsed.respostasC || {},
       };
       if (parsed.nomeDisc) document.getElementById('nomeDisc').value = parsed.nomeDisc;
@@ -707,57 +530,94 @@ function loadState() {
 // ============================================================
 // RENDER PARTE A
 // ============================================================
+// Passo a passo, não mais 2 grupos simultâneos: primeiro escolhe a MAIS
+// parecida (das 4), depois a MENOS parecida (das que sobraram). Vários
+// testadores relataram confusão mesmo com o texto de instrução (formato
+// antigo: 2 grupos de radio lado a lado, dava pra marcar a mesma frase nos
+// 2 — resolvido antes por um alerta + correção automática). O sequencial
+// elimina esse estado por construção: a frase escolhida como Mais fica
+// desabilitada no passo da Menos (ver atualizarDisponibilidadeBlocoA), não
+// dá pra marcar a mesma nas 2 nem por engano.
+function cardHtmlA(bIdx, wIdx, w, grupo, marcado) {
+  return `
+    <label class="choice-card">
+      <input type="radio" id="opt${grupo}-${bIdx}-${wIdx}" name="a${bIdx}_${grupo}" value="${wIdx}" ${marcado ? 'checked' : ''}>
+      <span class="choice-card-text">${w.text}</span>
+      <span class="choice-card-tag"></span>
+    </label>
+  `;
+}
+
 function renderParteA() {
   const container = document.getElementById('blocksA');
   container.innerHTML = '';
   BLOCOS_A.forEach((bloco, bIdx) => {
-    // D-01/D-03 da auditoria: fieldset+legend agrupa as 4 opções pro
-    // leitor de tela (era <div>), e aria-labelledby liga a frase da opção
-    // (que fica fora do <label>, por causa dos 2 radios MAIS/MENOS
-    // compartilhados) ao nome acessível de cada radio — sem isso, o radio
-    // só se anunciava como "+ Mais" ou "− Menos", sem dizer de qual frase.
+    // D-01/D-03 da auditoria: fieldset+legend agrupa as opções pro leitor
+    // de tela. Cada opção agora é um <label> que já embrulha o radio + o
+    // texto da frase — o nome acessível vem sozinho do conteúdo do label,
+    // sem precisar de aria-labelledby (só era necessário antes porque o
+    // texto ficava fora do <label>, compartilhado entre os 2 radios).
     const div = document.createElement('fieldset');
     div.className = 'choice-block';
     div.id = 'bloco-' + bIdx;
 
-    const header = `<legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></legend>`;
-    const optionsHtml = bloco.words.map((w, wIdx) => {
-      const textId = `optText-${bIdx}-${wIdx}`;
-      const maisId = `optMais-${bIdx}-${wIdx}`;
-      const menosId = `optMenos-${bIdx}-${wIdx}`;
-      const marcadoMais = state.respostasA[bIdx]?.mais === wIdx;
-      const marcadoMenos = state.respostasA[bIdx]?.menos === wIdx;
-      return `
-      <div class="choice-option">
-        <span class="choice-option-text" id="${textId}">${w.text}</span>
-        <div class="choice-radios">
-          <label>
-            <input type="radio" name="a${bIdx}_mais" value="${wIdx}" aria-labelledby="${textId} ${maisId}" ${marcadoMais ? 'checked' : ''}>
-            <span id="${maisId}">+ Mais</span>
-          </label>
-          <label>
-            <input type="radio" name="a${bIdx}_menos" value="${wIdx}" aria-labelledby="${textId} ${menosId}" ${marcadoMenos ? 'checked' : ''}>
-            <span id="${menosId}">− Menos</span>
-          </label>
-        </div>
-      </div>
-    `;
-    }).join('');
+    const maisCardsHtml = bloco.words.map((w, wIdx) =>
+      cardHtmlA(bIdx, wIdx, w, 'mais', state.respostasA[bIdx]?.mais === wIdx)
+    ).join('');
+    const menosCardsHtml = bloco.words.map((w, wIdx) =>
+      cardHtmlA(bIdx, wIdx, w, 'menos', state.respostasA[bIdx]?.menos === wIdx)
+    ).join('');
 
-    div.innerHTML = header + `<div class="choice-options">${optionsHtml}</div><p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p><p class="pending-msg">Marque a palavra mais parecida e a menos parecida antes de continuar.</p>`;
+    div.innerHTML = `
+      <legend class="choice-block-header"><span class="block-num">Bloco ${bIdx+1}</span><span class="block-instruction">Marque o MAIS e o MENOS parecido com você</span></legend>
+      <div class="choice-step choice-step-mais">
+        <p class="choice-step-title">1. Qual frase é <strong>MAIS</strong> parecida com você?</p>
+        <div class="choice-cards">${maisCardsHtml}</div>
+      </div>
+      <div class="choice-step choice-step-menos">
+        <p class="choice-step-title">2. E qual é <strong>MENOS</strong> parecida?</p>
+        <div class="choice-cards">${menosCardsHtml}</div>
+      </div>
+      <p class="conflict-msg">Não é possível marcar a mesma palavra como MAIS e MENOS.</p>
+      <p class="pending-msg">Marque a palavra mais parecida e a menos parecida antes de continuar.</p>
+    `;
     container.appendChild(div);
 
-    // listeners — cada grupo avisa updateBlocoA de qual dos 2 (mais/menos)
-    // acabou de mudar, pra resolver conflito sem desfazer a ação mais
-    // recente do participante (ver updateBlocoA).
+    // listeners — cada passo avisa updateBlocoA de qual dos 2 (mais/menos)
+    // acabou de mudar, pra resolver a rede de segurança sem desfazer a ação
+    // mais recente do participante (ver updateBlocoA).
     div.querySelectorAll(`input[name="a${bIdx}_mais"]`).forEach(inp => {
       inp.addEventListener('change', () => updateBlocoA(bIdx, 'mais'));
     });
     div.querySelectorAll(`input[name="a${bIdx}_menos"]`).forEach(inp => {
       inp.addEventListener('change', () => updateBlocoA(bIdx, 'menos'));
     });
+
+    atualizarDisponibilidadeBlocoA(bIdx);
   });
   updateProgressA();
+}
+
+// Passo 2 (Menos) só libera depois do Passo 1 (Mais) responder, e a opção
+// igual à escolhida no Passo 1 fica `disabled` — impossível marcar a mesma
+// frase nos 2 passos. Diferente do modelo anterior (2 grupos de radio
+// simultâneos e independentes), onde só um alerta *avisava* do conflito
+// depois de já ter acontecido.
+function atualizarDisponibilidadeBlocoA(bIdx) {
+  const bloco = document.getElementById('bloco-' + bIdx);
+  const maisIdx = state.respostasA[bIdx]?.mais;
+  const stepMenos = bloco.querySelector('.choice-step-menos');
+  const aindaBloqueado = maisIdx === undefined;
+  stepMenos.classList.toggle('bloqueado', aindaBloqueado);
+
+  BLOCOS_A[bIdx].words.forEach((_, wIdx) => {
+    const inputMenos = bloco.querySelector(`input[name="a${bIdx}_menos"][value="${wIdx}"]`);
+    const cardMenos = inputMenos.closest('.choice-card');
+    const ehAMaisEscolhida = wIdx === maisIdx;
+    inputMenos.disabled = aindaBloqueado || ehAMaisEscolhida;
+    cardMenos.classList.toggle('indisponivel', ehAMaisEscolhida);
+    cardMenos.querySelector('.choice-card-tag').textContent = ehAMaisEscolhida ? 'Já é sua Mais' : '';
+  });
 }
 
 // Blocos cujo alerta inline já pode aparecer — só depois que o participante
@@ -767,12 +627,12 @@ function renderParteA() {
 let blocosAlertaVisivel = new Set();
 
 // Escolha forçada: um bloco é respondido quando exatamente 1 palavra foi
-// marcada como Mais e 1 como Menos, e não é a mesma palavra nos dois grupos
-// (o radio nativo já garante no máximo 1 marcação por grupo — não dá pra
-// marcar 2 como Mais mesmo tentando). `overlap` (mesma palavra nos 2 grupos)
-// não deveria mais acontecer durante o preenchimento normal — updateBlocoA
-// resolve sozinho assim que detecta (ver comentário lá) — mas fica aqui como
-// rede de segurança pra um `disc_state` salvo antes dessa correção existir.
+// marcada como Mais e 1 como Menos, e não é a mesma palavra nos dois passos
+// (o Passo 2 desabilita a opção igual à Mais — ver
+// atualizarDisponibilidadeBlocoA — não dá pra marcar 2 mesmo tentando).
+// `overlap` (mesma palavra nos 2 passos) não deveria mais acontecer durante
+// o preenchimento normal — mas fica aqui como rede de segurança pra um
+// `disc_state` salvo antes dessa correção existir.
 function avaliarBlocoA(bIdx) {
   const r = state.respostasA[bIdx] || {};
   const overlap = r.mais !== undefined && r.menos !== undefined && r.mais === r.menos;
@@ -797,25 +657,27 @@ function updateBlocoA(bIdx, grupoAlterado) {
   let mais = maisEl ? parseInt(maisEl.value) : undefined;
   let menos = menosEl ? parseInt(menosEl.value) : undefined;
 
-  // Testadores relataram conseguir marcar a mesma frase como MAIS e MENOS
-  // (2 grupos de radio independentes, então nenhum dos 2 impede sozinho).
-  // Em vez de só bloquear com o alerta de conflito, resolve sozinho aqui:
-  // mantém a marcação que o participante acabou de fazer (`grupoAlterado`)
-  // e sorteia outra palavra pro outro grupo, excluindo a que empatou.
+  // Rede de segurança: normalmente impossível chegar aqui com mais===menos
+  // (o Passo 2 desabilita essa opção — ver atualizarDisponibilidadeBlocoA),
+  // mas um disc_state salvo antes dessa correção existir pode carregar os
+  // 2 apontando pra mesma palavra. Limpa a ponta que NÃO acabou de mudar —
+  // preserva a ação mais recente do participante, igual ao comportamento
+  // já existente antes desta mudança.
   if (mais !== undefined && menos !== undefined && mais === menos) {
-    const totalPalavras = BLOCOS_A[bIdx].words.length;
-    const candidatos = Array.from({ length: totalPalavras }, (_, i) => i).filter((i) => i !== mais);
-    const sorteada = candidatos[Math.floor(Math.random() * candidatos.length)];
-    const grupoParaSortear = grupoAlterado === 'menos' ? 'mais' : 'menos';
-    const inputSorteado = document.querySelector(`input[name="a${bIdx}_${grupoParaSortear}"][value="${sorteada}"]`);
-    if (inputSorteado) inputSorteado.checked = true;
-    if (grupoParaSortear === 'mais') mais = sorteada; else menos = sorteada;
+    if (grupoAlterado === 'mais') {
+      menos = undefined;
+      if (menosEl) menosEl.checked = false;
+    } else {
+      mais = undefined;
+      if (maisEl) maisEl.checked = false;
+    }
   }
 
   if (!state.respostasA[bIdx]) state.respostasA[bIdx] = {};
   state.respostasA[bIdx].mais = mais;
   state.respostasA[bIdx].menos = menos;
 
+  atualizarDisponibilidadeBlocoA(bIdx);
   blocosAlertaVisivel.add(bIdx);
   renderAlertaBlocoA(bIdx);
   saveState();
@@ -833,63 +695,10 @@ function updateProgressA() {
 }
 
 // ============================================================
-// RENDER PARTE B
+// RENDER PARTE B (intensidade — "Parte C" na convenção interna de dados,
+// ver comentário perto de INTENSIDADE_C)
 // ============================================================
 function renderParteB() {
-  const container = document.getElementById('situationsB');
-  container.innerHTML = '';
-  SITUACOES_B.forEach((sit, sIdx) => {
-    // D-01: fieldset+legend agrupa as 4 opções (era <div>); aqui o texto da
-    // opção já ficava dentro do <label>, então o nome acessível de cada
-    // radio já era a frase inteira — só faltava mesmo o agrupamento.
-    const div = document.createElement('fieldset');
-    div.className = 'situation-card';
-    div.id = 'situacao-' + sIdx;
-    const optsHtml = sit.options.map((opt, oIdx) => `
-      <label>
-        <input type="radio" name="b${sIdx}" value="${oIdx}" data-trait="${opt.trait}" ${state.respostasB[sIdx] === oIdx ? 'checked' : ''}>
-        ${opt.text}
-      </label>
-    `).join('');
-    div.innerHTML = `<legend><span class="situation-num">Situação ${sIdx+1}</span><span class="situation-text">${sit.text}</span></legend><div class="situation-options">${optsHtml}</div><p class="pending-msg">Escolha uma opção antes de continuar.</p>`;
-    container.appendChild(div);
-
-    div.querySelectorAll(`input[name="b${sIdx}"]`).forEach(inp => {
-      inp.addEventListener('change', () => {
-        state.respostasB[sIdx] = parseInt(inp.value);
-        saveState();
-        updateProgressB();
-        renderAlertaSituacaoB(sIdx);
-      });
-    });
-  });
-  updateProgressB();
-}
-
-// Situações cujo alerta de "pendente" já pode aparecer — só depois que o
-// participante clicou "Continuar para Parte C" sem terminar (mesmo padrão
-// da Parte A; aqui não há estado intermediário por situação, então não faz
-// sentido revelar o alerta antes disso: escolher uma opção já resolve a
-// situação inteira de uma vez).
-let situacoesAlertaVisivel = new Set();
-
-function renderAlertaSituacaoB(sIdx) {
-  const respondida = state.respostasB[sIdx] !== undefined;
-  const fieldset = document.getElementById('situacao-' + sIdx);
-  fieldset.classList.toggle('pending', situacoesAlertaVisivel.has(sIdx) && !respondida);
-}
-
-function updateProgressB() {
-  const done = Object.keys(state.respostasB).length;
-  const pct = (done / SITUACOES_B.length) * 100;
-  document.getElementById('progressFillB').style.width = pct + '%';
-  document.getElementById('progressLabelB').textContent = done + ' de ' + SITUACOES_B.length + ' situações respondidas';
-}
-
-// ============================================================
-// RENDER PARTE C
-// ============================================================
-function renderParteC() {
   const container = document.getElementById('intensityC');
   container.innerHTML = '';
   INTENSIDADE_C.forEach((item, aIdx) => {
@@ -927,26 +736,32 @@ function renderParteC() {
 // ============================================================
 // CÁLCULO
 // ============================================================
+// Item 01 do reteste-e-plataforma-ideal.md (ver CLAUDE.md/CHANGELOG): os 2
+// perfis vêm das mesmas 28 marcações da Parte A, não mais de instrumentos
+// separados — MENOS forma o natural (o que exige menos esforço), MAIS
+// forma o adaptado (o que você mostra quando o ambiente pede diferente).
+// Antes, calcNatural() somava/subtraía Mais(+1)/Menos(-1) num único
+// escore (-28..+28) e calcAdaptado() vinha de uma Parte B de 16 situações
+// (0..16) — 2 escalas incompatíveis (N-06 do reteste). Agora os 2 são só
+// contagens (nunca negativas), cada uma de 0 a 28 — mesma escala.
 function calcNatural() {
   const scores = { D:0, I:0, S:0, C:0 };
   BLOCOS_A.forEach((bloco, bIdx) => {
     if (!blocoARespondido(bIdx)) return;
     const r = state.respostasA[bIdx];
-    const wMais = bloco.words[r.mais];
     const wMenos = bloco.words[r.menos];
-    if (wMais) scores[wMais.trait] = (scores[wMais.trait] || 0) + 1;
-    if (wMenos) scores[wMenos.trait] = (scores[wMenos.trait] || 0) - 1;
+    if (wMenos) scores[wMenos.trait] = (scores[wMenos.trait] || 0) + 1;
   });
   return scores;
 }
 
 function calcAdaptado() {
   const scores = { D:0, I:0, S:0, C:0 };
-  SITUACOES_B.forEach((sit, sIdx) => {
-    const sel = state.respostasB[sIdx];
-    if (sel === undefined) return;
-    const trait = sit.options[sel].trait;
-    scores[trait]++;
+  BLOCOS_A.forEach((bloco, bIdx) => {
+    if (!blocoARespondido(bIdx)) return;
+    const r = state.respostasA[bIdx];
+    const wMais = bloco.words[r.mais];
+    if (wMais) scores[wMais.trait] = (scores[wMais.trait] || 0) + 1;
   });
   return scores;
 }
@@ -988,9 +803,10 @@ function renderResultado() {
       `Empate técnico entre ${tA} e ${tB} — diferença de só ${perfil.gap} ponto${perfil.gap === 1 ? '' : 's'} no perfil natural. Considere as duas descrições abaixo, não apenas uma.`;
   }
 
-  // barras natural
+  // barras natural/adaptado — mesma escala nos 2 agora (0 a 28), ver
+  // comentário perto de calcNatural()/calcAdaptado().
   renderBars('barsNatural', natural, 28);
-  renderBars('barsAdaptado', adaptado, 16);
+  renderBars('barsAdaptado', adaptado, 28);
 
   // intensidade
   const intSection = document.getElementById('barsIntensidade');
@@ -1066,6 +882,8 @@ function renderResultado() {
   return { natural, adaptado, intensidade, perfil, infos };
 }
 
+// natural/adaptado: contagens sem sinal (nunca negativas — ver
+// calcNatural()/calcAdaptado()), de 0 até `total` (28).
 function renderBars(containerId, scores, total) {
   const el = document.getElementById(containerId);
   el.innerHTML = '';
@@ -1074,13 +892,13 @@ function renderBars(containerId, scores, total) {
 
   ['D','I','S','C'].forEach(t => {
     const raw = scores[t] || 0;
-    const pct = Math.max(0, Math.min(100, ((raw + ref) / (2 * ref)) * 100));
+    const pct = Math.max(0, Math.min(100, (raw / ref) * 100));
     const row = document.createElement('div');
     row.className = 'bar-row';
     row.innerHTML = `
       <span class="bar-label lbl-${t.toLowerCase()}">${t}</span>
       <div class="bar-track"><div class="bar-fill fill-${t.toLowerCase()}" style="width:${pct}%"></div></div>
-      <span class="bar-value">${raw > 0 ? '+' : ''}${raw}</span>
+      <span class="bar-value">${raw}</span>
     `;
     el.appendChild(row);
   });
@@ -1092,10 +910,8 @@ function renderBars(containerId, scores, total) {
 function validateA() {
   return BLOCOS_A.every((_, i) => blocoARespondido(i));
 }
+// "Parte B" na UI (intensidade) — ver comentário perto de INTENSIDADE_C.
 function validateB() {
-  return Object.keys(state.respostasB).length === SITUACOES_B.length;
-}
-function validateC() {
   return Object.keys(state.respostasC).length === INTENSIDADE_C.length;
 }
 
@@ -1154,7 +970,7 @@ async function sendResultado(data) {
   statusEl.textContent = 'Enviando...';
   statusEl.style.color = 'var(--fg-faint)';
 
-  payload.respostas = { a: state.respostasA, b: state.respostasB, c: state.respostasC };
+  payload.respostas = { a: state.respostasA, c: state.respostasC };
 
   try {
     const resp = await fetch('/api/disc', {
@@ -1181,7 +997,7 @@ async function baixarPdf(data) {
   // que POST /api/disc/pdf recalcula tudo a partir das respostas cruas
   // (mesma robustez do POST /api/disc), sem isso o PDF sairia com os 4
   // traços zerados em todo lugar.
-  payload.respostas = { a: state.respostasA, b: state.respostasB, c: state.respostasC };
+  payload.respostas = { a: state.respostasA, c: state.respostasC };
   const btnPdf = document.getElementById('btnPdf');
   const btnPdfDefaultText = btnPdf.textContent;
 
@@ -1233,7 +1049,6 @@ document.getElementById('empresaDisc').addEventListener('input', saveState);
 
 renderParteA();
 renderParteB();
-renderParteC();
 
 // Botões
 document.getElementById('btnAtoB').addEventListener('click', () => {
@@ -1262,38 +1077,13 @@ document.getElementById('btnAtoB').addEventListener('click', () => {
 
 document.getElementById('btnBtoA').addEventListener('click', () => showPart('A'));
 
-document.getElementById('btnBtoC').addEventListener('click', () => {
+let lastResultData = null;
+document.getElementById('btnFinish').addEventListener('click', () => {
   if (!validateB()) {
     document.getElementById('validMsgB').style.display = 'inline';
-    // Sinaliza TODAS as situações pendentes de uma vez (mesmo padrão da
-    // Parte A) e rola até a primeira.
-    let primeiraPendente = null;
-    SITUACOES_B.forEach((_, sIdx) => {
-      if (state.respostasB[sIdx] === undefined) {
-        situacoesAlertaVisivel.add(sIdx);
-        renderAlertaSituacaoB(sIdx);
-        if (primeiraPendente === null) primeiraPendente = sIdx;
-      }
-    });
-    if (primeiraPendente !== null) {
-      const situacao = document.getElementById('situacao-' + primeiraPendente);
-      if (situacao.scrollIntoView) situacao.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
     return;
   }
   document.getElementById('validMsgB').style.display = 'none';
-  showPart('C');
-});
-
-document.getElementById('btnCtoB').addEventListener('click', () => showPart('B'));
-
-let lastResultData = null;
-document.getElementById('btnFinish').addEventListener('click', () => {
-  if (!validateC()) {
-    document.getElementById('validMsgC').style.display = 'inline';
-    return;
-  }
-  document.getElementById('validMsgC').style.display = 'none';
   lastResultData = renderResultado();
   showPart('resultado');
 });
@@ -1318,11 +1108,10 @@ document.getElementById('confirmResetYes').addEventListener('click', () => {
   confirmReset.style.display = 'none';
   document.getElementById('nomeDisc').value = '';
   document.getElementById('empresaDisc').value = '';
-  state = { part: 'A', respostasA: {}, respostasB: {}, respostasC: {} };
+  state = { part: 'A', respostasA: {}, respostasC: {} };
   try { localStorage.removeItem('disc_state'); } catch(e){}
   renderParteA();
   renderParteB();
-  renderParteC();
   showPart('A');
 });
 
