@@ -240,14 +240,17 @@ describe('Parte B sinaliza situação sem resposta ao tentar continuar para a Pa
 });
 
 describe('resultado calculado (D-04, D-05, D-06, D-09, D-12)', () => {
-  test('D-04: compara natural x adaptado e comenta o traço que mais mudou', () => {
+  test('N-06 do reteste: não compara natural x adaptado com uma frase de "sobe/cai X pontos" — as escalas são diferentes (natural -28..+28, adaptado 0..16)', () => {
     const { window: win } = criarPagina();
     completarAvaliacao(win);
-    const delta = win.document.getElementById('adaptacaoDelta');
-    assert.equal(delta.style.display, 'block');
-    // maior delta entre os 4 traços é Influência: |0 - (-28)| = 28
-    assert.match(delta.textContent, /Influência/);
-    assert.match(delta.textContent, /28 pontos/);
+    const doc = win.document;
+    // o elemento #adaptacaoDelta (era a correção do D-04, revertida pelo
+    // N-06) não existe mais no HTML
+    assert.equal(doc.getElementById('adaptacaoDelta'), null);
+    // as duas barras continuam lá, cada uma na sua escala, sem comparação
+    // numérica entre elas
+    assert.equal(doc.querySelectorAll('#barsNatural .bar-value').length, 4);
+    assert.equal(doc.querySelectorAll('#barsAdaptado .bar-value').length, 4);
   });
 
   test('D-05: intensidades idênticas (3.0 em tudo) disparam o aviso de respostas pouco diferenciadas', () => {

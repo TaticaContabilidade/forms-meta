@@ -141,9 +141,14 @@
       </div>
     </div>
 
-    <!-- D-04 da auditoria: o subtítulo promete "natural x adaptado" mas
-         ninguém comparava os dois — só duas barras lado a lado. -->
-    <div class="insight-block" id="adaptacaoDelta" style="display:none;"></div>
+    <!-- N-06 do reteste: um bloco aqui comparava natural x adaptado com uma
+         frase de "sobe/cai X pontos" (era a correção do D-04 da auditoria
+         anterior), mas os dois perfis não estão na mesma escala — natural
+         vai de -28 a +28 (28 blocos, +1/-1), adaptado vai de 0 a 16 (16
+         situações, só +1). Subtrair um do outro não produz "pontos" de
+         coisa nenhuma; o traço natural mais negativo sempre "vencia" essa
+         conta, artificialmente. Removido — só as duas barras lado a lado,
+         cada uma na sua própria escala, sem comparação numérica entre elas. -->
 
     <div class="intensity-section">
       <h3>Intensidade por traço</h3>
@@ -915,26 +920,6 @@ function renderResultado() {
   // barras natural
   renderBars('barsNatural', natural, 28);
   renderBars('barsAdaptado', adaptado, 16);
-
-  // D-04: compara natural x adaptado de verdade — acha o traço com maior
-  // distância entre os dois perfis e comenta a adaptação (ou a falta dela).
-  const deltaEl = document.getElementById('adaptacaoDelta');
-  let maiorTraitDelta = 'D';
-  let maiorDelta = -1;
-  ['D','I','S','C'].forEach(t => {
-    const delta = Math.abs((adaptado[t] || 0) - (natural[t] || 0));
-    if (delta > maiorDelta) { maiorDelta = delta; maiorTraitDelta = t; }
-  });
-  if (maiorDelta > 0) {
-    const delta = adaptado[maiorTraitDelta] - natural[maiorTraitDelta];
-    const label = TRAIT_LABELS[maiorTraitDelta];
-    const verbo = delta > 0 ? 'sobe' : 'cai';
-    deltaEl.style.display = 'block';
-    deltaEl.innerHTML = `<h4>Natural × adaptado</h4><p>No trabalho, sua ${label} ${verbo} ${Math.abs(delta)} ponto${Math.abs(delta) === 1 ? '' : 's'} em relação ao seu perfil natural — é o traço que mais muda quando você está sob pressão no ambiente profissional.</p>`;
-  } else {
-    deltaEl.style.display = 'block';
-    deltaEl.innerHTML = `<h4>Natural × adaptado</h4><p>Seu perfil natural e o adaptado praticamente não mudam — você age no trabalho do jeito que você é naturalmente, sem precisar se ajustar sob pressão.</p>`;
-  }
 
   // intensidade
   const intSection = document.getElementById('barsIntensidade');

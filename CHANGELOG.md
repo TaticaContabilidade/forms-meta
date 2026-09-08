@@ -417,3 +417,29 @@ seguem só no histórico do `git log`.
   - Testado também ao vivo num Chromium real com clique de verdade
     (`.click()`, não só `dispatchEvent` sintético): confirma que marcar
     uma 2ª palavra como Mais desmarca a 1ª automaticamente.
+- **N-06 do reteste — remove a frase que comparava natural × adaptado em
+  "pontos".** O bloco (era a correção do D-04 da auditoria anterior)
+  subtraía o escore adaptado do natural pra achar "o traço que mais muda
+  sob pressão", mas os dois perfis não estão na mesma escala: natural vem
+  de 28 blocos com +1/-1 (varia -28 a +28), adaptado vem de 16 situações
+  só com +1 (varia 0 a 16, nunca negativo). Confirmei rodando um cenário
+  realista: o traço natural mais negativo sempre "vencia" essa conta, não
+  importa qual — não é uma leitura real de adaptação, só um artefato da
+  subtração entre réguas diferentes. O documento oferecia 2 correções (uma
+  reformulação completa do instrumento, fundindo Partes A e B, ou remover
+  a frase e manter só os 2 gráficos lado a lado); perguntei ao usuário, que
+  escolheu a segunda — a reformulação fica pra uma decisão futura, não é
+  um achado pontual.
+  - `public/disc.html`: removido o cálculo do delta e o container
+    `#adaptacaoDelta` do resultado — sobram as 2 seções de barra (natural
+    e adaptado) lado a lado, cada uma na sua própria escala, sem frase
+    comparando as duas.
+  - `src/reports/discReport.js`: mesma lógica duplicada no PDF
+    (`drawAdaptacaoDelta()`) — removida também, pelo mesmo motivo.
+    Confirmei gerando um PDF de teste antes e depois da mudança.
+  - 1 teste atualizado em `tests/disc.client.test.js` (era o teste do D-04,
+    que checava a frase de delta) — agora confirma que `#adaptacaoDelta`
+    não existe mais e que as 2 barras continuam renderizando.
+  - Testado também ao vivo num Chromium real, preenchendo a avaliação
+    inteira: confirma que a frase "pontos em relação" não aparece em
+    nenhum lugar da tela de resultado.
