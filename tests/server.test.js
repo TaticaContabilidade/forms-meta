@@ -186,15 +186,17 @@ describe('API /api/metas/pdf', () => {
 describe('API /api/disc', () => {
   let createdId;
 
-  // Blocos 0-7 da Parte A: mais=0 (palavra D) e menos=1 (palavra I) em cada
-  // um -> natural D=+8, I=-8, S=0, C=0 (BLOCOS_A tem sempre D,I,S,C nessa
-  // ordem por bloco). d_natural/i_natural/etc e perfil_dominante/arquetipo
-  // abaixo são propositalmente "errados" (robustez: o servidor ignora
-  // qualquer escore pronto que o cliente mandar e recalcula tudo a partir
-  // de `respostas` — ver src/discScoring.js).
+  // Blocos 0-7 da Parte A: mais=1 (palavra I) e menos=0 (palavra D) em cada
+  // um (BLOCOS_A tem sempre D,I,S,C nessa ordem por bloco). Item 01 do
+  // reteste (ver CLAUDE.md/CHANGELOG): natural vem só da contagem de MENOS
+  // e adaptado só da contagem de MAIS — natural D=+8 (dominante), I=0,
+  // S=0, C=0; adaptado I=+8, D=0, S=0, C=0. d_natural/i_natural/etc e
+  // perfil_dominante/arquetipo abaixo são propositalmente "errados"
+  // (robustez: o servidor ignora qualquer escore pronto que o cliente
+  // mandar e recalcula tudo a partir de `respostas` — ver
+  // src/discScoring.js).
   const respostasComDDominante = {
-    a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 0, menos: 1 }])),
-    b: {},
+    a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 1, menos: 0 }])),
     c: {},
   };
 
@@ -235,7 +237,9 @@ describe('API /api/disc', () => {
     assert.equal(row.perfil_dominante, 'D'); // recalculado de `respostas` (D=+8), não o 'C' enviado
     assert.equal(row.arquetipo, 'O Executor');
     assert.equal(row.d_natural, 8); // também recalculado — o d_natural=1 enviado foi ignorado
-    assert.equal(row.i_natural, -8);
+    assert.equal(row.i_natural, 0);
+    assert.equal(row.d_adaptado, 0);
+    assert.equal(row.i_adaptado, 8); // adaptado vem da contagem de MAIS (item 01 do reteste)
     assert.deepEqual(JSON.parse(row.respostas_json), payloadValido.respostas);
   });
 
@@ -257,14 +261,15 @@ describe('API /api/disc', () => {
   });
 
   test('empate técnico entre dois traços vira perfil combinado, nunca dominância falsa de um só', async () => {
-    // D e I empatados em 14, S bem abaixo — antes desse fix, Math.max com
+    // D e I empatados em 14 no natural — antes desse fix, Math.max com
     // ordem fixa D,I,S,C fazia o empate cair sempre em D "por posição".
-    // Construído via `respostas` de verdade (não d_natural direto): blocos
-    // 0-13 marcam D (mais) e S (menos); blocos 14-27 marcam I (mais) e S
-    // (menos) -> D=+14, I=+14, S=-28, C=0.
-    const respostasEmpate = { a: {}, b: {}, c: {} };
-    for (let i = 0; i < 14; i++) respostasEmpate.a[i] = { mais: 0, menos: 2 }; // D, S
-    for (let i = 14; i < 28; i++) respostasEmpate.a[i] = { mais: 1, menos: 2 }; // I, S
+    // Construído via `respostas` de verdade: natural vem da contagem de
+    // MENOS (item 01 do reteste) — blocos 0-13 marcam menos=D; blocos
+    // 14-27 marcam menos=I -> natural D=+14, I=+14, S=0, C=0. Mais sempre
+    // S (não afeta o natural, só o adaptado) nos 28 blocos.
+    const respostasEmpate = { a: {}, c: {} };
+    for (let i = 0; i < 14; i++) respostasEmpate.a[i] = { mais: 2, menos: 0 }; // S, D
+    for (let i = 14; i < 28; i++) respostasEmpate.a[i] = { mais: 2, menos: 1 }; // S, I
 
     const create = await request(app).post('/api/disc').send({
       nome_participante: 'Empate Teste',
@@ -279,20 +284,21 @@ describe('API /api/disc', () => {
     assert.equal(row.arquetipo, 'O Executor + O Comunicador');
     assert.equal(row.d_natural, 14);
     assert.equal(row.i_natural, 14);
-    assert.equal(row.s_natural, -28);
+    assert.equal(row.s_natural, 0);
     assert.equal(row.c_natural, 0);
+    assert.equal(row.s_adaptado, 28); // adaptado: Mais foi sempre S nos 28 blocos
 
     await request(app).delete(`/api/disc/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 
 describe('API /api/disc/pdf', () => {
-  // 8 blocos com mais=0 (D), menos=1 (I) -> natural D=+8, I=-8, S=0, C=0
-  // (mesma ideia do describe de /api/disc — robustez: o PDF também
-  // recalcula tudo a partir de `respostas`, nunca confia em d_natural/etc
-  // prontos).
+  // 8 blocos com mais=1 (I), menos=0 (D) -> natural (menos-tally) D=+8,
+  // adaptado (mais-tally) I=+8 (mesma ideia do describe de /api/disc —
+  // robustez: o PDF também recalcula tudo a partir de `respostas`, nunca
+  // confia em d_natural/etc prontos).
   const respostasComDDominante = {
-    a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 0, menos: 1 }])),
+    a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 1, menos: 0 }])),
   };
 
   const payloadValido = {
@@ -322,11 +328,12 @@ describe('API /api/disc/pdf', () => {
   });
 
   test('escore vem de `respostas`, não de i_natural/d_natural enviados prontos', async () => {
-    // 8 blocos com mais=1 (I), menos=0 (D) -> I=+8, D=-8. Os campos
-    // i_natural/d_natural enviados no body são "errados" de propósito — o
-    // servidor deve ignorá-los e recalcular a partir de `respostas`.
+    // 8 blocos com mais=0 (D), menos=1 (I) -> natural (menos-tally) I=+8,
+    // D=0. Os campos i_natural/d_natural enviados no body são "errados" de
+    // propósito — o servidor deve ignorá-los e recalcular a partir de
+    // `respostas`.
     const respostasComIDominante = {
-      a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 1, menos: 0 }])),
+      a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 0, menos: 1 }])),
     };
     const res = await request(app)
       .post('/api/disc/pdf')
@@ -336,14 +343,14 @@ describe('API /api/disc/pdf', () => {
   });
 
   test('empate técnico entre traços não quebra a geração do PDF (nunca dominância falsa)', async () => {
-    // Mesmo caso do bug crítico D-02: D e I empatados, S bem abaixo.
-    // Construído via `respostas` de verdade — blocos 0-13 marcam D e S;
-    // blocos 14-27 marcam I e S -> D=+14, I=+14, S=-28, C=0. Mesmo
-    // enviando um d_natural/perfil_dominante "errado", o PDF ignora e
-    // recalcula a partir de `respostas`.
+    // Mesmo caso do bug crítico D-02: D e I empatados no natural, S bem
+    // acima só no adaptado. Construído via `respostas` de verdade — blocos
+    // 0-13 marcam menos=D; blocos 14-27 marcam menos=I -> natural D=+14,
+    // I=+14, S=0, C=0. Mesmo enviando um d_natural/perfil_dominante
+    // "errado", o PDF ignora e recalcula a partir de `respostas`.
     const respostasEmpate = { a: {} };
-    for (let i = 0; i < 14; i++) respostasEmpate.a[i] = { mais: 0, menos: 2 }; // D, S
-    for (let i = 14; i < 28; i++) respostasEmpate.a[i] = { mais: 1, menos: 2 }; // I, S
+    for (let i = 0; i < 14; i++) respostasEmpate.a[i] = { mais: 2, menos: 0 }; // S, D
+    for (let i = 14; i < 28; i++) respostasEmpate.a[i] = { mais: 2, menos: 1 }; // S, I
 
     const res = await request(app)
       .post('/api/disc/pdf')

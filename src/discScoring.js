@@ -7,10 +7,16 @@
 // qualquer, e o servidor só recalculava perfil_dominante/arquetipo em cima
 // dele (nunca as respostas).
 //
-// BLOCOS_A/SITUACOES_B/INTENSIDADE_C são cópia fiel dos mesmos arrays em
+// BLOCOS_A/INTENSIDADE_C são cópia fiel dos mesmos arrays em
 // public/disc.html — se o conteúdo da avaliação mudar lá, precisa mudar
 // aqui também (são intencionalmente duplicados, não importados, porque um
 // é código de servidor e o outro é HTML/JS de cliente).
+//
+// Item 01 do reteste-e-plataforma-ideal.md (ver CLAUDE.md/CHANGELOG): a
+// antiga Parte B (16 situações, escala 0..16) foi aposentada — os 2
+// perfis agora vêm das mesmas 28 marcações da Parte A. MENOS forma o
+// natural, MAIS forma o adaptado, ambos contagens de 0 a 28 (mesma
+// escala, nunca negativas).
 
 // Parte A — 28 blocos de escolha forçada (1 palavra em Mais, 1 em Menos)
 const BLOCOS_A = [
@@ -184,59 +190,9 @@ const BLOCOS_A = [
   ]},
 ];
 
-// Parte B — 16 situações (perfil adaptado)
-const SITUACOES_B = [
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-  { options: [
-    { trait: 'D' }, { trait: 'I' }, { trait: 'S' }, { trait: 'C' },
-  ]},
-];
-
-// Parte C — 12 afirmações de intensidade (3 por traço)
+// Intensidade — 12 afirmações (3 por traço). Chamada de "Parte C" no nome
+// da variável/funções por convenção histórica do instrumento — a antiga
+// Parte B (16 situações) foi aposentada, ver comentário no topo do arquivo.
 const INTENSIDADE_C = [
   { trait: 'D' }, { trait: 'D' }, { trait: 'D' },
   { trait: 'I' }, { trait: 'I' }, { trait: 'I' },
@@ -248,6 +204,14 @@ const INTENSIDADE_C = [
 // forçada (ver N-05 no CHANGELOG): só conta o bloco se as 2 estiverem
 // definidas e forem palavras diferentes, exatamente como blocoARespondido()
 // em public/disc.html.
+//
+// Item 01 do reteste-e-plataforma-ideal.md (ver CLAUDE.md/CHANGELOG): os 2
+// perfis vêm das mesmas 28 marcações — MENOS forma o natural (o que exige
+// menos esforço), MAIS forma o adaptado (o que aparece quando o ambiente
+// pede diferente). Antes, calcNatural() somava/subtraía Mais(+1)/Menos(-1)
+// num único escore (-28..+28) e calcAdaptado() vinha de uma Parte B de 16
+// situações (0..16) — 2 escalas incompatíveis. Agora os 2 são só
+// contagens (nunca negativas), cada uma de 0 a 28 — mesma escala.
 function calcNatural(respostasA) {
   const scores = { D: 0, I: 0, S: 0, C: 0 };
   const ra = respostasA || {};
@@ -257,23 +221,23 @@ function calcNatural(respostasA) {
     const mais = Number(r.mais);
     const menos = Number(r.menos);
     if (!Number.isInteger(mais) || !Number.isInteger(menos) || mais === menos) return;
-    const wMais = bloco.words[mais];
     const wMenos = bloco.words[menos];
-    if (wMais) scores[wMais.trait] = (scores[wMais.trait] || 0) + 1;
-    if (wMenos) scores[wMenos.trait] = (scores[wMenos.trait] || 0) - 1;
+    if (wMenos) scores[wMenos.trait] = (scores[wMenos.trait] || 0) + 1;
   });
   return scores;
 }
 
-// respostasB: { [sIdx]: optionIdx }
-function calcAdaptado(respostasB) {
+function calcAdaptado(respostasA) {
   const scores = { D: 0, I: 0, S: 0, C: 0 };
-  const rb = respostasB || {};
-  SITUACOES_B.forEach((sit, sIdx) => {
-    const sel = Number(rb[sIdx]);
-    if (!Number.isInteger(sel)) return;
-    const opt = sit.options[sel];
-    if (opt) scores[opt.trait] = (scores[opt.trait] || 0) + 1;
+  const ra = respostasA || {};
+  BLOCOS_A.forEach((bloco, bIdx) => {
+    const r = ra[bIdx];
+    if (!r) return;
+    const mais = Number(r.mais);
+    const menos = Number(r.menos);
+    if (!Number.isInteger(mais) || !Number.isInteger(menos) || mais === menos) return;
+    const wMais = bloco.words[mais];
+    if (wMais) scores[wMais.trait] = (scores[wMais.trait] || 0) + 1;
   });
   return scores;
 }
@@ -298,7 +262,6 @@ function calcIntensidade(respostasC) {
 
 module.exports = {
   BLOCOS_A,
-  SITUACOES_B,
   INTENSIDADE_C,
   calcNatural,
   calcAdaptado,

@@ -114,13 +114,13 @@ function drawTraitBar(doc, trait, pct, valueText) {
   doc.y = y + rowHeight;
 }
 
-// perfil natural/adaptado: escore com sinal, numa faixa de -ref a +ref
-function drawSignedBarSection(doc, scores, ref) {
+// perfil natural/adaptado: contagem sem sinal (nunca negativa — ver
+// calcNatural()/calcAdaptado() em src/discScoring.js), de 0 até `ref` (28).
+function drawUnsignedBarSection(doc, scores, ref) {
   TRAITS.forEach((t) => {
     const raw = scores[t] || 0;
-    const pct = ((raw + ref) / (2 * ref)) * 100;
-    const valueText = (raw > 0 ? '+' : '') + raw;
-    drawTraitBar(doc, t, pct, valueText);
+    const pct = ref > 0 ? (raw / ref) * 100 : 0;
+    drawTraitBar(doc, t, pct, String(raw));
   });
   doc.moveDown(0.6);
 }
@@ -209,12 +209,19 @@ function drawArchetypeHero(doc, traits, infos, descricao) {
 
 // N-06 do reteste: drawAdaptacaoDelta() (era a correção do D-04 da
 // auditoria anterior) subtraía o escore adaptado do natural pra achar "o
-// traço que mais muda sob pressão", mas os dois perfis não estão na mesma
-// escala — natural vem de 28 blocos (+1/-1, varia -28 a +28), adaptado vem
-// de 16 situações (só +1, varia 0 a 16). O traço natural mais negativo
-// sempre "vencia" essa conta, artificialmente — não é uma leitura real de
-// adaptação. Removida; o relatório mostra as duas seções de barra lado a
-// lado (já feito acima), sem comparação numérica entre elas.
+// traço que mais muda sob pressão", mas os dois perfis não estavam na
+// mesma escala — natural vinha de 28 blocos (+1/-1, varia -28 a +28),
+// adaptado vinha de 16 situações (só +1, varia 0 a 16). O traço natural
+// mais negativo sempre "vencia" essa conta, artificialmente — não era uma
+// leitura real de adaptação. Removida na época; o relatório mostrava as
+// duas seções de barra lado a lado, sem comparação numérica entre elas.
+//
+// Item 01 do reteste-e-plataforma-ideal.md (ver CLAUDE.md/CHANGELOG): os 2
+// perfis agora vêm das mesmas 28 marcações da Parte A (MENOS forma o
+// natural, MAIS forma o adaptado) — ambos contagens de 0 a 28, mesma
+// escala de verdade. Um comparativo textual/numérico entre eles voltou a
+// ser matematicamente válido, mas ainda não foi decidido/implementado —
+// as barras continuam lado a lado, sem delta.
 
 // D-05: quando as 4 intensidades saem muito parecidas, é sinal de
 // respostas pouco diferenciadas na Parte C — vale avisar.
@@ -287,11 +294,11 @@ function generateDiscPdf(data) {
     : `Empate técnico entre ${perfil.traits[0]} e ${perfil.traits[1]} — diferença de só ${perfil.gap} ponto${perfil.gap === 1 ? '' : 's'} no perfil natural. Considere as duas descrições abaixo, não apenas uma.`;
   drawArchetypeHero(doc, perfil.traits, infos, heroDescricao);
 
-  sectionTitle(doc, 'Perfil natural', 'O que é mais parecido com você — como você é, não como gostaria de ser.');
-  drawSignedBarSection(doc, natural, 28);
+  sectionTitle(doc, 'Perfil natural', 'O que exige menos esforço de você — seu estilo em repouso, sem pressão do ambiente.');
+  drawUnsignedBarSection(doc, natural, 28);
 
-  sectionTitle(doc, 'Perfil adaptado (trabalho)', 'Como você se comporta em situações reais no ambiente de trabalho.');
-  drawSignedBarSection(doc, adaptado, 16);
+  sectionTitle(doc, 'Perfil adaptado', 'O que você mostra mais quando o ambiente pede um comportamento diferente do natural.');
+  drawUnsignedBarSection(doc, adaptado, 28);
 
   sectionTitle(doc, 'Intensidade por traço', 'Força de cada traço, numa escala de 1 a 5.');
   drawIntensitySection(doc, intensidade);

@@ -251,13 +251,16 @@ app.post('/api/disc', (req, res) => {
 
   // Robustez: nunca confia em d_natural/i_natural/.../intensidade que o
   // cliente mandar no payload — sempre recalcula a partir das respostas
-  // cruas (Parte A/B/C), com a mesma lógica de calcNatural()/calcAdaptado()/
+  // cruas, com a mesma lógica de calcNatural()/calcAdaptado()/
   // calcIntensidade() que antes só existia em public/disc.html (ver
   // src/discScoring.js). Antes desta mudança dava pra abrir o console e
   // enviar qualquer d_natural fabricado; o servidor só recalculava
   // perfil_dominante/arquetipo em cima dele, nunca o escore em si.
+  //
+  // natural e adaptado vêm os 2 de `respostas.a` (item 01 do reteste — ver
+  // CLAUDE.md/CHANGELOG): a antiga Parte B (`respostas.b`) foi aposentada.
   const natural = calcNatural(respostas.a);
-  const adaptado = calcAdaptado(respostas.b);
+  const adaptado = calcAdaptado(respostas.a);
   const intensidade = calcIntensidade(respostas.c);
 
   // perfil_dominante e arquetipo são sempre recalculados a partir dos
@@ -307,9 +310,10 @@ app.post('/api/disc/pdf', (req, res) => {
   // respostas cruas, não confia no que o cliente mandar. perfil_dominante
   // nem é lido do body — generateDiscPdf() já sempre recalcula a partir
   // dos escores (nunca usou o que vinha nesse campo, então nem faz
-  // diferença esse valor estar certo ou não).
+  // diferença esse valor estar certo ou não). natural e adaptado vêm os 2
+  // de `respostas.a` — ver comentário equivalente em POST /api/disc.
   const natural = calcNatural(respostas.a);
-  const adaptado = calcAdaptado(respostas.b);
+  const adaptado = calcAdaptado(respostas.a);
   const intensidade = calcIntensidade(respostas.c);
 
   const data = {
