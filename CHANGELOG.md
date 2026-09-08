@@ -634,3 +634,47 @@ seguem só no histórico do `git log`.
     por linha; fica pra reavaliar se surgir relato de confusão ali também.
   - Testado via jsdom nos 3 campos (aparece/some corretamente).
   - `npm test`: 75/75 passando.
+- **Análise (sem código ainda): repensar a Parte A do DISC e aposentar a
+  Parte B** — vários testadores relataram confusão na Parte A mesmo com o
+  texto de instrução e o exemplo de preenchimento (ver entrada anterior no
+  CHANGELOG). O usuário trouxe de volta o item 01 do
+  `reteste-e-plataforma-ideal.md` (antes descartado, ver CLAUDE.md): os
+  dois gráficos (natural e adaptado) viriam das mesmas 28 marcações da
+  Parte A — MENOS forma o natural, MAIS forma o adaptado —, aposentando a
+  Parte B (16 situações) inteira. A sugestão de UI ("cards" de MAIS/MENOS)
+  ficou sem mecanismo de seleção definido; proposta feita em conversa (não
+  implementada): fluxo sequencial de 2 passos por bloco — "qual é MAIS
+  parecida?" (escolhe 1 de 4) e depois "qual é MENOS parecida?" (escolhe 1
+  das 3 restantes, a já escolhida como Mais some da lista) — elimina o
+  estado de conflito por construção (não dá pra marcar a mesma frase 2x
+  porque ela não aparece mais na 2ª pergunta), diferente do modelo atual
+  (2 grupos de radio simultâneos + resolução automática de conflito).
+  - Quebra de PDF identificada: `drawSignedBarSection(doc, adaptado, 16)`
+    em `src/reports/discReport.js` assume adaptado numa escala 0–16 (Parte
+    B); no modelo novo adaptado vira uma contagem 0–28 (mesma escala do
+    natural) — barra teria que mudar de "com sinal" (`-ref` a `+ref`) pra
+    uma contagem simples (como já é `drawIntensitySection`), pros dois
+    perfis.
+  - `LIMIAR_EMPATE_TRACOS = 2` (empate de perfil) foi calibrado pro natural
+    atual (-28 a +28); precisa ser revalidado pra contagem 0–28 antes de
+    reaproveitar sem revisão.
+  - Dado histórico: registros já gravados em `disc_respostas` foram
+    calculados pela fórmula atual — trocar a fórmula sem migrar deixa
+    registros antigos incomparáveis com os novos (mas o `.a` bruto já
+    salvo é suficiente pra recalcular, se um dia quisermos).
+  - Robustez de carga (2k participantes): essa mudança é neutra pro banco
+    — continua 1 gravação por envio, payload até um pouco menor sem
+    `respostas.b`. Não resolve nem piora o gargalo de 2k simultâneos (ver
+    nova seção "Robustez pra >2k participantes simultâneos" no
+    CLAUDE.md) — são frentes independentes.
+  - Nada implementado ainda — análise e proposta de UX apresentadas na
+    conversa, aguardando decisão do usuário sobre escopo antes de mexer em
+    `disc.html`/`discScoring.js`/`discReport.js`/testes.
+- **Nova seção no CLAUDE.md: robustez pra >2k participantes simultâneos,
+  reconhecida como dívida técnica, não mais adiada** — pedido explícito do
+  usuário pra seguir práticas de DevOpsSec daqui pra frente. Lista os
+  gargalos já identificados (SQLite não escala horizontalmente, processo
+  Node único sem cluster, geração de PDF síncrona/bloqueante, 1 instância
+  Render sem load balancer, sem rate limiting, nenhum teste de carga real
+  rodado, sem monitoramento/alerta) como trabalho ativo, e passa a exigir
+  que toda mudança de UX/instrumento também seja avaliada por esse ângulo.

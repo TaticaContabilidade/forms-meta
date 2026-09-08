@@ -233,6 +233,44 @@ PostgreSQL gerenciado do Render — mas isso exige reescrever a camada de
 banco (`better-sqlite3` → `pg`) em `src/server.js`, não é só configuração de
 infraestrutura. Não faça essa migração sem pedido explícito.
 
+### Robustez pra >2k participantes simultâneos — dívida reconhecida, não mais adiada
+
+Práticas de DevOpsSec não foram levadas em conta desde o início do projeto —
+deveriam ter sido. Chegamos perto da entrega e o sistema, do jeito que está
+hoje, não aguenta os >2.000 participantes simultâneos de uma palestra ao
+vivo. Isso passa a ser trabalho ativo, não mais "adiar pra depois":
+
+- **SQLite não escala horizontalmente.** Um único arquivo num único disco
+  montado (ver acima) não pode ser compartilhado entre múltiplas instâncias
+  do Render — hoje só dá pra escalar verticalmente (uma instância maior),
+  não adicionando instâncias. Migrar pra Postgres (ver acima) é o que
+  desbloqueia isso, mas é uma decisão que exige pedido explícito por
+  reescrever a camada de banco inteira.
+- **Um único processo Node, sem cluster** (`src/server.js`, `require.main
+  === module` chama `app.listen` direto) — não usa todos os núcleos da
+  instância.
+- **Geração de PDF é síncrona/bloqueante dentro do handler da requisição**
+  (`pdfkit` em `src/reports/*.js`) — uma rajada de downloads de PDF
+  simultâneos trava o event loop pra todo mundo, não só quem pediu o PDF.
+  Perfil natural igual bug encontrado no reteste (falta serializado versus
+  paralelo) — considerar fila/worker se o volume de PDFs simultâneos for
+  alto.
+- **`render.yaml` roda 1 instância `starter`** — sem plano de múltiplas
+  instâncias nem load balancer configurado.
+- **Sem rate limiting** em nenhuma rota — nada impede uma rajada de
+  requisições (intencional ou não) de derrubar a única instância.
+- **Nenhum teste de carga real foi rodado** — os números acima são
+  diagnóstico por leitura de código, não medição. Antes de prometer
+  suporte a 2k pessoas, rodar uma carga sintética de verdade (ex.: `k6`,
+  `autocannon`) contra uma cópia de staging.
+- **Sem monitoramento/alerta** — hoje não há visibilidade de erro/latência
+  em produção além dos logs do Render.
+
+Qualquer mudança de UX/instrumento (DISC ou calculadora) deve ser avaliada
+também por este ângulo antes de implementar — não só "melhora a
+experiência", mas "o que isso muda pra 2k pessoas preenchendo ao mesmo
+tempo".
+
 ## Backlog: features novas (não são bugs)
 
 A seção "05 — Como seria a plataforma" de `reteste-e-plataforma-ideal.md`
@@ -240,11 +278,13 @@ A seção "05 — Como seria a plataforma" de `reteste-e-plataforma-ideal.md`
 abaixo, embora este não tenha o prefixo por não ter sido pedido) lista 8
 ideias de evolução da plataforma. O item 02 (escolha forçada com radio
 agrupado) já foi entregue — era o N-05, ver CHANGELOG. O item 01 (aposentar
-a Parte B, derivando os 2 perfis das mesmas 28 marcações da Parte A) foi
-avaliado e **descartado por decisão explícita do usuário** — não faz parte
-do backlog, não reconsiderar sem pedido novo. Os 6 restantes são **features
-novas, não correções** — ficam pra fase de refinamento, depois que a
-entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
+a Parte B, derivando os 2 perfis das mesmas 28 marcações da Parte A) tinha
+sido avaliado e descartado antes, mas voltou a ser discutido por pedido
+explícito do usuário (relatos de confusão de testadores na Parte A) — ver
+CHANGELOG pra decisão mais recente antes de mexer nisso de novo. Os 6
+restantes são **features novas, não correções** — ficam pra fase de
+refinamento, depois que a entrega atual fechar. Ordenados por barateamento
+(mais barato primeiro):
 
 1. **Uma linha sobre o que o instrumento não é** (item 08) — uma frase de
    rodapé no relatório e no PDF ("leitura de estilo comportamental para
