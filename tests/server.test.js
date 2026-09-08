@@ -364,3 +364,112 @@ describe('API /api/disc/pdf', () => {
     assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
   });
 });
+
+describe('API /api/meu-porque', () => {
+  let createdId;
+
+  const payloadValido = {
+    nome_participante: 'Fulano de Tal',
+    empresa: 'Empresa Y',
+    objetivo: 'Crescer 30% no ano',
+    sonho: 'Ter uma equipe que roda sem mim',
+    mudanca: 'Delegar de verdade',
+    visao_futuro: 'Uma empresa que funciona sem eu apagar incêndio todo dia',
+  };
+
+  test('POST sem nome_participante retorna 400', async () => {
+    const res = await request(app).post('/api/meu-porque').send({ empresa: 'Empresa Y' });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /nome_participante/);
+  });
+
+  test('POST com dados válidos cria o registro', async () => {
+    const res = await request(app).post('/api/meu-porque').send(payloadValido);
+    assert.equal(res.status, 201);
+    assert.ok(res.body.id);
+    createdId = res.body.id;
+  });
+
+  test('GET sem token retorna 401', async () => {
+    const res = await request(app).get('/api/meu-porque');
+    assert.equal(res.status, 401);
+  });
+
+  test('GET com token lista os registros com as 4 respostas gravadas', async () => {
+    const res = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(res.status, 200);
+    const row = res.body.find(r => r.id === createdId);
+    assert.ok(row);
+    assert.equal(row.nome_participante, 'Fulano de Tal');
+    assert.equal(row.objetivo, payloadValido.objetivo);
+    assert.equal(row.sonho, payloadValido.sonho);
+    assert.equal(row.mudanca, payloadValido.mudanca);
+    assert.equal(row.visao_futuro, payloadValido.visao_futuro);
+  });
+
+  test('GET /api/meu-porque.csv exporta CSV com BOM e cabeçalho', async () => {
+    const res = await request(app).get('/api/meu-porque.csv').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(res.status, 200);
+    assert.match(res.headers['content-type'], /text\/csv/);
+    assert.match(res.headers['content-disposition'], /filename="meu_porque_respostas\.csv"/);
+    assert.match(res.text, /^﻿id;criado_em;nome_participante/);
+    assert.match(res.text, /Fulano de Tal/);
+  });
+
+  test('DELETE remove o registro (admin)', async () => {
+    const del = await request(app).delete(`/api/meu-porque/${createdId}`).set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(del.status, 204);
+
+    const list = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    assert.ok(!list.body.some(r => r.id === createdId));
+  });
+
+  test('DELETE sem token retorna 401 e não apaga nada', async () => {
+    const create = await request(app).post('/api/meu-porque').send(payloadValido);
+    const del = await request(app).delete(`/api/meu-porque/${create.body.id}`);
+    assert.equal(del.status, 401);
+
+    const list = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    assert.ok(list.body.some(r => r.id === create.body.id));
+
+    await request(app).delete(`/api/meu-porque/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+  });
+});
+
+describe('API /api/meu-porque/pdf', () => {
+  const payloadValido = {
+    nome_participante: 'Fulano de Tal',
+    empresa: 'Empresa Y',
+    objetivo: 'Crescer 30% no ano',
+    sonho: 'Ter uma equipe que roda sem mim',
+    mudanca: 'Delegar de verdade',
+    visao_futuro: 'Uma empresa que funciona sem eu apagar incêndio todo dia',
+  };
+
+  test('gera um PDF com o nome de arquivo "${nome do participante} meu porque.pdf"', async () => {
+    const res = await request(app).post('/api/meu-porque/pdf').send(payloadValido);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+    assert.match(res.headers['content-disposition'], /filename="Fulano de Tal meu porque\.pdf"/);
+    assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
+  });
+
+  test('sem nome_participante, usa "Meu Porque.pdf" como nome de arquivo', async () => {
+    const res = await request(app).post('/api/meu-porque/pdf').send({ empresa: 'Empresa Y' });
+    assert.equal(res.status, 200);
+    assert.match(res.headers['content-disposition'], /filename="Meu Porque\.pdf"/);
+  });
+
+  test('não exige nome_participante nem respostas (relatório não é salvo no banco)', async () => {
+    const res = await request(app).post('/api/meu-porque/pdf').send({});
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['content-type'], 'application/pdf');
+  });
+
+  test('POST /api/meu-porque/pdf não grava nada no banco', async () => {
+    const before = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    await request(app).post('/api/meu-porque/pdf').send(payloadValido);
+    const after = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(after.body.length, before.body.length);
+  });
+});

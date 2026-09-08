@@ -26,6 +26,7 @@
   --primary:      #AADC4E;
   --primary-fg:   #162318;
   --accent:       #E8A838;
+  --coral:        #E8737A;
   --d-color: #E05252; --d-bg: rgba(224,82,82,0.1);   --d-border: rgba(224,82,82,0.25);
   --i-color: #E8A838; --i-bg: rgba(232,168,56,0.1);  --i-border: rgba(232,168,56,0.25);
   --s-color: #50D090; --s-bg: rgba(80,208,144,0.1);  --s-border: rgba(80,208,144,0.25);
@@ -160,6 +161,7 @@ h1 {
 
 .tool-card.meta   { --card-accent: var(--primary); }
 .tool-card.disc   { --card-accent: var(--accent); }
+.tool-card.porque { --card-accent: var(--coral); grid-column: 1 / -1; }
 
 .tool-icon {
   width: 48px;
@@ -172,6 +174,7 @@ h1 {
 }
 .tool-card.meta .tool-icon   { background: rgba(170,220,78,0.12); }
 .tool-card.disc .tool-icon   { background: rgba(232,168,56,0.12); }
+.tool-card.porque .tool-icon { background: rgba(232,115,122,0.12); }
 
 .tool-label {
   font-size: 10px;
@@ -182,6 +185,7 @@ h1 {
 }
 .tool-card.meta .tool-label { color: var(--primary); }
 .tool-card.disc .tool-label { color: var(--accent); }
+.tool-card.porque .tool-label { color: var(--coral); }
 
 .tool-title {
   font-family: var(--display);
@@ -213,6 +217,7 @@ h1 {
 }
 .tool-card.meta .tool-pill { background: rgba(170,220,78,0.08); border-color: rgba(170,220,78,0.25); color: var(--primary); }
 .tool-card.disc .tool-pill { background: rgba(232,168,56,0.08); border-color: rgba(232,168,56,0.25); color: var(--accent); }
+.tool-card.porque .tool-pill { background: rgba(232,115,122,0.08); border-color: rgba(232,115,122,0.25); color: var(--coral); }
 
 .tool-cta {
   display: inline-flex;
@@ -234,6 +239,11 @@ h1 {
   background: var(--accent);
   color: #1A1000;
   box-shadow: 0 4px 14px rgba(232,168,56,0.25);
+}
+.tool-card.porque .tool-cta {
+  background: var(--coral);
+  color: #2A0A0C;
+  box-shadow: 0 4px 14px rgba(232,115,122,0.25);
 }
 .tool-card:hover .tool-cta { opacity: 0.9; }
 
@@ -369,11 +379,12 @@ footer a:hover { color: var(--primary); }
   <section class="hero">
     <p class="eyebrow">Treinamento comercial · Practice to Create</p>
     <h1>Ferramentas do treinamento</h1>
-    <p class="hero-sub">Calculadora de metas comerciais e avaliação de perfil comportamental DISC. Escolha a dinâmica que o facilitador indicar.</p>
+    <p class="hero-sub">Calculadora de metas comerciais, avaliação de perfil comportamental DISC e a reflexão do Meu Porquê. Escolha a dinâmica que o facilitador indicar.</p>
     <div class="hero-chips">
       <span class="chip">📊 Calculadora de metas</span>
       <span class="chip">🧠 Avaliação DISC</span>
-      <span class="chip">⏱ ~12–20 min cada</span>
+      <span class="chip">💭 Meu Porquê</span>
+      <span class="chip">⏱ ~5–20 min cada</span>
     </div>
   </section>
 
@@ -408,13 +419,34 @@ footer a:hover { color: var(--primary); }
       <div>
         <p class="tool-label">Dinâmica 2</p>
         <h2 class="tool-title">Avaliação DISC</h2>
-        <p class="tool-desc">56 questões em 3 partes que revelam seu perfil natural, comportamento sob pressão e a intensidade de cada traço.</p>
+        <p class="tool-desc">40 questões em 2 partes que revelam seu perfil natural, adaptado e a intensidade de cada traço.</p>
       </div>
       <div class="disc-profiles">
         <div class="disc-profile-item"><div class="disc-dot" style="background:#E05252"></div>D · O Executor</div>
         <div class="disc-profile-item"><div class="disc-dot" style="background:#E8A838"></div>I · O Comunicador</div>
         <div class="disc-profile-item"><div class="disc-dot" style="background:#50D090"></div>S · O Planejador</div>
         <div class="disc-profile-item"><div class="disc-dot" style="background:#6BA0F0"></div>C · O Analista</div>
+      </div>
+      <div>
+        <span class="tool-cta">Acessar →</span>
+      </div>
+    </a>
+
+    <!-- Card 3: Meu Porquê -->
+    <a class="tool-card porque" href="/meu-porque.html">
+      <div>
+        <div class="tool-icon">💭</div>
+      </div>
+      <div>
+        <p class="tool-label">Dinâmica 3</p>
+        <h2 class="tool-title">Meu Porquê</h2>
+        <p class="tool-desc">4 perguntas de reflexão sobre objetivo, sonho, mudança e visão de futuro — sem cálculo, sem perfil, só você no papel.</p>
+      </div>
+      <div class="tool-pills">
+        <span class="tool-pill">Objetivo</span>
+        <span class="tool-pill">Sonho</span>
+        <span class="tool-pill">Mudança</span>
+        <span class="tool-pill">Visão de futuro</span>
       </div>
       <div>
         <span class="tool-cta">Acessar →</span>

@@ -15,6 +15,10 @@ const {
   ARQUETIPO_MAP,
 } = require('./reports/discReport');
 const { calcNatural, calcAdaptado, calcIntensidade } = require('./discScoring');
+const {
+  generateMeuPorquePdf,
+  meuPorqueFilename,
+} = require('./reports/meuPorqueReport');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'troque-isto';
@@ -106,6 +110,25 @@ db.exec(`
   )
 `);
 
+// "Meu Porquê" — dinâmica simples de reflexão (nova dinamica simples.md),
+// 4 perguntas abertas, sem cálculo/perfil nenhum. Cada resposta é
+// relacionada ao participante pelas mesmas colunas nome_participante/
+// empresa que metas/disc_respostas já usam — não existe (ainda) um
+// cadastro único compartilhado entre as 3 ferramentas (ver item 06 do
+// backlog em CLAUDE.md).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS meu_porque_respostas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    criado_em TEXT DEFAULT (datetime('now','localtime')),
+    nome_participante TEXT,
+    empresa TEXT,
+    objetivo TEXT,
+    sonho TEXT,
+    mudanca TEXT,
+    visao_futuro TEXT
+  )
+`);
+
 const insertStmt = db.prepare(`
   INSERT INTO metas (
     nome_participante, empresa, faturamento, crescimento_pct, churn_pct,
@@ -133,6 +156,14 @@ const insertDiscStmt = db.prepare(`
     @d_adaptado, @i_adaptado, @s_adaptado, @c_adaptado,
     @d_intensidade, @i_intensidade, @s_intensidade, @c_intensidade,
     @perfil_dominante, @arquetipo, @respostas_json
+  )
+`);
+
+const insertMeuPorqueStmt = db.prepare(`
+  INSERT INTO meu_porque_respostas (
+    nome_participante, empresa, objetivo, sonho, mudanca, visao_futuro
+  ) VALUES (
+    @nome_participante, @empresa, @objetivo, @sonho, @mudanca, @visao_futuro
   )
 `);
 
@@ -368,6 +399,77 @@ app.get('/api/disc.csv', requireAdmin, (req, res) => {
 // apaga resultado DISC (admin)
 app.delete('/api/disc/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM disc_respostas WHERE id = ?').run(req.params.id);
+  res.status(204).end();
+});
+
+// ---------- rotas Meu Porquê ----------
+
+// recebe resultado de um participante — sem cálculo nenhum, só grava as
+// 4 respostas cruas (dinâmica "simples", ver nova dinamica simples.md)
+app.post('/api/meu-porque', (req, res) => {
+  const b = req.body || {};
+
+  const row = {
+    nome_participante: String(b.nome_participante || '').slice(0, 200),
+    empresa: String(b.empresa || '').slice(0, 200),
+    objetivo: String(b.objetivo || '').slice(0, 4000),
+    sonho: String(b.sonho || '').slice(0, 4000),
+    mudanca: String(b.mudanca || '').slice(0, 4000),
+    visao_futuro: String(b.visao_futuro || '').slice(0, 4000),
+  };
+
+  if (!row.nome_participante) {
+    return res.status(400).json({ error: 'nome_participante é obrigatório.' });
+  }
+
+  const info = insertMeuPorqueStmt.run(row);
+  res.status(201).json({ id: info.lastInsertRowid });
+});
+
+// gera o relatório em PDF do Meu Porquê (não salva no banco — o
+// participante pode baixar o relatório mesmo sem ter enviado as respostas
+// antes, mesmo padrão de POST /api/metas/pdf e POST /api/disc/pdf)
+app.post('/api/meu-porque/pdf', (req, res) => {
+  const b = req.body || {};
+
+  const data = {
+    nome_participante: String(b.nome_participante || '').slice(0, 200),
+    empresa: String(b.empresa || '').slice(0, 200),
+    objetivo: String(b.objetivo || '').slice(0, 4000),
+    sonho: String(b.sonho || '').slice(0, 4000),
+    mudanca: String(b.mudanca || '').slice(0, 4000),
+    visao_futuro: String(b.visao_futuro || '').slice(0, 4000),
+  };
+
+  const filename = meuPorqueFilename(data.nome_participante);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', contentDispositionFilename(filename));
+  generateMeuPorquePdf(data).pipe(res);
+});
+
+// lista respostas do Meu Porquê (admin)
+app.get('/api/meu-porque', requireAdmin, (req, res) => {
+  const rows = db.prepare('SELECT * FROM meu_porque_respostas ORDER BY id DESC').all();
+  res.json(rows);
+});
+
+// exporta respostas do Meu Porquê em CSV (admin)
+app.get('/api/meu-porque.csv', requireAdmin, (req, res) => {
+  const rows = db.prepare('SELECT * FROM meu_porque_respostas ORDER BY id DESC').all();
+  const cols = ['id', 'criado_em', 'nome_participante', 'empresa', 'objetivo', 'sonho', 'mudanca', 'visao_futuro'];
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const header = cols.join(';');
+  const lines = rows.map(r => cols.map(c => esc(r[c])).join(';'));
+  const csv = [header, ...lines].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="meu_porque_respostas.csv"');
+  res.send('\uFEFF' + csv);
+});
+
+// apaga resposta do Meu Porquê (admin)
+app.delete('/api/meu-porque/:id', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM meu_porque_respostas WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });
 
