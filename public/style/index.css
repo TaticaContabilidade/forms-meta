@@ -181,7 +181,11 @@ h1 {
 .field-prefix {
   font-family: var(--mono);
   font-size: 13px;
-  color: var(--fg-faint);
+  /* N-03 do reteste: --fg-faint dá só 4,12:1 sobre o fundo real do campo
+     (--input-bg, um overlay translúcido — diferente do --card/--bg contra
+     o qual --fg-faint foi calibrado em auditorias anteriores). --fg-soft
+     dá 5,93:1 aqui, acima dos 4,5:1 exigidos. */
+  color: var(--fg-soft);
   padding: 0 0 0 12px;
   user-select: none;
 }
@@ -199,7 +203,7 @@ h1 {
 .field-suffix {
   font-family: var(--mono);
   font-size: 13px;
-  color: var(--fg-faint);
+  color: var(--fg-soft);
   padding: 0 12px 0 0;
   user-select: none;
 }
