@@ -4,7 +4,7 @@ Orientações para trabalhar neste repositório (`forms-meta`).
 
 ## O que é o projeto
 
-Backend Node.js (Express 5 + `better-sqlite3`) que serve duas ferramentas de
+Backend Node.js (Express 5 + `better-sqlite3`) que serve três ferramentas de
 treinamento comercial em `public/`:
 
 - `index.html` — landing page institucional: a história da Tática contada
@@ -31,8 +31,20 @@ treinamento comercial em `public/`:
   `POST /api/metas` (tabela `metas`).
 - `disc.html` — avaliação DISC, grava respostas em `POST /api/disc` (tabela
   `disc_respostas`).
+- `meu-porque.html` — dinâmica simples de reflexão, 4 perguntas abertas
+  (objetivo, sonho, mudança, visão de futuro), sem cálculo/perfil nenhum —
+  grava em `POST /api/meu-porque` (tabela `meu_porque_respostas`). Veio de
+  um pedido direto (`nova dinamica simples.md` na raiz do repo, não
+  versionado — mesma convenção de material de referência de
+  `politica_comercial.docx`/`texto_auxiliar.md`), com 2 decisões explícitas
+  do usuário: sem cadastro unificado com as outras 2 ferramentas (identidade
+  própria — nome/empresa de novo, mesmo padrão de sempre) e **com** relatório
+  em PDF (`POST /api/meu-porque/pdf`, `src/reports/meuPorqueReport.js`,
+  nome do arquivo `${participante} meu porque.pdf` — mesma convenção D-13
+  das outras 2). Tem "Salvar PDF" ao lado de "Enviar minhas respostas", os 2
+  reaproveitando a mesma validação (nome + as 4 perguntas respondidas).
 - `admin.html` — painel autenticado (`x-admin-token` / `?token=`) para listar,
-  exportar CSV e apagar registros de ambas as tabelas.
+  exportar CSV e apagar registros das três tabelas.
 
 Todas as páginas com `<a>← Voltar ao menu</a>` linkam pra
 `/ferramentas.html`, não pra `/` — `/` agora é a landing page, não o menu.
@@ -63,8 +75,14 @@ barra) — nunca um "print" da página HTML.
   mandou. `POST /api/disc/pdf` (não grava no banco; mesmo payload de
   `POST /api/disc`) é consumido pelo botão "Salvar PDF" em `disc.html`. Nome
   do arquivo: `${nome do participante} perfil disc.pdf`.
+- `src/reports/meuPorqueReport.js` — relatório do Meu Porquê (as 4
+  perguntas com a resposta de cada uma, texto corrido, sem cálculo). `POST
+  /api/meu-porque/pdf` (não grava no banco; mesmo payload de `POST
+  /api/meu-porque`) é consumido pelo botão "Salvar PDF" em
+  `meu-porque.html`. Nome do arquivo: `${nome do participante} meu
+  porque.pdf`.
 
-  **Nome do arquivo por participante nos dois relatórios** (não por
+  **Nome do arquivo por participante nos três relatórios** (não por
   empresa) — decisão explícita, ver CHANGELOG.md (D-13 da auditoria do
   DISC). Não reverta pra empresa sem confirmar de novo.
 
@@ -77,24 +95,24 @@ barra) — nunca um "print" da página HTML.
   salvos no banco todos refletem os dois traços, nunca um só.
 
   **Escore calculado no servidor, não confia no cliente.**
-  `src/discScoring.js` duplica `BLOCOS_A`/`SITUACOES_B`/`INTENSIDADE_C` e as
-  funções `calcNatural()`/`calcAdaptado()`/`calcIntensidade()` de
-  `disc.html` (mesma ideia do `ARQUETIPO_MAP` duplicado em
-  `discReport.js`) — se o conteúdo das partes A/B/C mudar em `disc.html`,
-  espelhe a mudança aqui também. `POST /api/disc` e `POST /api/disc/pdf`
-  recebem `respostas.{a,b,c}` (as respostas cruas por bloco/situação/item)
-  e recalculam `d_natural`/`i_natural`/... e `perfil_dominante`/`arquetipo`
-  inteiramente no servidor a partir disso — nunca confiam em nenhum escore
-  pronto que o cliente mande (`disc.html` nem envia mais esses campos,
-  ver `montarPayloadBase()`). Isso fecha o buraco de quem abria o console
-  do navegador e fabricava um `d_natural` qualquer direto no POST, e evita
-  persistir um resultado calculado por uma versão desatualizada/cacheada de
-  `disc.html`. `SITUACOES_B`/`INTENSIDADE_C` guardam só `{trait}` (sem o
-  texto de exibição, que só existe em `disc.html`) porque a ordem dos
-  traços nessas duas partes é mecanicamente uniforme (situações sempre
-  D,I,S,C; intensidade sempre D×3,I×3,S×3,C×3) — já `BLOCOS_A` guarda o
-  `text` inteiro porque a ordem das palavras não é uniforme o bastante pra
-  confiar sem poder auditar visualmente contra `disc.html`.
+  `src/discScoring.js` duplica `BLOCOS_A`/`INTENSIDADE_C` e as funções
+  `calcNatural()`/`calcAdaptado()`/`calcIntensidade()` de `disc.html`
+  (mesma ideia do `ARQUETIPO_MAP` duplicado em `discReport.js`) — se o
+  conteúdo mudar em `disc.html`, espelhe a mudança aqui também. `POST
+  /api/disc` e `POST /api/disc/pdf` recebem `respostas.{a,c}` (as respostas
+  cruas por bloco/item — ver "A avaliação tem 2 partes" abaixo pro porquê
+  de não ter mais `respostas.b`) e recalculam `d_natural`/`i_natural`/... e
+  `perfil_dominante`/`arquetipo` inteiramente no servidor a partir disso —
+  nunca confiam em nenhum escore pronto que o cliente mande (`disc.html`
+  nem envia mais esses campos, ver `montarPayloadBase()`). Isso fecha o
+  buraco de quem abria o console do navegador e fabricava um `d_natural`
+  qualquer direto no POST, e evita persistir um resultado calculado por uma
+  versão desatualizada/cacheada de `disc.html`. `INTENSIDADE_C` guarda só
+  `{trait}` (sem o texto de exibição, que só existe em `disc.html`) porque
+  a ordem dos traços é mecanicamente uniforme (D×3,I×3,S×3,C×3) — já
+  `BLOCOS_A` guarda o `text` inteiro porque a ordem das palavras não é
+  uniforme o bastante pra confiar sem poder auditar visualmente contra
+  `disc.html`.
 
 Em ambos os HTML, o download baixa o PDF via `fetch` + blob e lê o nome do
 arquivo do header `Content-Disposition` da resposta — não usam mais
@@ -333,12 +351,13 @@ entrega atual fechar. Ordenados por barateamento (mais barato primeiro):
    não compensa implementar ainda.
 5. ~~**Escore no servidor, não no navegador** (item 03)~~ — feito. Ver
    `src/discScoring.js` e a seção "Escore calculado no servidor" acima.
-6. **Um cadastro, um participante, duas ferramentas** (item 06) — hoje
-   nome/empresa são digitados 2x, cada ferramenta com seu `localStorage` e
-   PDF separados. Precisa de um identificador compartilhado entre as duas
-   ferramentas e um relatório combinado novo (meta comercial + perfil
-   DISC) — maior que os itens acima, mexe na identidade de dados das duas
-   tabelas.
+6. **Um cadastro, um participante, três ferramentas** (item 06) — hoje
+   nome/empresa são digitados de novo em cada ferramenta (calculadora, DISC
+   e agora também Meu Porquê), cada uma com seu `localStorage` e PDF
+   separados — decisão explícita ao criar o Meu Porquê, não um esquecimento.
+   Precisa de um identificador compartilhado entre as três ferramentas e um
+   relatório combinado novo — maior que os itens acima, mexe na identidade
+   de dados das três tabelas.
 
 ## Fluxo de commit
 
@@ -398,11 +417,15 @@ Os testes usam o runner nativo do Node (`node --test`):
   avaliação inteira de forma determinística (ver comentário no topo do
   arquivo) pra chegar na tela de resultado e testar arquétipo, modulação
   por intensidade, persistência de nome/empresa e a confirmação inline do
-  "Refazer avaliação". Os dois arquivos de teste
-  usam um `VirtualConsole` próprio (sem `.sendTo(console)`) pra suprimir o
-  aviso "Not implemented" que o `window.scrollTo`/`scrollIntoView` do jsdom
-  imprime a cada chamada — isso não esconde erro de verdade: uma exceção
-  real lançada dentro de um handler ainda propaga pro teste normalmente.
+  "Refazer avaliação".
+- `tests/meu-porque.client.test.js` — mesma ideia pra `meu-porque.html`:
+  validação (nome + as 4 perguntas antes de "Enviar" ou "Salvar PDF",
+  mesma função de validação nos 2 botões) e persistência local.
+  Os três arquivos de teste client-side usam um `VirtualConsole` próprio
+  (sem `.sendTo(console)`) pra suprimir o aviso "Not implemented" que o
+  `window.scrollTo`/`scrollIntoView` do jsdom imprime a cada chamada — isso
+  não esconde erro de verdade: uma exceção real lançada dentro de um
+  handler ainda propaga pro teste normalmente.
 
 ## Convenção: prefixo `_` = não versionar
 
@@ -414,6 +437,18 @@ remova essa regra, e não force `git add` sobre algo com esse prefixo.
 Da mesma forma, **nenhum `*.pdf` sobe ao git** (regra própria no
 `.gitignore`, independente do prefixo `_`) — são sempre relatórios
 gerados/baixados localmente, nunca artefatos de código.
+
+**Material de referência solto na raiz do repo, sem prefixo `_`, não
+coberto pelo `.gitignore` — mas nunca versionado, por convenção manual.**
+São documentos/imagens que o usuário larga na raiz pra eu ler e usar de
+base (pedido de feature, texto pra adaptar, imagem pra incluir numa
+página), não código nem conteúdo final do site. Exemplos já vistos:
+`politica_comercial.docx`, `texto_auxiliar.md`, `plataforma.jpeg`,
+`reteste-e-plataforma-ideal.md`, os `auditoria*.md`, `nova dinamica
+simples.md`, e os `qrcode-*.png` gerados ad-hoc. Antes de `git add`, sempre
+confira `git status` e não inclua nada assim — só a cópia final (quando
+existe uma, ex.: `public/politica-comercial-tatica.docx`,
+`public/img/plataforma.jpeg`) é que vai pro repo.
 
 ## Convenções de código
 
