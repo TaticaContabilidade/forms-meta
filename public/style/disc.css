@@ -294,6 +294,34 @@ h2 {
 }
 
 /* ====== PARTE A — ESCOLHA FORÇADA ====== */
+
+/* Exemplo de preenchimento (instrução visual, não é um bloco de verdade) */
+.example-wrap { margin-bottom: 28px; }
+.example-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: rgba(170,220,78,0.1);
+  border: 1px solid rgba(170,220,78,0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
+  margin-bottom: 8px;
+}
+.choice-block.example {
+  border-style: dashed;
+  border-color: rgba(170,220,78,0.4);
+  opacity: 0.92;
+}
+.example-caption {
+  font-size: 12.5px;
+  color: var(--fg-soft);
+  margin: 10px 2px 0;
+  line-height: 1.5;
+}
+
 .blocks-list {
   display: flex;
   flex-direction: column;

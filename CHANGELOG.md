@@ -498,3 +498,22 @@ seguem só no histórico do `git log`.
   (a página que só o facilitador/time usa, não o público). CSS órfão
   (`footer a`, sem mais nenhum link no rodapé desta página) removido
   junto.
+- **Instrução visual de preenchimento na Parte A do DISC** — pedido do
+  usuário: participantes se confundiam na hora de preencher (marcando
+  mais de uma palavra por grupo, ou achando que precisavam marcar as 4).
+  Reescrevi o texto de instrução (agora explícito: "só uma de cada,
+  nunca a mesma frase nos dois grupos... as outras 2 ficam sem
+  marcação") e adicionei um bloco de exemplo já preenchido logo abaixo,
+  antes do Bloco 1 de verdade.
+  - O exemplo reaproveita a mesma marcação HTML de um bloco real
+    (`.choice-block`, `.choice-options`, `.choice-radios`) com
+    `<input disabled>` — garante que o "+ Mais"/"− Menos" verde apareça
+    visualmente idêntico ao de uma resposta de verdade, sem duplicar CSS.
+    `disabled` tira os inputs do tab order e, sem `name`, não colidem
+    com nenhum seletor/teste dos blocos reais.
+  - CSS novo: `.example-wrap`/`.example-tag` (badge "Exemplo de
+    preenchimento") e `.choice-block.example` (borda tracejada,
+    diferencia visualmente de um bloco real).
+  - Confirmado que os 28 blocos reais continuam 28 (`#blocksA fieldset`)
+    e que nenhum input do exemplo tem `name` ou fica focável — testado
+    via jsdom e visualmente num Chromium real.
