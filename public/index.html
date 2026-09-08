@@ -118,7 +118,6 @@ header.top img { width: 26px; height: 26px; display: block; }
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
-  text-align: center;
 }
 .hero-person::before {
   content: '';
@@ -146,6 +145,7 @@ header.top img { width: 26px; height: 26px; display: block; }
   text-transform: uppercase;
   color: var(--primary);
   margin: 0 0 10px;
+  text-align: center;
   position: relative;
 }
 h1.person-name {
@@ -156,21 +156,28 @@ h1.person-name {
   letter-spacing: -0.02em;
   color: var(--fg);
   margin: 0 0 6px;
+  text-align: center;
   position: relative;
 }
 .person-role {
   font-size: 15px;
   color: var(--fg-soft);
   margin: 0 0 28px;
+  text-align: center;
   position: relative;
 }
+/* Texto corrido sempre alinhado à esquerda (mais legível em parágrafo de
+   várias linhas do que centralizado) — só a coluna em si fica centralizada
+   no card via max-width + margin:auto. Só a identidade acima (foto/nome/
+   cargo) é centralizada de verdade, cada uma com text-align:center própria
+   — evita a exceção de antes (bloco inteiro centralizado, só o lead
+   forçado pra esquerda). */
 .hero-person p.lead {
   font-size: 16.5px;
   color: var(--fg-soft);
   max-width: 56ch;
   margin: 0 auto;
   line-height: 1.7;
-  text-align: left;
   position: relative;
 }
 
@@ -215,25 +222,66 @@ section.story p {
 section.story p:last-child { margin-bottom: 0; }
 section.story strong { color: var(--fg); }
 
-/* DOCUMENTO — cartão de contexto */
-.doc-context {
+/* DOCUMENTO — cartão de download da Política Comercial */
+.doc-download {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   background: var(--card-2);
   border: 1px solid var(--border-solid);
-  border-radius: var(--radius-sm);
-  padding: 14px 18px;
-  margin: 24px 0;
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin: 28px 0;
 }
-.doc-context .doc-icon { font-size: 20px; flex-shrink: 0; }
-.doc-context p {
+.doc-download-icon { font-size: 26px; flex-shrink: 0; }
+.doc-download-text { flex: 1; min-width: 0; }
+.doc-download-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--fg);
+  margin: 0 0 4px;
+}
+.doc-download-desc {
+  font-size: 12.5px;
+  color: var(--fg-faint);
+  line-height: 1.5;
   margin: 0;
-  font-size: 13px;
-  color: var(--fg-soft);
-  line-height: 1.55;
 }
-.doc-context strong { color: var(--fg); }
+.doc-download-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--border-solid);
+  padding: 10px 18px;
+  border-radius: 999px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.doc-download-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* IMAGEM — captura do CRM/funil comercial */
+.platform-shot { margin: 32px 0; }
+.platform-shot img {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-solid);
+}
+.platform-shot figcaption {
+  font-size: 12.5px;
+  color: var(--fg-faint);
+  text-align: center;
+  margin: 10px 4px 0;
+  line-height: 1.5;
+}
 
 /* TABELA — níveis de meta */
 .meta-levels {
@@ -349,10 +397,11 @@ footer p {
 
 @media (max-width: 620px) {
   .hero-person { padding: 36px 22px; }
-  .hero-person p.lead { text-align: center; }
   .meta-levels { grid-template-columns: 1fr; }
   .ritual-row { grid-template-columns: 1fr; }
   .ritual-freq { justify-self: start; }
+  .doc-download { flex-direction: column; align-items: flex-start; }
+  .doc-download-btn { align-self: stretch; justify-content: center; }
 }
 </style>
 </head>
@@ -382,7 +431,7 @@ footer p {
 
   <!-- TROCA DE CADEIRA -->
   <section class="story">
-    <p>Meu papel hoje não é mais fechar cliente nem apagar incêndio da operação: é olhar indicador, decidir direção e construir estrutura. Ninguém deixa de ser indispensável — a gente só muda de cadeira.</p>
+    <p>Meu papel hoje não é mais fechar cliente nem apagar incêndio — é olhar indicador, decidir direção e construir estrutura. Ninguém deixa de ser indispensável; só muda de cadeira.</p>
   </section>
 
   <div class="pull-quote">
@@ -393,13 +442,16 @@ footer p {
   <!-- POR QUE DOCUMENTAR -->
   <section class="story">
     <h2>Por que os documentos comerciais são fundamentais</h2>
-    <p><strong>O que não está escrito, não existe.</strong> Enquanto meta, comissionamento, papéis e rituais moram só na cabeça de uma pessoa, o comercial não é um setor — é uma dependência: cada contratação vira recomeço, e cada bom resultado vira sorte que ninguém sabe repetir.</p>
-    <p>Documentar dá clareza (o time para de adivinhar), escala (só se replica o que está registrado), continuidade (o conhecimento fica na empresa) e gestão de verdade (decisão com histórico, não com achismo). Foi assim que a Tática saiu de <strong>"a dona vende tudo"</strong> para uma máquina de vendas com método.</p>
+    <p><strong>O que não está escrito, não existe.</strong> Enquanto meta, comissionamento, papéis e rituais moram só na cabeça de uma pessoa, o comercial não é um setor — é uma dependência: cada contratação vira recomeço, cada bom resultado vira sorte que ninguém sabe repetir. Documentar dá clareza, escala, continuidade e gestão de verdade — foi assim que a Tática saiu de <strong>"a dona vende tudo"</strong> para uma máquina de vendas com método.</p>
   </section>
 
-  <div class="doc-context">
-    <span class="doc-icon">📋</span>
-    <p><strong>Trecho da Política Comercial da Tática</strong> — o documento interno que tira meta, comissão e rito da cabeça de uma pessoa só e coloca na mesa de todo o time.</p>
+  <div class="doc-download">
+    <span class="doc-download-icon">📄</span>
+    <div class="doc-download-text">
+      <p class="doc-download-title">Política Comercial da Tática</p>
+      <p class="doc-download-desc">O documento interno completo — metas, comissionamento, papéis e rituais, tirados da cabeça de uma pessoa só e colocados na mesa de todo o time.</p>
+    </div>
+    <a class="doc-download-btn" href="/politica-comercial-tatica.docx" download>Baixar (.docx) ↓</a>
   </div>
 
   <!-- TABELA: níveis de meta -->
@@ -418,11 +470,12 @@ footer p {
     </div>
   </div>
 
+  <!-- RITUAIS -->
   <section class="story">
-    <p>Meta não nasce na área comercial — nasce na decisão de crescimento da empresa, e desce até chegar em cada pessoa. É essa origem que separa uma meta legítima de um número inventado.</p>
+    <h2>Os rituais que sustentam a meta</h2>
+    <p>Meta não nasce na área comercial — nasce na decisão de crescimento da empresa, e desce até chegar em cada pessoa. Estes são os encontros que mantêm isso vivo:</p>
   </section>
 
-  <!-- RITUAIS -->
   <div class="rituals-list">
     <div class="ritual-row">
       <span class="ritual-name">Daily</span>
@@ -445,6 +498,11 @@ footer p {
       <p class="ritual-desc">Recalibragem de metas com base no histórico real da equipe — nunca por achismo.</p>
     </div>
   </div>
+
+  <figure class="platform-shot">
+    <img src="img/plataforma.jpeg" alt="Painel do CRM da Tática mostrando o funil comercial em etapas: Lead, Contato Realizado, Reunião Agendada, Proposta Feita, Negociação, Assinatura e Pagamento">
+    <figcaption>O funil comercial da Tática, ao vivo — cada negócio passa por essas etapas, sem exceção. É essa reunião semanal que olha pra esse painel.</figcaption>
+  </figure>
 
   <div class="pull-quote">
     <p>"Documento comercial não é burocracia — é a diferença entre ter vendedores e ter um setor comercial."</p>

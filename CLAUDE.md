@@ -9,10 +9,21 @@ treinamento comercial em `public/`:
 
 - `index.html` — landing page institucional: a história da Tática contada
   pela fundadora Priscila Galindo, com trechos da política comercial
-  interna (`politica_comercial.docx`, na raiz do repo, não versionado)
-  ilustrando a fala dela. Um botão logo abaixo do header ("Acessar as
+  interna ilustrando a fala dela, uma foto real do CRM/funil comercial
+  (`img/plataforma.jpeg`) e um cartão de download do documento completo
+  (`public/politica-comercial-tatica.docx`, **versionado** — pedido
+  explícito do usuário pra ficar baixável pelos participantes; é uma cópia
+  de `politica_comercial.docx` na raiz do repo, que continua não
+  versionado por ser só material de referência pra escrever a página, não
+  o arquivo servido). Um botão logo abaixo do header ("Acessar as
   ferramentas do treinamento") leva pra `ferramentas.html` — é o ponto de
   entrada do site (`GET /`), sem lógica de formulário nem `<script>`.
+  Texto corrido sempre alinhado à esquerda (mais legível em parágrafo de
+  várias linhas) — só a identidade no topo (foto/nome/cargo) é centralizada,
+  cada elemento com seu próprio `text-align:center`, sem depender de um
+  `text-align:center` herdado do bloco pai com exceção pro parágrafo
+  (armadilha de antes: o `.lead` tinha que forçar `text-align:left` pra
+  não seguir o centro do container).
 - `ferramentas.html` — o menu com as duas dinâmicas + QR code pra
   compartilhar com o time (era o `index.html` antes da landing page
   entrar; só mudou de nome/rota, conteúdo idêntico).

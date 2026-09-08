@@ -818,3 +818,40 @@ seguem só no histórico do `git log`.
     card.
   - `npm test`: 75/75 passando (mudança só de CSS, sem alterar
     comportamento testado).
+- **Landing page (`index.html`): download da Política Comercial, foto do
+  CRM/funil e texto reduzido/realinhado** — pedido do usuário.
+  - **Download real do documento**: `politica_comercial.docx` (raiz do
+    repo, referência não versionada) foi copiado pra
+    `public/politica-comercial-tatica.docx` — este sim **versionado**,
+    de propósito, porque precisa existir no deploy pra ser baixável. O
+    cartão "Trecho da Política Comercial" (só informativo antes) virou
+    `.doc-download`, com título, descrição e um botão
+    `<a href="/politica-comercial-tatica.docx" download>`.
+  - **Imagem nova**: `img/plataforma.jpeg` (screenshot real do CRM/funil
+    comercial da Tática — Lead → Contato → Reunião → Proposta →
+    Negociação → Assinatura → Pagamento) adicionada logo depois da lista
+    de rituais, com legenda ligando à reunião semanal ("é essa reunião que
+    olha pra esse painel").
+  - **Texto reduzido**: os 2 parágrafos de "Por que os documentos
+    comerciais são fundamentais" viraram 1 só (mesmas ideias, menos
+    palavras); o parágrafo solto "Meta não nasce na área comercial..."
+    virou a introdução da seção de rituais (ganhou um `<h2>` que não
+    existia — a lista de rituais antes não tinha nenhum título próprio);
+    frase da "troca de cadeira" enxugada.
+  - **Alinhamento consertado**: o hero tinha `text-align:center` no bloco
+    inteiro com uma exceção pontual (`.lead { text-align: left }`) pra não
+    seguir o centro — trocado por `text-align:center` direto em cada
+    elemento da identidade (eyebrow/nome/cargo), sem exceção nenhuma; o
+    parágrafo de abertura (`.lead`) fica com o texto naturalmente à
+    esquerda (mais legível em várias linhas), só a coluna centralizada via
+    `max-width` + `margin:auto`. Removida também a regra mobile que
+    forçava `.lead` centralizado (não fazia mais sentido com o padrão
+    novo, consistente entre breakpoints).
+  - `.doc-download` empilha verticalmente no mobile (`@media
+    max-width:620px`), botão de download com largura total.
+  - Testado ao vivo: `GET /politica-comercial-tatica.docx` e `GET
+    /img/plataforma.jpeg` respondem 200; conferido visualmente num
+    Chromium real (identidade centralizada + parágrafo alinhado à
+    esquerda, cartão de download, imagem do funil com legenda).
+  - `npm test`: 75/75 passando (o teste de `GET /` só checa "Priscila
+    Galindo" e "ferramentas.html", ambos inalterados).
