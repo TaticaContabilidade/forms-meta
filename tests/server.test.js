@@ -1,13 +1,13 @@
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
 
 const ADMIN_TOKEN = 'teste-token-admin';
-const dbPath = path.join(os.tmpdir(), `metas-test-${process.pid}-${Date.now()}.db`);
 
-process.env.DB_PATH = dbPath;
+// Respeita um DATABASE_URL já setado (ex.: rodando contra staging) — só cai
+// no banco de teste local (container Docker, ver CLAUDE.md) se nada tiver
+// sido definido antes, mesma lógica não-destrutiva que dotenv já usa.
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL || 'postgresql://postgres:testpass@localhost:5433/forms_meta_test';
 process.env.ADMIN_TOKEN = ADMIN_TOKEN;
 process.env.PORT = '0';
 // Desliga o log de requisição (morgan) durante os testes — só polui a
@@ -16,15 +16,25 @@ process.env.NODE_ENV = 'test';
 
 const request = require('supertest');
 const app = require('../src/server');
+const { pool, ready } = require('../src/db');
 const { closePool } = require('../src/reports/pdfWorkerPool');
 
+before(async () => {
+  // Ao contrário do SQLite temporário de antes (1 arquivo novo por
+  // execução, sempre vazio), o banco de teste do Postgres é reaproveitado
+  // entre execuções — precisa ser zerado explicitamente pra cada `npm test`
+  // partir do mesmo estado. RESTART IDENTITY zera os ids (SERIAL) também,
+  // pra `createdId`/expectativas de id não dependerem da execução anterior.
+  await ready;
+  await pool.query('TRUNCATE TABLE metas, disc_respostas, meu_porque_respostas RESTART IDENTITY CASCADE');
+});
+
 after(async () => {
-  for (const ext of ['', '-shm', '-wal']) {
-    fs.rmSync(dbPath + ext, { force: true });
-  }
-  // Sem isso, as worker_threads do pool de PDF ficam penduradas e o
-  // processo do `node --test` não encerra sozinho depois dos testes.
+  // Sem isso, as worker_threads do pool de PDF e as conexões do pool do
+  // Postgres ficam penduradas e o processo do `node --test` não encerra
+  // sozinho depois dos testes.
   await closePool();
+  await pool.end();
 });
 
 describe('rotas estáticas', () => {

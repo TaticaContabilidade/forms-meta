@@ -1,11 +1,9 @@
 const path = require('path');
-const fs = require('fs');
 const cluster = require('cluster');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const Database = require('better-sqlite3');
 const QRCode = require('qrcode');
 const {
   metaComercialFilename,
@@ -22,10 +20,15 @@ const { meuPorqueFilename } = require('./reports/meuPorqueReport');
 // — ver comentário perto das 3 rotas /pdf), não mais chamando
 // generate*Pdf() direto aqui na thread principal.
 const { generatePdfAsync } = require('./reports/pdfWorkerPool');
+// Pool de conexões Postgres + promise de schema pronto — ver src/db.js.
+// Só um require aqui, mesmo com cluster ligado (WEB_CONCURRENCY): cada
+// worker forkado reexecuta este arquivo do zero, então cada um também
+// reexecuta db.js e abre seu próprio pool, exatamente como cada worker já
+// abria sua própria conexão SQLite antes da migração.
+const { pool, ready } = require('./db');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'troque-isto';
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'db', 'metas.db');
 
 const app = express();
 
@@ -53,7 +56,7 @@ app.use(express.json());
 // CPU (pdfkit é síncrono — ver generatePdfAsync/pdfWorkerPool.js).
 //
 // DISABLE_RATE_LIMIT=true desliga os 2 limites — só pra rodar teste de
-// carga (scripts/load-test.js) contra uma cópia local/staging e medir a
+// carga (scripts/loadtest.js) contra uma cópia local/staging e medir a
 // capacidade de verdade do servidor, sem o limite mascarando o resultado.
 // Nunca deve ser setado em produção.
 const RATE_LIMITING_ATIVO = process.env.DISABLE_RATE_LIMIT !== 'true';
@@ -112,141 +115,25 @@ app.get('/api/qr/download', (req, res) => {
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ---------- banco ----------
-// Robustez: `new Database(DB_PATH)` cria um arquivo novo e vazio, sem erro
-// nenhum, se o caminho não existir ainda — se o disco persistente do
-// Render não estiver de fato montado num deploy, o servidor sobe normal e
-// parece funcionar, só que com um banco zerado (falha silenciosa, só
-// perceptível como "os dados sumiram"). Loga se está reaproveitando um
-// banco existente ou criando um novo, pra esse tipo de problema aparecer
-// nos logs do Render em vez de passar despercebido.
-if (require.main === module) {
-  const bancoJaExistia = fs.existsSync(DB_PATH);
-  if (bancoJaExistia) {
-    const tamanho = fs.statSync(DB_PATH).size;
-    console.log(`Banco existente reaproveitado: ${DB_PATH} (${tamanho} bytes)`);
-  } else {
-    console.log(`Banco novo sendo criado: ${DB_PATH} (nenhum arquivo encontrado nesse caminho)`);
-  }
-}
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+// Conexão, schema (CREATE TABLE) e diagnóstico de boot ficam inteiramente
+// em src/db.js — `ready` é a promise que resolve quando as 3 tabelas já
+// existem; toda rota abaixo assume que o servidor só aceitou requisições
+// depois de `ready` resolver (ver o bloco de `app.listen` no fim deste
+// arquivo, e `tests/server.test.js`, que também espera `ready` antes de
+// rodar qualquer teste).
 
 // Health check — pra monitoramento externo (uptime, Render health check
 // automático). Confirma não só que o processo está de pé, mas que o banco
 // responde de verdade (SELECT rápido), sem depender de nenhuma tabela
 // específica.
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
-    db.prepare('SELECT 1').get();
+    await pool.query('SELECT 1');
     res.json({ status: 'ok', uptime_s: Math.round(process.uptime()), timestamp: new Date().toISOString() });
   } catch (err) {
     res.status(503).json({ status: 'error', error: 'Banco de dados não respondeu.' });
   }
 });
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS metas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    criado_em TEXT DEFAULT (datetime('now','localtime')),
-    nome_participante TEXT,
-    empresa TEXT,
-    faturamento REAL,
-    crescimento_pct REAL,
-    churn_pct REAL,
-    meta_anual REAL,
-    meta_trimestral REAL,
-    meta_mensal REAL,
-    ticket REAL,
-    contratos_mes REAL,
-    conversao_pct REAL,
-    contatos_necessarios REAL,
-    contatos_mes_passado REAL,
-    hunter_valor REAL,
-    farmer_valor REAL,
-    equipe_json TEXT
-  )
-`);
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS disc_respostas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    criado_em TEXT DEFAULT (datetime('now','localtime')),
-    nome_participante TEXT,
-    empresa TEXT,
-    d_natural REAL,
-    i_natural REAL,
-    s_natural REAL,
-    c_natural REAL,
-    d_adaptado REAL,
-    i_adaptado REAL,
-    s_adaptado REAL,
-    c_adaptado REAL,
-    d_intensidade REAL,
-    i_intensidade REAL,
-    s_intensidade REAL,
-    c_intensidade REAL,
-    perfil_dominante TEXT,
-    arquetipo TEXT,
-    respostas_json TEXT
-  )
-`);
-
-// "Meu Porquê" — dinâmica simples de reflexão (nova dinamica simples.md),
-// 4 perguntas abertas, sem cálculo/perfil nenhum. Cada resposta é
-// relacionada ao participante pelas mesmas colunas nome_participante/
-// empresa que metas/disc_respostas já usam — não existe (ainda) um
-// cadastro único compartilhado entre as 3 ferramentas (ver item 06 do
-// backlog em CLAUDE.md).
-db.exec(`
-  CREATE TABLE IF NOT EXISTS meu_porque_respostas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    criado_em TEXT DEFAULT (datetime('now','localtime')),
-    nome_participante TEXT,
-    empresa TEXT,
-    objetivo TEXT,
-    sonho TEXT,
-    mudanca TEXT,
-    visao_futuro TEXT
-  )
-`);
-
-const insertStmt = db.prepare(`
-  INSERT INTO metas (
-    nome_participante, empresa, faturamento, crescimento_pct, churn_pct,
-    meta_anual, meta_trimestral, meta_mensal, ticket, contratos_mes,
-    conversao_pct, contatos_necessarios, contatos_mes_passado,
-    hunter_valor, farmer_valor, equipe_json
-  ) VALUES (
-    @nome_participante, @empresa, @faturamento, @crescimento_pct, @churn_pct,
-    @meta_anual, @meta_trimestral, @meta_mensal, @ticket, @contratos_mes,
-    @conversao_pct, @contatos_necessarios, @contatos_mes_passado,
-    @hunter_valor, @farmer_valor, @equipe_json
-  )
-`);
-
-const insertDiscStmt = db.prepare(`
-  INSERT INTO disc_respostas (
-    nome_participante, empresa,
-    d_natural, i_natural, s_natural, c_natural,
-    d_adaptado, i_adaptado, s_adaptado, c_adaptado,
-    d_intensidade, i_intensidade, s_intensidade, c_intensidade,
-    perfil_dominante, arquetipo, respostas_json
-  ) VALUES (
-    @nome_participante, @empresa,
-    @d_natural, @i_natural, @s_natural, @c_natural,
-    @d_adaptado, @i_adaptado, @s_adaptado, @c_adaptado,
-    @d_intensidade, @i_intensidade, @s_intensidade, @c_intensidade,
-    @perfil_dominante, @arquetipo, @respostas_json
-  )
-`);
-
-const insertMeuPorqueStmt = db.prepare(`
-  INSERT INTO meu_porque_respostas (
-    nome_participante, empresa, objetivo, sonho, mudanca, visao_futuro
-  ) VALUES (
-    @nome_participante, @empresa, @objetivo, @sonho, @mudanca, @visao_futuro
-  )
-`);
 
 // ---------- auth simples pro admin ----------
 function requireAdmin(req, res, next) {
@@ -260,7 +147,7 @@ function requireAdmin(req, res, next) {
 // ---------- rotas metas ----------
 
 // recebe uma submissão da calculadora
-app.post('/api/metas', (req, res) => {
+app.post('/api/metas', async (req, res) => {
   const b = req.body || {};
 
   const row = {
@@ -286,8 +173,26 @@ app.post('/api/metas', (req, res) => {
     return res.status(400).json({ error: 'nome_participante é obrigatório.' });
   }
 
-  const info = insertStmt.run(row);
-  res.status(201).json({ id: info.lastInsertRowid });
+  try {
+    const result = await pool.query(
+      `INSERT INTO metas (
+        nome_participante, empresa, faturamento, crescimento_pct, churn_pct,
+        meta_anual, meta_trimestral, meta_mensal, ticket, contratos_mes,
+        conversao_pct, contatos_necessarios, contatos_mes_passado,
+        hunter_valor, farmer_valor, equipe_json
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      RETURNING id`,
+      [
+        row.nome_participante, row.empresa, row.faturamento, row.crescimento_pct, row.churn_pct,
+        row.meta_anual, row.meta_trimestral, row.meta_mensal, row.ticket, row.contratos_mes,
+        row.conversao_pct, row.contatos_necessarios, row.contatos_mes_passado,
+        row.hunter_valor, row.farmer_valor, row.equipe_json,
+      ]
+    );
+    res.status(201).json({ id: result.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao gravar a meta.' });
+  }
 });
 
 // gera o relatório em PDF da meta comercial preenchida (não salva no banco —
@@ -329,40 +234,52 @@ app.post('/api/metas/pdf', pdfLimiter, async (req, res) => {
 });
 
 // lista tudo (admin)
-app.get('/api/metas', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM metas ORDER BY id DESC').all();
-  const parsed = rows.map(r => ({ ...r, equipe: JSON.parse(r.equipe_json || '[]') }));
-  res.json(parsed);
+app.get('/api/metas', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM metas ORDER BY id DESC');
+    const parsed = result.rows.map(r => ({ ...r, equipe: JSON.parse(r.equipe_json || '[]') }));
+    res.json(parsed);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao listar as metas.' });
+  }
 });
 
 // exporta CSV (admin) — abre direto no Excel/Sheets
-app.get('/api/metas.csv', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM metas ORDER BY id DESC').all();
-  const cols = [
-    'id','criado_em','nome_participante','empresa','faturamento','crescimento_pct',
-    'churn_pct','meta_anual','meta_trimestral','meta_mensal','ticket','contratos_mes',
-    'conversao_pct','contatos_necessarios','contatos_mes_passado','hunter_valor','farmer_valor'
-  ];
-  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const header = cols.join(';');
-  const lines = rows.map(r => cols.map(c => esc(r[c])).join(';'));
-  const csv = [header, ...lines].join('\n');
+app.get('/api/metas.csv', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM metas ORDER BY id DESC');
+    const cols = [
+      'id','criado_em','nome_participante','empresa','faturamento','crescimento_pct',
+      'churn_pct','meta_anual','meta_trimestral','meta_mensal','ticket','contratos_mes',
+      'conversao_pct','contatos_necessarios','contatos_mes_passado','hunter_valor','farmer_valor'
+    ];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = cols.join(';');
+    const lines = result.rows.map(r => cols.map(c => esc(r[c])).join(';'));
+    const csv = [header, ...lines].join('\n');
 
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="metas.csv"');
-  res.send('\uFEFF' + csv); // BOM pra acentuação abrir certo no Excel
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="metas.csv"');
+    res.send('\uFEFF' + csv); // BOM pra acentuação abrir certo no Excel
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao exportar as metas.' });
+  }
 });
 
 // apaga um registro específico (admin) — útil pra remover teste/duplicado
-app.delete('/api/metas/:id', requireAdmin, (req, res) => {
-  db.prepare('DELETE FROM metas WHERE id = ?').run(req.params.id);
-  res.status(204).end();
+app.delete('/api/metas/:id', requireAdmin, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM metas WHERE id = $1', [req.params.id]);
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao apagar a meta.' });
+  }
 });
 
 // ---------- rotas DISC ----------
 
 // recebe resultado de um participante
-app.post('/api/disc', (req, res) => {
+app.post('/api/disc', async (req, res) => {
   const b = req.body || {};
   const respostas = b.respostas || {};
 
@@ -413,8 +330,28 @@ app.post('/api/disc', (req, res) => {
     return res.status(400).json({ error: 'nome_participante é obrigatório.' });
   }
 
-  const info = insertDiscStmt.run(row);
-  res.status(201).json({ id: info.lastInsertRowid });
+  try {
+    const result = await pool.query(
+      `INSERT INTO disc_respostas (
+        nome_participante, empresa,
+        d_natural, i_natural, s_natural, c_natural,
+        d_adaptado, i_adaptado, s_adaptado, c_adaptado,
+        d_intensidade, i_intensidade, s_intensidade, c_intensidade,
+        perfil_dominante, arquetipo, respostas_json
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+      RETURNING id`,
+      [
+        row.nome_participante, row.empresa,
+        row.d_natural, row.i_natural, row.s_natural, row.c_natural,
+        row.d_adaptado, row.i_adaptado, row.s_adaptado, row.c_adaptado,
+        row.d_intensidade, row.i_intensidade, row.s_intensidade, row.c_intensidade,
+        row.perfil_dominante, row.arquetipo, row.respostas_json,
+      ]
+    );
+    res.status(201).json({ id: result.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao gravar o resultado DISC.' });
+  }
 });
 
 // gera o relatório em PDF do perfil DISC (não salva no banco — o
@@ -463,42 +400,54 @@ app.post('/api/disc/pdf', pdfLimiter, async (req, res) => {
 });
 
 // lista resultados DISC (admin)
-app.get('/api/disc', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM disc_respostas ORDER BY id DESC').all();
-  res.json(rows);
+app.get('/api/disc', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM disc_respostas ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao listar os resultados DISC.' });
+  }
 });
 
 // exporta resultados DISC em CSV (admin)
-app.get('/api/disc.csv', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM disc_respostas ORDER BY id DESC').all();
-  const cols = [
-    'id','criado_em','nome_participante','empresa',
-    'd_natural','i_natural','s_natural','c_natural',
-    'd_adaptado','i_adaptado','s_adaptado','c_adaptado',
-    'd_intensidade','i_intensidade','s_intensidade','c_intensidade',
-    'perfil_dominante','arquetipo'
-  ];
-  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const header = cols.join(';');
-  const lines = rows.map(r => cols.map(c => esc(r[c])).join(';'));
-  const csv = [header, ...lines].join('\n');
+app.get('/api/disc.csv', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM disc_respostas ORDER BY id DESC');
+    const cols = [
+      'id','criado_em','nome_participante','empresa',
+      'd_natural','i_natural','s_natural','c_natural',
+      'd_adaptado','i_adaptado','s_adaptado','c_adaptado',
+      'd_intensidade','i_intensidade','s_intensidade','c_intensidade',
+      'perfil_dominante','arquetipo'
+    ];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = cols.join(';');
+    const lines = result.rows.map(r => cols.map(c => esc(r[c])).join(';'));
+    const csv = [header, ...lines].join('\n');
 
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="disc_respostas.csv"');
-  res.send('\uFEFF' + csv);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="disc_respostas.csv"');
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao exportar os resultados DISC.' });
+  }
 });
 
 // apaga resultado DISC (admin)
-app.delete('/api/disc/:id', requireAdmin, (req, res) => {
-  db.prepare('DELETE FROM disc_respostas WHERE id = ?').run(req.params.id);
-  res.status(204).end();
+app.delete('/api/disc/:id', requireAdmin, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM disc_respostas WHERE id = $1', [req.params.id]);
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao apagar o resultado DISC.' });
+  }
 });
 
 // ---------- rotas Meu Porquê ----------
 
 // recebe resultado de um participante — sem cálculo nenhum, só grava as
 // 4 respostas cruas (dinâmica "simples", ver nova dinamica simples.md)
-app.post('/api/meu-porque', (req, res) => {
+app.post('/api/meu-porque', async (req, res) => {
   const b = req.body || {};
 
   const row = {
@@ -514,8 +463,18 @@ app.post('/api/meu-porque', (req, res) => {
     return res.status(400).json({ error: 'nome_participante é obrigatório.' });
   }
 
-  const info = insertMeuPorqueStmt.run(row);
-  res.status(201).json({ id: info.lastInsertRowid });
+  try {
+    const result = await pool.query(
+      `INSERT INTO meu_porque_respostas (
+        nome_participante, empresa, objetivo, sonho, mudanca, visao_futuro
+      ) VALUES ($1,$2,$3,$4,$5,$6)
+      RETURNING id`,
+      [row.nome_participante, row.empresa, row.objetivo, row.sonho, row.mudanca, row.visao_futuro]
+    );
+    res.status(201).json({ id: result.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao gravar as respostas.' });
+  }
 });
 
 // gera o relatório em PDF do Meu Porquê (não salva no banco — o
@@ -545,29 +504,41 @@ app.post('/api/meu-porque/pdf', pdfLimiter, async (req, res) => {
 });
 
 // lista respostas do Meu Porquê (admin)
-app.get('/api/meu-porque', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM meu_porque_respostas ORDER BY id DESC').all();
-  res.json(rows);
+app.get('/api/meu-porque', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM meu_porque_respostas ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao listar as respostas.' });
+  }
 });
 
 // exporta respostas do Meu Porquê em CSV (admin)
-app.get('/api/meu-porque.csv', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM meu_porque_respostas ORDER BY id DESC').all();
-  const cols = ['id', 'criado_em', 'nome_participante', 'empresa', 'objetivo', 'sonho', 'mudanca', 'visao_futuro'];
-  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const header = cols.join(';');
-  const lines = rows.map(r => cols.map(c => esc(r[c])).join(';'));
-  const csv = [header, ...lines].join('\n');
+app.get('/api/meu-porque.csv', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM meu_porque_respostas ORDER BY id DESC');
+    const cols = ['id', 'criado_em', 'nome_participante', 'empresa', 'objetivo', 'sonho', 'mudanca', 'visao_futuro'];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = cols.join(';');
+    const lines = result.rows.map(r => cols.map(c => esc(r[c])).join(';'));
+    const csv = [header, ...lines].join('\n');
 
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="meu_porque_respostas.csv"');
-  res.send('\uFEFF' + csv);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="meu_porque_respostas.csv"');
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao exportar as respostas.' });
+  }
 });
 
 // apaga resposta do Meu Porquê (admin)
-app.delete('/api/meu-porque/:id', requireAdmin, (req, res) => {
-  db.prepare('DELETE FROM meu_porque_respostas WHERE id = ?').run(req.params.id);
-  res.status(204).end();
+app.delete('/api/meu-porque/:id', requireAdmin, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM meu_porque_respostas WHERE id = $1', [req.params.id]);
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao apagar a resposta.' });
+  }
 });
 
 // Cluster opcional (desligado por padrão — WEB_CONCURRENCY ausente ou 1 se
@@ -576,10 +547,11 @@ app.delete('/api/meu-porque/:id', requireAdmin, (req, res) => {
 // (pode até piorar, por causa do overhead de trocar de contexto entre
 // processos) — existe pronto pra quando/se o plano for atualizado pra ter
 // mais de 1 núcleo de verdade. Cada worker forkado reexecuta este arquivo
-// inteiro do zero, então abre sua própria conexão com o SQLite (WAL
-// suporta múltiplos processos lendo/escrevendo o mesmo arquivo — só não
-// escala entre INSTÂNCIAS separadas do Render, que é um problema
-// diferente, ver seção de robustez em CLAUDE.md).
+// inteiro do zero, então abre seu próprio pool de conexões com o Postgres
+// (ao contrário do SQLite/WAL de antes, isso agora também escala entre
+// INSTÂNCIAS separadas do Render — várias instâncias, cada uma com seu
+// próprio pool, podem apontar pro mesmo Postgres gerenciado ao mesmo tempo;
+// ver seção de robustez em CLAUDE.md).
 if (require.main === module) {
   const webConcurrency = Number(process.env.WEB_CONCURRENCY) || 1;
 
@@ -591,12 +563,22 @@ if (require.main === module) {
       cluster.fork();
     });
   } else {
-    app.listen(PORT, () => {
-      const papel = cluster.isWorker ? ` (worker ${process.pid})` : '';
-      console.log(`Servidor no ar em http://localhost:${PORT}${papel}`);
-      console.log(`Painel admin em http://localhost:${PORT}/admin.html`);
-      console.log(`QR Code em    http://localhost:${PORT}/api/qr`);
-    });
+    // Só sobe o servidor HTTP depois que o schema estiver garantidamente
+    // criado — sem isso, uma requisição podendo chegar antes da 1ª tabela
+    // existir levaria a um erro "relation does not exist" só na pior hora
+    // (justo o primeiro request depois do deploy). Erro de conexão/schema
+    // já é logado dentro de src/db.js; aqui só decide não subir o
+    // listener nesse caso, em vez de subir "pela metade".
+    ready
+      .then(() => {
+        app.listen(PORT, () => {
+          const papel = cluster.isWorker ? ` (worker ${process.pid})` : '';
+          console.log(`Servidor no ar em http://localhost:${PORT}${papel}`);
+          console.log(`Painel admin em http://localhost:${PORT}/admin.html`);
+          console.log(`QR Code em    http://localhost:${PORT}/api/qr`);
+        });
+      })
+      .catch(() => process.exit(1));
   }
 }
 
