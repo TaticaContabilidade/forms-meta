@@ -280,13 +280,23 @@ da connection string bate com `.render.com` — a "Internal Database URL" do
 Render (mesma região, rede interna) não precisa; uma connection string local
 (Docker, `localhost`) também não.
 
-`render.yaml` usa o bloco `databases:` do Render Blueprint pra provisionar o
-Postgres gerenciado (`forms-meta-db`) junto com o serviço web, e injeta a
-connection string automaticamente em `DATABASE_URL` via `fromDatabase` — não
-precisa copiar/colar nenhum segredo manualmente. **Isso provisiona um
-recurso pago separado do serviço web na 1ª vez que o Blueprint for
-aplicado** — confirme o nome do plano/preço no dashboard do Render antes de
-aplicar em produção (nomes de plano mudam com alguma frequência).
+**Infra do Render operada manualmente pelo dashboard, sem `render.yaml`.**
+Chegou a existir um `render.yaml` com bloco `databases:` (Blueprint) pra
+provisionar o Postgres junto com o serviço web — removido por decisão do
+usuário depois de 2 armadilhas na prática (ver CHANGELOG, entrada
+"render.yaml removido"): (1) o usuário já tinha um Postgres criado
+manualmente antes, e o Blueprint criou um segundo banco separado, quase
+gerando cobrança duplicada — só percebido porque o manual ficava numa aba
+diferente do dashboard ("Projects"); (2) o disco de cada banco vem com um
+tamanho padrão vinculado ao *tier* do plano de computação escolhido (ex.:
+`Basic` → 15GB por padrão), não ao volume de dados real — e o Render só
+permite aumentar esse disco depois, nunca diminuir, então corrigir isso
+exigiria recriar o banco do zero. Diante disso, `forms-meta-db` (Postgres)
+e o serviço web `forms-meta` são geridos manualmente no dashboard: qualquer
+mudança de plano, disco ou variável de ambiente é feita direto lá, não por
+um arquivo versionado. Se um dia quiser voltar a usar Blueprint, releia
+essa entrada do CHANGELOG antes — os dois problemas acima se repetem se o
+banco/serviço já existirem fora do Blueprint.
 
 Full cutover, sem suporte dual: `better-sqlite3` foi removido de
 `package.json` (confirmado via `grep -rln "better-sqlite3"` que só
@@ -376,13 +386,15 @@ conscientemente até esse pedido acontecer.
   padrões é `*-test.js`; "load-test.js" fazia o `npm test` rodar essa
   carga inteira (30s+, contra um servidor de verdade) como se fosse mais
   um teste unitário. Não renomeie de volta.
-- **`buildCommand` do Render usa `--omit=dev`** — `jsdom`/`supertest`/
-  `autocannon` (devDependencies) não precisam ir pro servidor de produção,
-  só são usados por `npm test`/`npm run load-test`.
+- **Build Command do serviço web usa `--omit=dev`** (configurado direto no
+  dashboard do Render, não por `render.yaml` — ver "Deploy" acima):
+  `npm install --omit=dev`. `jsdom`/`supertest`/`autocannon`
+  (devDependencies) não precisam ir pro servidor de produção, só são
+  usados por `npm test`/`npm run load-test`.
 
 **Ainda pendente, decisão de infra/custo antes de mexer:**
 
-- **`render.yaml` roda 1 instância `starter`** — sem plano de múltiplas
+- **O serviço web roda 1 instância `starter`** — sem plano de múltiplas
   instâncias nem load balancer configurado. Com o banco já em Postgres
   gerenciado, somar instâncias agora é só configuração (não exige mais
   reescrever a camada de banco) — mas ainda exige upgrade de plano (custo)
