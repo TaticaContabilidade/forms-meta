@@ -1,0 +1,10 @@
+node_modules
+.git
+.env
+db/
+*.pdf
+*.swp
+
+# material de referência solto na raiz (ver convenção em CLAUDE.md) —
+# não faz parte da aplicação, não precisa ir pro contexto de build
+_*

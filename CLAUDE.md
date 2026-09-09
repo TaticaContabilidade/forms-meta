@@ -319,7 +319,16 @@ docker run -d --name forms-meta-pg -e POSTGRES_PASSWORD=postgres \
 e aponte `DATABASE_URL=postgresql://postgres:postgres@localhost:5434/forms_meta`
 no `.env` (ver `.env.example`).
 
-### Robustez pra >2k participantes simultâneos — dívida reconhecida, trabalho em andamento
+**Alternativa: `docker compose up`** (`Dockerfile` + `docker-compose.yml`,
+raiz do repo) sobe app + Postgres juntos, isolados dos containers manuais
+acima — não precisa de `npm install` nem de Postgres na máquina, só Docker.
+O serviço `db` não expõe porta pro host de propósito (evita colidir com
+`forms-meta-pg`/`forms-meta-pg-test`) — o app fala com ele pelo nome do
+serviço (`db`) dentro da rede do compose. Código montado por bind mount
+(`volumes: .:/app`, com um volume anônimo à parte só pra `node_modules`,
+pra não sobrescrever com o do host) e rodando com `node --watch` — editar
+qualquer arquivo reinicia o processo sozinho, sem rebuildar a imagem.
+`docker compose down` pra encerrar (`-v` também apaga o volume do banco).
 
 Práticas de DevOpsSec não foram levadas em conta desde o início do projeto —
 deveriam ter sido. Boa parte dos gargalos identificados já foi corrigida;

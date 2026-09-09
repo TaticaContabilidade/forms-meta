@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: forms_meta
+    # Sem publicar porta pro host de propósito — evita bater com os
+    # containers Postgres já usados manualmente neste projeto
+    # (forms-meta-pg na 5434, forms-meta-pg-test na 5433). O serviço `app`
+    # fala com este banco pelo nome do serviço (`db`) dentro da rede
+    # interna do compose, não precisa de porta exposta pro host.
+    volumes:
+      - forms-meta-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-troque-isto}
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/forms_meta
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      # volume anônimo só pra node_modules: evita que o bind mount acima
+      # sobrescreva com o node_modules do host (pode ter sido instalado
+      # numa arquitetura/SO diferente da imagem do container).
+      - /app/node_modules
+
+volumes:
+  forms-meta-dev-db:
