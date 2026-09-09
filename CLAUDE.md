@@ -296,14 +296,17 @@ contraria a convenção deste repositório de não manter shims de
 retrocompatibilidade.
 
 **Local:** suba um Postgres descartável via Docker (não precisa de sudo,
-só estar no grupo `docker`):
+só estar no grupo `docker`). 5432 pode já estar ocupado por um Postgres do
+próprio sistema — ajuste a porta se precisar (este repo usa 5434 pro
+Postgres de desenvolvimento e 5433 pro de teste, ver
+`tests/server.test.js`):
 
 ```bash
 docker run -d --name forms-meta-pg -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=forms_meta -p 5432:5432 postgres:16-alpine
+  -e POSTGRES_DB=forms_meta -p 5434:5432 postgres:16-alpine
 ```
 
-e aponte `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/forms_meta`
+e aponte `DATABASE_URL=postgresql://postgres:postgres@localhost:5434/forms_meta`
 no `.env` (ver `.env.example`).
 
 ### Robustez pra >2k participantes simultâneos — dívida reconhecida, trabalho em andamento
