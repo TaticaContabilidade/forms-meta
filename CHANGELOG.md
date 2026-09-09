@@ -1037,3 +1037,34 @@ seguem só no histórico do `git log`.
     com token admin) — confirmando `criado_em` no formato esperado e o
     fluxo completo de escrita/leitura contra o Postgres de verdade, não
     só contra o que os testes automatizados cobrem.
+
+### 2026-09-09 (continuação)
+
+- **Ajuste de porta do Postgres local de dev** (`.env`, `.env.example`,
+  `CLAUDE.md`): 5432 já estava ocupado pelo Postgres do próprio sistema
+  neste ambiente — subido um container Docker separado (`forms-meta-pg`)
+  na porta 5434 só pra desenvolvimento manual, distinto do
+  `forms-meta-pg-test` (porta 5433) que os testes automatizados truncam a
+  cada execução.
+- **`render.yaml` removido — infra do Render operada manualmente.**
+  Durante a tentativa de provisionar o Postgres gerenciado via Render
+  Blueprint, apareceram 2 problemas: (1) o usuário já tinha criado um
+  Postgres manualmente antes (`tictaclab_postgres`) e o Blueprint criou um
+  segundo banco (`forms-meta-db`) — quase gerando 2 bancos cobrados em
+  paralelo, só percebido a tempo porque o manual ficava numa aba
+  "Projects" diferente do dashboard; (2) o plano `1c-2g` (1 CPU/2GB,
+  ajustado depois de descobrir o slug certo via documentação do Render —
+  não é o mesmo `plan:` de serviço web, tem uma tabela própria de planos
+  pra banco) veio com **15GB de disco por padrão**, muito acima do
+  necessário — o disco default é vinculado ao *tier* do plano de
+  computação (`Free`→1GB, `Basic`→15GB, `Pro`→100GB...), não ao volume de
+  dados real; corrigido com `diskSizeGB: 1` no bloco `databases:`, mas o
+  Render só permite AUMENTAR disco depois de provisionado, nunca diminuir
+  — então isso só valeria pra um banco recriado do zero, não pro que já
+  tinha subido com 15GB. Diante da complexidade e das armadilhas de usar
+  Blueprint com recursos que já existiam fora dele, decisão do usuário:
+  desistir do Blueprint e operar o serviço web e o Postgres inteiramente
+  manuais pelo dashboard do Render (Blueprint desvinculado no lado do
+  Render antes de remover o arquivo daqui, pra não arriscar que a
+  sincronização apagasse os recursos já criados). `render.yaml` removido
+  do repositório.
