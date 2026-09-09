@@ -25,6 +25,7 @@
     <button class="tab-btn active" data-tab="metas">Calculadora de Metas</button>
     <button class="tab-btn" data-tab="disc">Avaliação DISC</button>
     <button class="tab-btn" data-tab="porque">Meu Porquê</button>
+    <button class="tab-btn" data-tab="lideres">Líderes por Empresa</button>
   </div>
 
   <!-- ABA METAS -->
@@ -98,6 +99,32 @@
     </div>
   </div>
 
+  <!-- ABA LÍDERES -->
+  <div class="tab-pane" id="tab-lideres">
+    <p class="sub">Quem cadastrar aqui recebe um e-mail com o PDF do perfil DISC sempre que
+      alguém da mesma empresa preencher a avaliação. A empresa precisa bater
+      exatamente (mesma grafia) com o que os participantes digitam.</p>
+    <div class="toolbar" style="margin-bottom:16px;">
+      <input type="text" id="liderEmpresa" placeholder="Empresa (exatamente como os participantes digitam)">
+      <input type="text" id="liderNome" placeholder="Nome do líder">
+      <input type="email" id="liderEmail" placeholder="E-mail do líder">
+      <button class="primary" id="addLiderBtn">Cadastrar</button>
+      <span class="count" id="countLideres"></span>
+    </div>
+    <div class="scroll">
+      <table id="tableLideres" style="display:none;">
+        <thead>
+          <tr>
+            <th>Cadastrado em</th><th>Empresa</th><th>Nome</th><th>E-mail</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbodyLideres"></tbody>
+      </table>
+      <div class="empty" id="emptyLideres" style="display:none;">Nenhum líder cadastrado ainda.</div>
+      <div class="err" id="errLideres" style="display:none;"></div>
+    </div>
+  </div>
+
 <script>
   const $ = id => document.getElementById(id);
   const fmtBRL = n => (Number(n)||0).toLocaleString('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits:0 });
@@ -138,7 +165,7 @@
   async function loadAll() {
     const token = getToken();
     if (!token) { showErrMetas('Informe o token de admin.'); return; }
-    await Promise.all([loadMetas(token), loadDisc(token), loadPorque(token)]);
+    await Promise.all([loadMetas(token), loadDisc(token), loadPorque(token), loadLideres(token)]);
   }
 
   async function loadMetas(token) {
@@ -180,9 +207,23 @@
     } catch (e) { showErrPorque('Não foi possível conectar ao servidor.'); }
   }
 
+  async function loadLideres(token) {
+    $('errLideres').style.display = 'none';
+    $('emptyLideres').style.display = 'none';
+    $('tableLideres').style.display = 'none';
+    try {
+      const resp = await fetch('/api/lideres', { headers: { 'x-admin-token': token } });
+      if (resp.status === 401) { showErrLideres('Token inválido.'); return; }
+      if (!resp.ok) { showErrLideres('Erro ao carregar dados.'); return; }
+      const rows = await resp.json();
+      renderLideres(rows);
+    } catch (e) { showErrLideres('Não foi possível conectar ao servidor.'); }
+  }
+
   function showErrMetas(msg){ $('errMetas').textContent = msg; $('errMetas').style.display = 'block'; }
   function showErrDisc(msg){ $('errDisc').textContent = msg; $('errDisc').style.display = 'block'; }
   function showErrPorque(msg){ $('errPorque').textContent = msg; $('errPorque').style.display = 'block'; }
+  function showErrLideres(msg){ $('errLideres').textContent = msg; $('errLideres').style.display = 'block'; }
 
   function renderMetas(rows) {
     $('countMetas').textContent = rows.length + ' registro(s)';
@@ -274,6 +315,49 @@
     $('tablePorque').style.display = 'table';
     bindDelBtns();
   }
+
+  function renderLideres(rows) {
+    $('countLideres').textContent = rows.length + ' registro(s)';
+    if (rows.length === 0) { $('emptyLideres').style.display = 'block'; return; }
+    const tbody = $('tbodyLideres');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.criado_em || ''}</td>
+        <td>${escapeHtml(r.empresa)}</td>
+        <td>${escapeHtml(r.nome)}</td>
+        <td>${escapeHtml(r.email)}</td>
+        <td><button class="del" data-id="${r.id}" data-tipo="lideres">remover</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    $('tableLideres').style.display = 'table';
+    bindDelBtns();
+  }
+
+  $('addLiderBtn').addEventListener('click', async () => {
+    const token = getToken();
+    if (!token) { showErrLideres('Informe o token de admin.'); return; }
+    const empresa = $('liderEmpresa').value.trim();
+    const nome = $('liderNome').value.trim();
+    const email = $('liderEmail').value.trim();
+    if (!empresa || !email) { showErrLideres('Empresa e e-mail são obrigatórios.'); return; }
+
+    try {
+      const resp = await fetch('/api/lideres', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ empresa, nome, email }),
+      });
+      if (resp.status === 401) { showErrLideres('Token inválido.'); return; }
+      if (!resp.ok) { showErrLideres('Erro ao cadastrar o líder.'); return; }
+      $('liderEmpresa').value = '';
+      $('liderNome').value = '';
+      $('liderEmail').value = '';
+      loadLideres(token);
+    } catch (e) { showErrLideres('Não foi possível conectar ao servidor.'); }
+  });
 
   function bindDelBtns() {
     document.querySelectorAll('.del').forEach(btn => {

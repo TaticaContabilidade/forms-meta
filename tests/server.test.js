@@ -26,7 +26,7 @@ before(async () => {
   // partir do mesmo estado. RESTART IDENTITY zera os ids (SERIAL) também,
   // pra `createdId`/expectativas de id não dependerem da execução anterior.
   await ready;
-  await pool.query('TRUNCATE TABLE metas, disc_respostas, meu_porque_respostas RESTART IDENTITY CASCADE');
+  await pool.query('TRUNCATE TABLE metas, disc_respostas, meu_porque_respostas, lideres_empresa RESTART IDENTITY CASCADE');
 });
 
 after(async () => {
@@ -306,6 +306,92 @@ describe('API /api/disc', () => {
     assert.equal(row.s_adaptado, 28); // adaptado: Mais foi sempre S nos 28 blocos
 
     await request(app).delete(`/api/disc/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+  });
+
+  test('com um líder cadastrado pra empresa, o envio continua respondendo 201 normalmente (notificação é best-effort, sem await)', async () => {
+    // SMTP não está configurado no ambiente de teste — a notificação deve
+    // ser ignorada (só um aviso no log, ver src/email.js) sem nunca
+    // atrasar nem derrubar a resposta do POST /api/disc.
+    const lider = await request(app)
+      .post('/api/lideres')
+      .set('x-admin-token', ADMIN_TOKEN)
+      .send({ empresa: 'Empresa Notificação', nome: 'Chefe Teste', email: 'chefe@example.com' });
+    assert.equal(lider.status, 201);
+
+    const res = await request(app).post('/api/disc').send({
+      nome_participante: 'Fulano Notificado',
+      empresa: 'Empresa Notificação',
+      respostas: respostasComDDominante,
+    });
+    assert.equal(res.status, 201);
+
+    await request(app).delete(`/api/disc/${res.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+    await request(app).delete(`/api/lideres/${lider.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+  });
+});
+
+describe('API /api/lideres', () => {
+  let createdId;
+
+  test('POST sem empresa/email retorna 400', async () => {
+    const res = await request(app)
+      .post('/api/lideres')
+      .set('x-admin-token', ADMIN_TOKEN)
+      .send({ nome: 'Fulano' });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /empresa e email/);
+  });
+
+  test('POST sem token retorna 401', async () => {
+    const res = await request(app).post('/api/lideres').send({ empresa: 'X', email: 'a@b.com' });
+    assert.equal(res.status, 401);
+  });
+
+  test('POST com dados válidos cadastra o líder', async () => {
+    const res = await request(app)
+      .post('/api/lideres')
+      .set('x-admin-token', ADMIN_TOKEN)
+      .send({ empresa: 'Empresa Y', nome: 'Chefe da Empresa Y', email: 'chefe.y@example.com' });
+    assert.equal(res.status, 201);
+    assert.ok(res.body.id);
+    createdId = res.body.id;
+  });
+
+  test('GET sem token retorna 401', async () => {
+    const res = await request(app).get('/api/lideres');
+    assert.equal(res.status, 401);
+  });
+
+  test('GET com token lista os líderes cadastrados', async () => {
+    const res = await request(app).get('/api/lideres').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(res.status, 200);
+    const row = res.body.find(r => r.id === createdId);
+    assert.ok(row);
+    assert.equal(row.empresa, 'Empresa Y');
+    assert.equal(row.email, 'chefe.y@example.com');
+  });
+
+  test('DELETE remove o registro (admin)', async () => {
+    const del = await request(app).delete(`/api/lideres/${createdId}`).set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(del.status, 204);
+
+    const list = await request(app).get('/api/lideres').set('x-admin-token', ADMIN_TOKEN);
+    assert.ok(!list.body.some(r => r.id === createdId));
+  });
+
+  test('DELETE sem token retorna 401 e não apaga nada', async () => {
+    const create = await request(app)
+      .post('/api/lideres')
+      .set('x-admin-token', ADMIN_TOKEN)
+      .send({ empresa: 'Empresa Z', email: 'z@example.com' });
+
+    const del = await request(app).delete(`/api/lideres/${create.body.id}`);
+    assert.equal(del.status, 401);
+
+    const list = await request(app).get('/api/lideres').set('x-admin-token', ADMIN_TOKEN);
+    assert.ok(list.body.some(r => r.id === create.body.id));
+
+    await request(app).delete(`/api/lideres/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 
