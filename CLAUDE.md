@@ -44,7 +44,11 @@ de treinamento comercial em `public/`:
   das outras 2). Tem "Salvar PDF" ao lado de "Enviar minhas respostas", os 2
   reaproveitando a mesma validação (nome + as 4 perguntas respondidas).
 - `admin.html` — painel autenticado (`x-admin-token` / `?token=`) para listar,
-  exportar CSV e apagar registros das três tabelas.
+  exportar CSV e apagar registros das três tabelas, além de uma 4ª aba
+  ("Líderes por Empresa") pra cadastrar quem recebe notificação por e-mail
+  quando um colaborador daquela empresa preenche o DISC (ver seção
+  "Notificação de líderes por e-mail" abaixo). Sem link público em nenhuma
+  página — acessível só por quem souber a URL direto.
 
 Todas as páginas com `<a>← Voltar ao menu</a>` linkam pra
 `/ferramentas.html`, não pra `/` — `/` agora é a landing page, não o menu.
@@ -213,6 +217,49 @@ nenhuma das duas vezes foi pega pelos testes existentes até então porque
 nenhum simulava um `disc_state` no formato anterior. `normalizarRespostasA()`
 sempre precisa saber ler o formato imediatamente anterior ao atual, não só
 o "correto".
+
+### Notificação de líderes por e-mail (DISC)
+
+Quando um colaborador envia o DISC (`POST /api/disc`), o servidor busca na
+tabela `lideres_empresa` (ver `src/db.js`) todos os líderes cadastrados
+com a mesma `empresa` (comparação de texto exata — grafias diferentes não
+casam, ver aviso na própria aba do admin) e manda um e-mail pra cada um
+com o PDF do perfil DISC anexado (`src/notifications/discNotifier.js`,
+reaproveita o mesmo `generatePdfAsync('disc', data)`/`discFilename()` das
+outras rotas de PDF). Pedido explícito do usuário: os "participantes" que
+recebem a notificação não são colegas do colaborador, são os chefes/
+líderes técnicos responsáveis por decidir alocação de pessoas com base no
+perfil.
+
+`notificarLideresDisc(row)` é chamado **sem `await`** logo depois de
+responder ao participante (`res.status(201).json(...)` primeiro, depois a
+chamada) — a submissão do colaborador nunca deve demorar nem falhar por
+causa de um problema de e-mail/SMTP. Erros de envio (SMTP fora do ar,
+credencial errada, etc.) só são logados, nunca propagados pro participante.
+
+**Cadastro de líderes é uma aba nova dentro do `/admin.html` já
+existente** (`Líderes por Empresa`), protegida pelo mesmo `x-admin-token`
+que já protege as outras 3 abas — decisão explícita do usuário depois de
+cogitar um sistema de login separado (usuário/senha) e achar trabalhoso
+demais pro que era necessário. Não crie um sistema de autenticação novo
+pra essa aba sem pedido explícito de novo.
+
+**SMTP é opcional, ao contrário de `DATABASE_URL`.** `src/email.js`
+não lança erro nenhum se `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` não
+estiverem configurados — só loga um aviso (1 vez só, não a cada
+tentativa) e a notificação fica desligada; o resto do app (metas, disc,
+meu-porque, PDFs) continua funcionando normalmente. Ver `.env.example`
+pros valores esperados (testado com Gmail/Google Workspace — precisa de
+uma "senha de app" gerada em `myaccount.google.com/apppasswords`, não a
+senha normal da conta, porque contas com 2FA não aceitam autenticação
+SMTP básica).
+
+**`/admin.html` não tem mais link público.** Ele era linkado no rodapé de
+`ferramentas.html` ("Painel do facilitador") — removido por pedido
+explícito do usuário (a página é só pra uso interno da Tática, não deveria
+estar visível/clicável por participantes). O painel continua acessível
+direto pela URL — não é bloqueio de acesso, só deixou de ser descoberto
+por quem só navega pelo site.
 
 ### Calculadora de meta comercial: números pt-BR
 

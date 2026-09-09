@@ -1068,3 +1068,67 @@ seguem só no histórico do `git log`.
   Render antes de remover o arquivo daqui, pra não arriscar que a
   sincronização apagasse os recursos já criados). `render.yaml` removido
   do repositório.
+
+## Alterações branch dev
+
+### 2026-09-09
+
+- **`dev` resetada pra igualar `main`.** A branch `dev` no GitHub estava
+  com conteúdo defasado por um erro de uso do `git pull`/rebase: o usuário
+  resolveu conflitos com `git checkout --theirs <arquivo>` acreditando que
+  isso traria a versão de `main`, mas num rebase o significado de
+  `--ours`/`--theirs` é invertido em relação a um merge normal — `--theirs`
+  pegou o conteúdo antigo da própria `dev`. Isso deixou `src/server.js`
+  (131 linhas, ainda em `better-sqlite3`, só as rotas de `/api/metas`),
+  `package.json`, `admin.html`/`index.html` e CSS correspondentes numa
+  versão bem anterior, mesmo com `src/db.js` (Postgres) presente e
+  intacto — um estado inconsistente. `main` nunca foi afetado (branches
+  git não se sobrescrevem entre si só por isso). Resetado com `git reset
+  --hard main` + `git push --force-with-lease`.
+- **Docker Compose como servidor de desenvolvimento** (`Dockerfile`,
+  `docker-compose.yml`, `.dockerignore`, novo script `npm run dev`): app +
+  Postgres sobem juntos com `docker compose up --build`, isolados dos
+  containers manuais já usados no projeto (`forms-meta-pg`,
+  `forms-meta-pg-test` — o serviço `db` do compose não expõe porta pro
+  host de propósito, evita colisão). Código montado por bind mount,
+  rodando com `node --watch` (nativo do Node, sem precisar de `nodemon`) —
+  editar um arquivo reinicia o processo sozinho. Testado: build, health
+  check e hot-reload (tocando `src/server.js`) confirmados ao vivo.
+- **Notificação por e-mail de líderes quando um colaborador preenche o
+  DISC** — pedido do usuário: "quando o colaborador preencher a dinâmica
+  disc ela caia para os participantes", esclarecido depois que
+  "participantes" aqui são chefes/líderes técnicos responsáveis por
+  decidir alocação de pessoas com base no perfil, relacionados por
+  empresa (texto igual ao que o colaborador digita).
+  - Nova tabela `lideres_empresa` (`empresa`, `nome`, `email`) em
+    `src/db.js`.
+  - `src/email.js` (novo): wrapper fino sobre `nodemailer`. Ao contrário
+    de `DATABASE_URL` (obrigatório), SMTP é **opcional** — sem
+    `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` configurados, só loga um aviso (1
+    vez) e a notificação fica desligada, sem derrubar o resto do app.
+  - `src/notifications/discNotifier.js` (novo): busca os líderes da
+    mesma empresa, gera o PDF do perfil (reaproveitando
+    `generatePdfAsync('disc', data)`/`discFilename()` já usados nas
+    rotas de PDF existentes) e manda um e-mail com o PDF anexado pra
+    cada um. Chamado em `POST /api/disc` **sem `await`**, depois de já
+    ter respondido ao participante — notificação nunca atrasa nem
+    derruba a submissão por causa de SMTP fora do ar.
+  - 3 rotas novas (`POST`/`GET`/`DELETE /api/lideres`, todas atrás de
+    `requireAdmin`) e uma 4ª aba em `admin.html` ("Líderes por Empresa")
+    pra cadastrar/listar/remover — **decisão explícita do usuário**:
+    reaproveitar o mesmo `x-admin-token` que já protege as outras 3 abas,
+    em vez de um sistema de login/senha separado (cogitado, mas achado
+    trabalhoso demais pro que era necessário).
+  - `/admin.html` deixou de ter link público — removido do rodapé de
+    `ferramentas.html` ("Painel do facilitador"), a pedido do usuário (a
+    página é só pra uso interno da Tática). Continua acessível direto
+    pela URL, só não é mais descoberta por quem navega pelo site.
+  - `.env.example`/`CLAUDE.md` documentam as variáveis `SMTP_*` (exemplo
+    com Gmail/Google Workspace, incluindo o aviso de precisar gerar uma
+    "senha de app", não a senha normal da conta).
+  - Testado: `npm test` (99/99, 8 testes novos — CRUD de líderes + 1
+    verificando que a submissão do DISC responde 201 normalmente mesmo
+    com um líder cadastrado e SMTP não configurado). Smoke test ao vivo
+    (servidor real, `curl`): cadastro de líder, envio de DISC pra mesma
+    empresa, log confirmando a tentativa de notificação (aviso de SMTP
+    não configurado) sem nenhum atraso na resposta do POST.
