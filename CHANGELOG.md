@@ -967,3 +967,73 @@ seguem só no histórico do `git log`.
     automatizados.
   - `npm test`: 91/91 passando, ~10s (mesma contagem/tempo de antes desta
     mudança — nenhum teste existente precisou mudar).
+
+### 2026-09-09
+
+- **Migração do banco de SQLite pra PostgreSQL** — pedido explícito do
+  usuário depois de perguntar "qual a melhora de migrar o banco para o
+  postgres?" (respondido: escalar horizontalmente entre múltiplas
+  instâncias do Render, que o SQLite/disco único não permitia — ver a
+  pendência "SQLite não escala horizontalmente" da entrada de robustez
+  acima) e confirmar com "comece a migrar". Full cutover, sem suporte
+  dual — confirmado via `grep -rln "better-sqlite3"` que só
+  `src/server.js` usava o pacote, então não havia risco de deixar outro
+  arquivo dependendo dele.
+  - `src/db.js` (novo): exporta `{ pool, ready }`. `pool` é um `pg.Pool`
+    configurado a partir de `DATABASE_URL` (obrigatório — lança erro no
+    `require()` se não estiver definida, sem fallback silencioso). SSL
+    (`rejectUnauthorized: false`) é ligado automaticamente só quando o
+    host da connection string bate com `.render.com` — a Internal
+    Database URL do Render e uma connection string local não precisam.
+    `ready` é a promise que resolve quando as 3 `CREATE TABLE IF NOT
+    EXISTS` (dialeto Postgres: `SERIAL PRIMARY KEY`, `DOUBLE PRECISION`
+    no lugar de `REAL` pra manter a mesma precisão de 8 bytes que o
+    SQLite sempre usou por baixo independente do tipo declarado,
+    `to_char(now(), 'YYYY-MM-DD HH24:MI:SS')` no lugar de `datetime('now',
+    'localtime')` pra manter o mesmo formato de exibição de `criado_em`)
+    já rodaram.
+  - `src/server.js`: todas as rotas que tocam banco viraram `async`/
+    `await`; os 3 `INSERT` viraram parâmetros posicionais (`$1, $2, ...`)
+    com `RETURNING id` (Postgres não tem `lastInsertRowid`). `app.listen`
+    só roda depois de `await ready` — sem isso, uma requisição podendo
+    chegar antes da 1ª tabela existir levaria a "relation does not
+    exist" bem na pior hora (o 1º request depois de um deploy). Removido
+    o diagnóstico de boot baseado em `fs.existsSync(DB_PATH)` (SQLite-
+    específico) — o diagnóstico equivalente agora mora em `src/db.js`.
+    Comentário do cluster opcional atualizado: o pool do Postgres (ao
+    contrário do SQLite/WAL) escala tanto entre processos de uma mesma
+    instância quanto entre instâncias separadas do Render.
+  - `tests/server.test.js`: trocou o SQLite temporário por-execução
+    (`os.tmpdir()`, sempre vazio) por um Postgres compartilhado entre
+    execuções — precisa de `TRUNCATE TABLE ... RESTART IDENTITY CASCADE`
+    num `before()` pra cada `npm test` partir do mesmo estado zerado.
+    `after()` agora também fecha o `pool` do Postgres, além do pool de
+    PDF.
+  - `package.json`: `pg` adicionado, `better-sqlite3` removido (`npm
+    audit` continua mostrando as mesmas 3 vulnerabilidades moderadas
+    pré-existentes de `autocannon`/`hyperid`/`uuid`, nada novo trazido
+    pelo `pg`).
+  - `render.yaml`: removido o `disk` (Persistent Disk) e `DB_PATH`;
+    adicionado um bloco `databases:` do Render Blueprint (`forms-meta-
+    db`), com a connection string injetada automaticamente em
+    `DATABASE_URL` via `fromDatabase`. **Isso provisiona um recurso pago
+    separado do serviço web na 1ª vez que o Blueprint for aplicado** —
+    sinalizado explicitamente ao usuário; plano usado (`basic-256mb`) é
+    só uma sugestão de menor plano pago no momento da escrita, não uma
+    garantia de preço atual — confirmar no dashboard do Render antes de
+    aplicar em produção.
+  - `.gitignore`: removidas as regras `db/*.db*` (vestigiais); diretório
+    `db/` (só continha `.gitkeep` versionado, o resto já era gitignored)
+    removido do repositório.
+  - `.env.example`, `README.md`, `CLAUDE.md`: `DB_PATH` trocado por
+    `DATABASE_URL` em toda menção; seção de deploy do `CLAUDE.md`
+    reescrita para descrever o Postgres gerenciado; comando Docker pra
+    subir um Postgres local documentado nos dois.
+  - Testado: `npm test` (91/91) rodado contra um Postgres real (container
+    Docker descartável, `postgres:16-alpine`, já que o Postgres 16 do
+    próprio sistema não tinha nenhuma credencial acessível sem sudo).
+    Smoke test ao vivo também rodado à parte do `npm test` (servidor real
+    de pé, `curl` em `/api/health`, `POST /api/metas` e `GET /api/metas`
+    com token admin) — confirmando `criado_em` no formato esperado e o
+    fluxo completo de escrita/leitura contra o Postgres de verdade, não
+    só contra o que os testes automatizados cobrem.

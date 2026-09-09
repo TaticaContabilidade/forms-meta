@@ -1,6 +1,6 @@
 # Practice to Create — Calculadora de Meta + Avaliação DISC
 
-Backend em Node.js (Express) + banco SQLite (`better-sqlite3`) para duas
+Backend em Node.js (Express) + PostgreSQL (`pg`) para duas
 dinâmicas de treinamento comercial:
 
 - **Calculadora de meta comercial** (`calculadora.html`) — transforma o
@@ -56,6 +56,7 @@ Roda com o test runner nativo do Node (`node --test`):
 forms-meta/
   src/
     server.js               -> servidor Express + rotas da API
+    db.js                    -> pool de conexões Postgres + criação do schema
     reports/
       pdfLayout.js           -> base compartilhada dos relatórios em PDF
       metaComercialReport.js -> relatório da calculadora de meta
@@ -74,8 +75,6 @@ forms-meta/
       index.css               -> estilos do menu (ferramentas.html) e da calculadora
       disc.css                -> estilos da avaliação DISC
       admin.css                -> estilos do painel admin
-  db/
-    metas.db                  -> criado automaticamente na primeira execução
   CLAUDE.md                   -> convenções do repositório (leia antes de mexer)
 ```
 
@@ -102,7 +101,7 @@ forms-meta/
 |---|---|---|
 | `PORT` | `3000` | porta do servidor |
 | `ADMIN_TOKEN` | `troque-isto` | senha simples para ver/exportar os dados |
-| `DB_PATH` | `./db/metas.db` | onde o SQLite grava |
+| `DATABASE_URL` | — (obrigatório) | connection string do Postgres — sem ela o servidor recusa subir |
 
 Exemplo:
 
@@ -116,18 +115,16 @@ Como agora tem um servidor Node de verdade (não é mais um HTML solto), não d�
 pra usar Netlify/GitHub Pages — esses só servem arquivo estático. Precisa de
 um serviço que rode Node continuamente. Opções gratuitas e rápidas:
 
-- **Render.com** (free web service): conecta o repositório do GitHub, ele
-  detecta o `npm start` sozinho. **Atenção:** no plano free o disco é
-  temporário — se o serviço reiniciar ou "dormir" por inatividade, o
-  `metas.db` pode ser resetado. Pra um evento ao vivo de algumas horas isso
-  normalmente não chega a acontecer, mas exporte o CSV **logo depois do
-  treinamento**, não deixe pra depois. Se quiser persistência de verdade,
-  precisa de um plano pago com Persistent Disk anexado (o free não suporta).
-- **Railway.app**: também sobe direto do GitHub, tem uma cota grátis mensal
-  pequena — dá pra testar e rodar o evento.
-- **Fly.io**: free tier permite anexar um volume persistente de verdade, é a
-  opção mais segura se quiser manter os dados por mais tempo, mas exige um
-  pouco mais de configuração (`fly volumes create`).
+- **Render.com**: o jeito mais simples é aplicar `render.yaml` como Blueprint
+  — ele já provisiona o serviço web **e** um Postgres gerenciado juntos, e
+  conecta os dois automaticamente via `DATABASE_URL` (ver seção "Deploy" em
+  `CLAUDE.md`). Como os dados agora vivem no Postgres gerenciado, não no
+  disco do serviço web, reiniciar/redeploy do serviço **não** apaga nada —
+  o problema de "disco temporário resetando os dados" que existia com
+  SQLite não existe mais.
+- **Railway.app** / **Fly.io**: também rodam Node direto do GitHub — nesse
+  caso, provisione um Postgres gerenciado à parte (cada um tem o seu) e
+  aponte `DATABASE_URL` pra ele.
 
 **Passo a passo mais simples (Render):**
 1. Suba esta pasta num repositório no GitHub.
@@ -143,6 +140,8 @@ um serviço que rode Node continuamente. Opções gratuitas e rápidas:
 
 ## Backup dos dados
 
-O arquivo `db/metas.db` é um banco SQLite comum — dá pra abrir com o
-[DB Browser for SQLite](https://sqlitebrowser.org/) (grátis) se quiser olhar
-os dados fora do painel admin, ou simplesmente usar o botão "Exportar CSV".
+O jeito mais simples continua sendo o botão "Exportar CSV" do painel admin.
+Pra um dump completo do banco, use `pg_dump "$DATABASE_URL" > backup.sql` (ou
+o botão de backup do painel do Postgres gerenciado, se o provedor tiver um) —
+qualquer cliente Postgres comum (`psql`, DBeaver, TablePlus) também conecta
+direto em `DATABASE_URL` pra explorar os dados fora do painel admin.

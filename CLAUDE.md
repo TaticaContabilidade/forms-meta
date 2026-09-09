@@ -4,8 +4,8 @@ Orientações para trabalhar neste repositório (`forms-meta`).
 
 ## O que é o projeto
 
-Backend Node.js (Express 5 + `better-sqlite3`) que serve três ferramentas de
-treinamento comercial em `public/`:
+Backend Node.js (Express 5 + PostgreSQL via `pg`) que serve três ferramentas
+de treinamento comercial em `public/`:
 
 - `index.html` — landing page institucional: a história da Tática contada
   pela fundadora Priscila Galindo, com trechos da política comercial
@@ -263,21 +263,48 @@ tem essa flag nesta versão do poppler.
 
 ### Deploy (Render) e persistência do banco
 
-`render.yaml` roda no plano **starter** (não `free`) porque só planos pagos
-suportam **Persistent Disk** — sem disco, o SQLite (`db/metas.db`) some a
-cada deploy e quando a instância dorme por inatividade (comportamento do
-plano free, que o starter também não tem). O disco é montado em
-`/var/data` e `DB_PATH=/var/data/metas.db` aponta o `better-sqlite3` pra
-lá — sem nenhuma mudança de código em `src/server.js`, que já lê `DB_PATH`
-do ambiente. Localmente (`.env`/`npm start` sem `DB_PATH` definido) continua
-gravando no default `db/metas.db`, dentro do próprio repo — só o ambiente
-do Render é diferente.
+Banco de dados: **PostgreSQL gerenciado**, não mais SQLite — migração pedida
+explicitamente pelo usuário ("comece a migrar", depois de perguntar "qual a
+melhora de migrar o banco para o postgres?"). `src/db.js` exporta `{ pool,
+ready }`: `pool` é um `pg.Pool` configurado a partir de `DATABASE_URL`
+(obrigatório — o processo lança um erro no `require()` se não estiver
+definida, sem fallback silencioso pra um caminho local, mesma filosofia de
+"falhar alto" do diagnóstico de boot que existia antes pro SQLite); `ready`
+é a promise que resolve quando as 3 `CREATE TABLE IF NOT EXISTS` já
+rodaram. `src/server.js` só chama `app.listen` depois de `await ready` (ver
+o bloco `if (require.main === module)` no fim do arquivo) — assim uma
+requisição não pode chegar antes da 1ª tabela existir de verdade.
 
-Se um dia crescer para precisar de um banco relacional de verdade (múltiplos
-serviços, backups gerenciados, queries mais complexas), a alternativa é o
-PostgreSQL gerenciado do Render — mas isso exige reescrever a camada de
-banco (`better-sqlite3` → `pg`) em `src/server.js`, não é só configuração de
-infraestrutura. Não faça essa migração sem pedido explícito.
+SSL é ligado automaticamente (`rejectUnauthorized: false`) só quando o host
+da connection string bate com `.render.com` — a "Internal Database URL" do
+Render (mesma região, rede interna) não precisa; uma connection string local
+(Docker, `localhost`) também não.
+
+`render.yaml` usa o bloco `databases:` do Render Blueprint pra provisionar o
+Postgres gerenciado (`forms-meta-db`) junto com o serviço web, e injeta a
+connection string automaticamente em `DATABASE_URL` via `fromDatabase` — não
+precisa copiar/colar nenhum segredo manualmente. **Isso provisiona um
+recurso pago separado do serviço web na 1ª vez que o Blueprint for
+aplicado** — confirme o nome do plano/preço no dashboard do Render antes de
+aplicar em produção (nomes de plano mudam com alguma frequência).
+
+Full cutover, sem suporte dual: `better-sqlite3` foi removido de
+`package.json` (confirmado via `grep -rln "better-sqlite3"` que só
+`src/server.js` o usava — nada mais dependia dele). Não reintroduza SQLite
+como fallback nem mantenha os dois caminhos de código ao mesmo tempo —
+contraria a convenção deste repositório de não manter shims de
+retrocompatibilidade.
+
+**Local:** suba um Postgres descartável via Docker (não precisa de sudo,
+só estar no grupo `docker`):
+
+```bash
+docker run -d --name forms-meta-pg -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=forms_meta -p 5432:5432 postgres:16-alpine
+```
+
+e aponte `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/forms_meta`
+no `.env` (ver `.env.example`).
 
 ### Robustez pra >2k participantes simultâneos — dívida reconhecida, trabalho em andamento
 
@@ -311,21 +338,28 @@ conscientemente até esse pedido acontecer.
 - **Log de requisição** (`morgan`, `src/server.js`) — método, rota,
   status, tempo de resposta, em toda requisição. Desligado quando
   `NODE_ENV=test` (ver `tests/server.test.js`) pra não poluir `npm test`.
-- **Log de diagnóstico no boot do banco** — antes, `new Database(DB_PATH)`
-  criava um arquivo novo e vazio, sem erro nenhum, se o disco persistente
-  do Render não estivesse de fato montado (falha silenciosa — só
-  perceptível como "os dados sumiram"). Agora loga se está reaproveitando
-  um banco existente (com tamanho) ou criando um novo, no boot.
+- **Log de diagnóstico no boot do banco** — `src/db.js` loga host/porta/nome
+  do banco assim que conecta e cria o schema (ou o erro, se a conexão/schema
+  falhar), em vez de o servidor subir "quieto" sem deixar claro se está
+  falando com o Postgres certo.
 - **Cluster opcional** (`WEB_CONCURRENCY`, `src/server.js`, módulo nativo
   `cluster`) — desligado por padrão (`WEB_CONCURRENCY` ausente ou `1` =
   comportamento idêntico a antes, 1 processo só). O plano `starter` atual
   do Render tem CPU fracionária — ligar isso hoje não ajuda em nada (pode
   até piorar, por overhead de troca de contexto). Existe pronto pra
   quando/se o plano for atualizado pra ter mais de 1 núcleo de verdade.
-  Cada worker forkado reexecuta o arquivo inteiro e abre sua própria
-  conexão SQLite (WAL suporta múltiplos processos no mesmo arquivo — isso
-  não resolve o problema de múltiplas *instâncias* do Render, só de
-  múltiplos processos numa *mesma* instância).
+  Cada worker forkado reexecuta o arquivo inteiro e abre seu próprio pool
+  de conexões Postgres (`src/db.js`) — ao contrário do SQLite de antes,
+  isso agora também escala entre *instâncias* separadas do Render, não só
+  entre processos de uma mesma instância (ver o item abaixo).
+- **Banco migrado de SQLite pra PostgreSQL gerenciado** — pedido explícito
+  do usuário ("comece a migrar", ver "Deploy (Render) e persistência do
+  banco" acima). Um único arquivo SQLite num único disco montado não podia
+  ser compartilhado entre múltiplas instâncias do Render — só dava pra
+  escalar verticalmente (uma instância maior), nunca somando instâncias.
+  Isso é justamente o que desbloqueia somar instâncias atrás de um load
+  balancer, se/quando isso for pedido (ver item logo abaixo, ainda
+  pendente).
 - **Teste de carga real rodado** (`scripts/loadtest.js`, usa `autocannon`
   como devDependency) — 3 rodadas (páginas estáticas, escrita simples,
   geração de PDF) contra uma URL alvo, imprime requisições/s e latência
@@ -345,15 +379,11 @@ conscientemente até esse pedido acontecer.
 
 **Ainda pendente, decisão de infra/custo antes de mexer:**
 
-- **SQLite não escala horizontalmente.** Um único arquivo num único disco
-  montado (ver acima) não pode ser compartilhado entre múltiplas instâncias
-  do Render — hoje só dá pra escalar verticalmente (uma instância maior),
-  não adicionando instâncias. Migrar pra Postgres (ver acima) é o que
-  desbloqueia isso, mas é uma decisão que exige pedido explícito por
-  reescrever a camada de banco inteira.
 - **`render.yaml` roda 1 instância `starter`** — sem plano de múltiplas
-  instâncias nem load balancer configurado. Exige upgrade de plano
-  (custo) — não faça sem pedido explícito.
+  instâncias nem load balancer configurado. Com o banco já em Postgres
+  gerenciado, somar instâncias agora é só configuração (não exige mais
+  reescrever a camada de banco) — mas ainda exige upgrade de plano (custo)
+  e configurar o load balancer. Não faça sem pedido explícito.
 - **Sem monitoramento/alerta externo** (Sentry, Datadog etc.) — o log de
   requisição (`morgan`) e o health check acima ajudam, mas não substituem
   um serviço de verdade com alerta ativo; exigiria conta/API key que não
@@ -448,6 +478,9 @@ e quando.
 
 ## Rodar e testar
 
+Precisa de um Postgres rodando (local ou Docker — ver "Deploy (Render) e
+persistência do banco" acima) e `DATABASE_URL` apontando pra ele:
+
 ```bash
 npm install
 npm start          # sobe em http://localhost:3000
@@ -456,9 +489,14 @@ npm test           # node --test — roda tests/*.test.js
 
 Os testes usam o runner nativo do Node (`node --test`):
 
-- `tests/server.test.js` — API (`supertest`). Cada execução aponta `DB_PATH`
-  para um SQLite temporário em `os.tmpdir()` e limpa o arquivo no `after()`
-  — nunca escreve em `db/metas.db`.
+- `tests/server.test.js` — API (`supertest`). Usa `DATABASE_URL` (default:
+  `postgresql://postgres:testpass@localhost:5433/forms_meta_test`, pensado
+  pro container Docker de teste — respeita um `DATABASE_URL` já setado no
+  ambiente, ex. rodando contra staging). Ao contrário do SQLite temporário
+  de antes (1 arquivo novo por execução), o banco de teste é reaproveitado
+  entre execuções — um `before()` roda `TRUNCATE ... RESTART IDENTITY
+  CASCADE` nas 3 tabelas pra cada `npm test` partir do mesmo estado zerado,
+  e o `after()` fecha o `pool` do Postgres além do pool de PDF.
 - `tests/calculadora.client.test.js` — lógica client-side de
   `calculadora.html` num DOM real (`jsdom`), carregando o HTML de verdade e
   disparando eventos reais (`input`/`change`/`click`). Se mexer em
@@ -508,5 +546,5 @@ existe uma, ex.: `public/politica-comercial-tatica.docx`,
   JS inline em `<script>` no fim do arquivo (sem módulos, sem bundler).
 - Todo texto voltado ao usuário (labels, mensagens de erro, commits) é em
   português.
-- Variáveis de ambiente: `PORT`, `ADMIN_TOKEN`, `DB_PATH` (ver `.env.example`).
+- Variáveis de ambiente: `PORT`, `ADMIN_TOKEN`, `DATABASE_URL` (ver `.env.example`).
 - Antes de mudanças em `src/server.js`, rode `npm test`.
