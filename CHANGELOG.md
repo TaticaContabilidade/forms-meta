@@ -1128,3 +1128,22 @@ seguem só no histórico do `git log`.
   - Testado: `npm test` (99/99 — 46 servidor + 26 calculadora + 20 DISC
     + 7 Meu Porquê), incluindo testes novos de "e-mail vazio bloqueia
     o envio" nos 4 arquivos de teste.
+
+## Alterações branch fix/admin-link-e-status-reset
+
+### 2026-09-10
+
+- **Link do `/admin.html` removido de `ferramentas.html`, agora sim no
+  `main`.** Essa remoção já tinha sido feita antes (pedido do usuário: "a
+  página é só pra mim"), mas só na branch `dev` — nunca tinha chegado no
+  `main`, por isso o usuário ainda via o link em produção.
+- **Bug: mensagem de envio ficava visível depois de "Recomeçar" na
+  calculadora** (reportado pelo usuário). `executarReset()` limpava
+  campos, equipe e `localStorage`, mas nunca tocava em `sendStatus` —
+  "Meta enviada com sucesso..." continuava na tela mesmo depois do reset,
+  dando a impressão de que o formulário vazio já tinha sido enviado.
+  Restaura o texto/cor padrão de `sendStatus` junto com o resto. Mesma
+  categoria do bug de `disc.html`/`meu-porque.html` corrigido antes
+  ("botão de enviar ficava travado") — fluxo de reset não desfazendo
+  algum resquício visual/de estado deixado por um envio anterior.
+  Testado: 1 teste de regressão novo + suíte completa (100/100).
