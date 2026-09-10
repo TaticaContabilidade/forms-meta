@@ -1068,3 +1068,30 @@ seguem só no histórico do `git log`.
   Render antes de remover o arquivo daqui, pra não arriscar que a
   sincronização apagasse os recursos já criados). `render.yaml` removido
   do repositório.
+
+## Alterações branch fix/botao-enviar-travado
+
+### 2026-09-10
+
+- **Bug: botão de enviar ficava travado ao refazer o DISC/Meu Porquê**
+  (reportado pelo usuário: "mesmo apagando o teste do banco o localstorage
+  não está sendo resetado, e o botão de enviar fica bloqueado"). Investigado
+  e não era o `localStorage` — esse já era limpo direito nos 3 (calculadora,
+  DISC, Meu Porquê). O problema real: `sendBtn`/`btnSend` fica com
+  `disabled=true` de propósito depois de um envio bem-sucedido (evita
+  reenvio duplicado), e nada reabilitava isso na hora de tentar de novo.
+  - `disc.html`: "Refazer avaliação" (`confirmResetYes`) limpava o
+    `disc_state` e as respostas, mas nunca reabilitava `btnSend` — quem
+    refazia a avaliação na mesma aba chegava no resultado de novo com o
+    botão travado, sem conseguir reenviar mesmo depois do registro antigo
+    ter sido apagado do banco.
+  - `meu-porque.html`: `sendBtn` só era reabilitado no `catch` (envio
+    falhou) — no sucesso, ficava desabilitado pra sempre. Como esta
+    ferramenta não tem nenhum "Refazer" (diferente da calculadora e do
+    DISC), travava até recarregar a página inteira. Corrigido com
+    `finally` — sempre reabilita, mesmo padrão que `calculadora.html` já
+    usava (e por isso nunca teve esse bug).
+  - Testado: 2 testes de regressão novos (`tests/disc.client.test.js`,
+    `tests/meu-porque.client.test.js` — este último precisou mockar
+    `window.fetch`, primeira vez que um teste client-side desses simula
+    um envio bem-sucedido de verdade) + suíte completa (93/93).
