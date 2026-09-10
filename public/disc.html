@@ -1159,6 +1159,13 @@ document.getElementById('confirmResetYes').addEventListener('click', () => {
   document.getElementById('empresaDisc').value = '';
   state = { part: 'A', faseA: 'mais', respostasA: {}, respostasC: {} };
   try { localStorage.removeItem('disc_state'); } catch(e){}
+  // Bug: sendResultado() desabilita btnSend permanentemente após um envio
+  // com sucesso (evita reenvio duplicado) — sem isso aqui, quem refazia a
+  // avaliação chegava no resultado de novo com o botão travado, sem
+  // conseguir reenviar (reportado pelo usuário).
+  document.getElementById('btnSend').disabled = false;
+  const statusEl = document.getElementById('sendStatus');
+  statusEl.textContent = '';
   renderParteA();
   renderParteB();
   showPart('A');

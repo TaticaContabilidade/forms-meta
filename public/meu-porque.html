@@ -208,6 +208,12 @@
     } catch (err) {
       sendStatus.textContent = 'Não foi possível enviar agora. Confira sua conexão e tente de novo.';
       sendStatus.style.color = 'var(--alert)';
+    } finally {
+      // Bug: antes só o catch reabilitava o botão — num envio com sucesso
+      // ele ficava desabilitado pra sempre (sem nenhum "Refazer" nesta
+      // ferramenta pra resetar), reportado pelo usuário como "botão de
+      // enviar fica bloqueado". Sem motivo pra impedir reenvio aqui (ex.:
+      // corrigir uma resposta e mandar de novo), então sempre reabilita.
       sendBtn.disabled = false;
     }
   });

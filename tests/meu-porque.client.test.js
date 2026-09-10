@@ -92,6 +92,19 @@ describe('validação antes de enviar/gerar PDF', () => {
     assert.equal(win.document.activeElement, doc.getElementById('nomeParticipante'));
     assert.match(doc.getElementById('sendStatus').textContent, /Preencha seu nome antes de gerar o PDF/);
   });
+
+  test('regressão: "Enviar" reabilita depois de um envio bem-sucedido (ficava travado, sem nenhum "Refazer" nesta ferramenta pra desempacar)', async () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    preencherTudo(win);
+    win.fetch = async () => ({ ok: true });
+
+    click(win, doc.getElementById('sendBtn'));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    assert.equal(doc.getElementById('sendBtn').disabled, false);
+    assert.match(doc.getElementById('sendStatus').textContent, /enviadas com sucesso/);
+  });
 });
 
 describe('persistência local', () => {
