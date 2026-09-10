@@ -864,6 +864,10 @@
     teamBody.innerHTML = '';
     addRow(); addRow();
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    // Bug: a mensagem de "Meta enviada com sucesso" ficava visível mesmo
+    // depois de "Recomeçar" — nada limpava sendStatus nesse fluxo.
+    sendStatus.textContent = 'Preencha seu nome e clique em "Enviar minha meta" para registrar sua meta com a equipe do treinamento.';
+    sendStatus.style.color = '';
     atualizarPreviewsMoeda();
     recalc();
     suprimirSave = false;

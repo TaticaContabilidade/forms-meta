@@ -310,6 +310,19 @@ describe('persistência local (F-17)', () => {
     assert.equal(win.localStorage.getItem('calculadora_meta_state'), null);
   });
 
+  test('regressão: "Recomeçar" limpa a mensagem de "meta enviada com sucesso" (ficava visível depois do reset)', () => {
+    const { window: win } = criarPagina();
+    const sendStatus = win.document.getElementById('sendStatus');
+    // simula o estado deixado por um envio bem-sucedido, sem precisar
+    // mockar fetch — só o que o reset deveria desfazer importa aqui.
+    sendStatus.textContent = 'Meta enviada com sucesso. Você já pode salvar o PDF, se quiser.';
+
+    win.document.getElementById('resetBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    win.document.getElementById('confirmResetYes').dispatchEvent(new win.Event('click', { bubbles: true }));
+
+    assert.doesNotMatch(sendStatus.textContent, /enviada com sucesso/);
+  });
+
   test('recarregar a página restaura nome, campos e equipe salvos', () => {
     const dom1 = criarPagina();
     setVal(dom1.window, 'nomeParticipante', 'Ciclana');
