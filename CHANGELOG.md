@@ -1095,3 +1095,36 @@ seguem só no histórico do `git log`.
     `tests/meu-porque.client.test.js` — este último precisou mockar
     `window.fetch`, primeira vez que um teste client-side desses simula
     um envio bem-sucedido de verdade) + suíte completa (93/93).
+
+## Alterações branch feat/campo-email
+
+### 2026-09-10
+
+- **Campo de e-mail nas 3 ferramentas** (pedido do usuário: "Adicione um
+  campo para email nas 3 dinâmicas"). Obrigatório como o nome — decisão
+  explícita do usuário depois de perguntado (opção "opcional, como a
+  empresa" ficou de fora). Como o próprio `nome` já tinha um nível de
+  obrigatoriedade inconsistente por arquivo/botão antes desta mudança
+  (obrigatório pro "Enviar" mas não pro "Salvar PDF" na calculadora e no
+  DISC; obrigatório pros 2 botões no Meu Porquê, que compartilham a mesma
+  validação), o e-mail replica essa mesma inconsistência por arquivo em
+  vez de inventar um padrão novo e uniforme — ver seção "Campo de e-mail
+  nas 3 ferramentas" em CLAUDE.md.
+  - `src/db.js`: coluna `email TEXT` nas 3 tabelas — `ALTER TABLE ADD
+    COLUMN IF NOT EXISTS` além do `CREATE TABLE`, mesmo motivo de
+    `notificado_em` (bancos já existentes, incluindo produção, não
+    ganham coluna nova só com `CREATE TABLE IF NOT EXISTS`).
+  - `src/server.js`: as 3 rotas `POST` principais (`/api/metas`,
+    `/api/disc`, `/api/meu-porque`) passam a exigir `email` (400 se
+    ausente, mesmo padrão de `nome_participante`) e gravam a coluna; as
+    3 rotas `/pdf` aceitam o campo mas não exigem (mesmo tratamento que
+    `nome` já tinha nelas). Colunas de CSV (`metas.csv`, `disc.csv`,
+    `meu_porque_respostas.csv`) e `admin.html` (as 3 tabelas) atualizados
+    com a coluna nova.
+  - `calculadora.html`/`disc.html`/`meu-porque.html`: campo novo
+    (`type="email"`), persistido no `localStorage` junto com nome/
+    empresa, validação inline com foco + mensagem (mesmo padrão de
+    `nome`).
+  - Testado: `npm test` (99/99 — 46 servidor + 26 calculadora + 20 DISC
+    + 7 Meu Porquê), incluindo testes novos de "e-mail vazio bloqueia
+    o envio" nos 4 arquivos de teste.
