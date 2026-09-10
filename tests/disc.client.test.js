@@ -304,6 +304,16 @@ describe('resultado calculado (D-04, D-05, D-06, D-09, D-12)', () => {
     assert.match(win.document.getElementById('sendStatus').textContent, /Preencha seu nome/);
   });
 
+  test('e-mail vazio bloqueia o envio, mesmo com o nome preenchido', () => {
+    const { window: win } = criarPagina();
+    completarAvaliacao(win);
+    win.document.getElementById('nomeDisc').value = 'Fulano';
+    // não preenche emailDisc
+    click(win, win.document.getElementById('btnSend'));
+    assert.equal(win.document.activeElement, win.document.getElementById('emailDisc'));
+    assert.match(win.document.getElementById('sendStatus').textContent, /Preencha seu e-mail/);
+  });
+
   test('D-12: "Refazer avaliação" usa confirmação inline, não confirm() nativo', () => {
     const { window: win } = criarPagina();
     completarAvaliacao(win);

@@ -35,6 +35,9 @@
       <label>Sua empresa
         <input type="text" id="empresaParticipante" name="empresaParticipante" placeholder="Nome da empresa" autocomplete="organization">
       </label>
+      <label>Seu e-mail
+        <input type="email" id="emailParticipante" name="emailParticipante" placeholder="seu@email.com" autocomplete="email">
+      </label>
     </div>
   </div>
 
@@ -101,7 +104,7 @@
   const $ = (id) => document.getElementById(id);
   const STORAGE_KEY = 'meu_porque_state';
   const PERGUNTAS = ['objetivo', 'sonho', 'mudanca', 'visaoFuturo'];
-  const CAMPOS = ['nomeParticipante', 'empresaParticipante', ...PERGUNTAS];
+  const CAMPOS = ['nomeParticipante', 'empresaParticipante', 'emailParticipante', ...PERGUNTAS];
 
   // Persistência local (sobrevive a sair/voltar na página), mesmo padrão da
   // calculadora e do DISC — reflexão dessas 4 perguntas pode levar um tempo
@@ -151,6 +154,7 @@
   function validarEMontarPayload(acao) {
     const nome = $('nomeParticipante').value.trim();
     const empresa = $('empresaParticipante').value.trim();
+    const email = $('emailParticipante').value.trim();
 
     if (!nome) {
       sendStatus.textContent = `Preencha seu nome antes de ${acao}.`;
@@ -158,6 +162,15 @@
       const nomeInput = $('nomeParticipante');
       nomeInput.focus();
       if (nomeInput.scrollIntoView) nomeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return null;
+    }
+
+    if (!email) {
+      sendStatus.textContent = `Preencha seu e-mail antes de ${acao}.`;
+      sendStatus.style.color = 'var(--alert)';
+      const emailInput = $('emailParticipante');
+      emailInput.focus();
+      if (emailInput.scrollIntoView) emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return null;
     }
 
@@ -181,6 +194,7 @@
     return {
       nome_participante: nome,
       empresa: empresa,
+      email: email,
       objetivo: $('objetivo').value.trim(),
       sonho: $('sonho').value.trim(),
       mudanca: $('mudanca').value.trim(),

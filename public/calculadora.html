@@ -47,8 +47,12 @@
         <input type="text" id="nomeParticipante" name="nomeParticipante" placeholder="Nome completo" autocomplete="name" maxlength="80">
       </div>
       <label class="row-label" for="empresaParticipante">Sua empresa</label>
-      <div class="field">
+      <div class="field" style="margin-bottom:10px;">
         <input type="text" id="empresaParticipante" name="empresaParticipante" placeholder="Nome da empresa" autocomplete="organization" maxlength="80">
+      </div>
+      <label class="row-label" for="emailParticipante">Seu e-mail</label>
+      <div class="field">
+        <input type="email" id="emailParticipante" name="emailParticipante" placeholder="seu@email.com" autocomplete="email" maxlength="200">
       </div>
     </div>
   </header>
@@ -520,6 +524,7 @@
   });
   $('nomeParticipante').addEventListener('input', saveState);
   $('empresaParticipante').addEventListener('input', saveState);
+  $('emailParticipante').addEventListener('input', saveState);
 
   // ---------- team table ----------
   const teamBody = $('teamBody');
@@ -660,6 +665,7 @@
       const state = {
         nomeParticipante: $('nomeParticipante').value,
         empresaParticipante: $('empresaParticipante').value,
+        emailParticipante: $('emailParticipante').value,
         faturamento: els.faturamento.value,
         crescimentoPct: els.crescimentoPct.value,
         churnPct: els.churnPct.value,
@@ -686,6 +692,7 @@
 
     $('nomeParticipante').value = state.nomeParticipante || '';
     $('empresaParticipante').value = state.empresaParticipante || '';
+    $('emailParticipante').value = state.emailParticipante || '';
     els.faturamento.value = state.faturamento || '';
     els.crescimentoPct.value = state.crescimentoPct || '';
     els.churnPct.value = state.churnPct || '';
@@ -733,11 +740,19 @@
   sendBtn.addEventListener('click', async () => {
     const nome = $('nomeParticipante').value.trim();
     const empresa = $('empresaParticipante').value.trim();
+    const email = $('emailParticipante').value.trim();
 
     if (!nome) {
       sendStatus.textContent = 'Preencha seu nome antes de enviar.';
       sendStatus.style.color = 'var(--alert)';
       $('nomeParticipante').focus();
+      return;
+    }
+
+    if (!email) {
+      sendStatus.textContent = 'Preencha seu e-mail antes de enviar.';
+      sendStatus.style.color = 'var(--alert)';
+      $('emailParticipante').focus();
       return;
     }
 
@@ -752,6 +767,7 @@
     const payload = {
       nome_participante: nome,
       empresa: empresa,
+      email: email,
       ...lastValues,
       equipe: coletarEquipe(),
     };
@@ -794,6 +810,7 @@
     const payload = {
       nome_participante: $('nomeParticipante').value.trim(),
       empresa: $('empresaParticipante').value.trim(),
+      email: $('emailParticipante').value.trim(),
       ...lastValues,
       equipe: coletarEquipe(),
     };
@@ -842,6 +859,7 @@
     suprimirSave = true;
     $('nomeParticipante').value = '';
     $('empresaParticipante').value = '';
+    $('emailParticipante').value = '';
     Object.values(els).forEach(el => el.value = '');
     teamBody.innerHTML = '';
     addRow(); addRow();

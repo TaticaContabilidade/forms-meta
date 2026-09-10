@@ -153,6 +153,7 @@ app.post('/api/metas', async (req, res) => {
   const row = {
     nome_participante: String(b.nome_participante || '').slice(0, 200),
     empresa: String(b.empresa || '').slice(0, 200),
+    email: String(b.email || '').slice(0, 200),
     faturamento: Number(b.faturamento) || 0,
     crescimento_pct: Number(b.crescimento_pct) || 0,
     churn_pct: Number(b.churn_pct) || 0,
@@ -172,18 +173,21 @@ app.post('/api/metas', async (req, res) => {
   if (!row.nome_participante) {
     return res.status(400).json({ error: 'nome_participante é obrigatório.' });
   }
+  if (!row.email) {
+    return res.status(400).json({ error: 'email é obrigatório.' });
+  }
 
   try {
     const result = await pool.query(
       `INSERT INTO metas (
-        nome_participante, empresa, faturamento, crescimento_pct, churn_pct,
+        nome_participante, empresa, email, faturamento, crescimento_pct, churn_pct,
         meta_anual, meta_trimestral, meta_mensal, ticket, contratos_mes,
         conversao_pct, contatos_necessarios, contatos_mes_passado,
         hunter_valor, farmer_valor, equipe_json
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       RETURNING id`,
       [
-        row.nome_participante, row.empresa, row.faturamento, row.crescimento_pct, row.churn_pct,
+        row.nome_participante, row.empresa, row.email, row.faturamento, row.crescimento_pct, row.churn_pct,
         row.meta_anual, row.meta_trimestral, row.meta_mensal, row.ticket, row.contratos_mes,
         row.conversao_pct, row.contatos_necessarios, row.contatos_mes_passado,
         row.hunter_valor, row.farmer_valor, row.equipe_json,
@@ -202,10 +206,12 @@ app.post('/api/metas/pdf', pdfLimiter, async (req, res) => {
 
   const nome_participante = String(b.nome_participante || '').slice(0, 200);
   const empresa = String(b.empresa || '').slice(0, 200);
+  const email = String(b.email || '').slice(0, 200);
 
   const data = {
     nome_participante,
     empresa,
+    email,
     faturamento: Number(b.faturamento) || 0,
     crescimento_pct: Number(b.crescimento_pct) || 0,
     churn_pct: Number(b.churn_pct) || 0,
@@ -249,7 +255,7 @@ app.get('/api/metas.csv', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM metas ORDER BY id DESC');
     const cols = [
-      'id','criado_em','nome_participante','empresa','faturamento','crescimento_pct',
+      'id','criado_em','nome_participante','empresa','email','faturamento','crescimento_pct',
       'churn_pct','meta_anual','meta_trimestral','meta_mensal','ticket','contratos_mes',
       'conversao_pct','contatos_necessarios','contatos_mes_passado','hunter_valor','farmer_valor'
     ];
@@ -309,6 +315,7 @@ app.post('/api/disc', async (req, res) => {
   const row = {
     nome_participante: String(b.nome_participante || '').slice(0, 200),
     empresa: String(b.empresa || '').slice(0, 200),
+    email: String(b.email || '').slice(0, 200),
     d_natural: natural.D,
     i_natural: natural.I,
     s_natural: natural.S,
@@ -329,19 +336,22 @@ app.post('/api/disc', async (req, res) => {
   if (!row.nome_participante) {
     return res.status(400).json({ error: 'nome_participante é obrigatório.' });
   }
+  if (!row.email) {
+    return res.status(400).json({ error: 'email é obrigatório.' });
+  }
 
   try {
     const result = await pool.query(
       `INSERT INTO disc_respostas (
-        nome_participante, empresa,
+        nome_participante, empresa, email,
         d_natural, i_natural, s_natural, c_natural,
         d_adaptado, i_adaptado, s_adaptado, c_adaptado,
         d_intensidade, i_intensidade, s_intensidade, c_intensidade,
         perfil_dominante, arquetipo, respostas_json
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING id`,
       [
-        row.nome_participante, row.empresa,
+        row.nome_participante, row.empresa, row.email,
         row.d_natural, row.i_natural, row.s_natural, row.c_natural,
         row.d_adaptado, row.i_adaptado, row.s_adaptado, row.c_adaptado,
         row.d_intensidade, row.i_intensidade, row.s_intensidade, row.c_intensidade,
@@ -374,6 +384,7 @@ app.post('/api/disc/pdf', pdfLimiter, async (req, res) => {
   const data = {
     nome_participante: String(b.nome_participante || '').slice(0, 200),
     empresa: String(b.empresa || '').slice(0, 200),
+    email: String(b.email || '').slice(0, 200),
     d_natural: natural.D,
     i_natural: natural.I,
     s_natural: natural.S,
@@ -414,7 +425,7 @@ app.get('/api/disc.csv', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM disc_respostas ORDER BY id DESC');
     const cols = [
-      'id','criado_em','nome_participante','empresa',
+      'id','criado_em','nome_participante','empresa','email',
       'd_natural','i_natural','s_natural','c_natural',
       'd_adaptado','i_adaptado','s_adaptado','c_adaptado',
       'd_intensidade','i_intensidade','s_intensidade','c_intensidade',
@@ -453,6 +464,7 @@ app.post('/api/meu-porque', async (req, res) => {
   const row = {
     nome_participante: String(b.nome_participante || '').slice(0, 200),
     empresa: String(b.empresa || '').slice(0, 200),
+    email: String(b.email || '').slice(0, 200),
     objetivo: String(b.objetivo || '').slice(0, 4000),
     sonho: String(b.sonho || '').slice(0, 4000),
     mudanca: String(b.mudanca || '').slice(0, 4000),
@@ -462,14 +474,17 @@ app.post('/api/meu-porque', async (req, res) => {
   if (!row.nome_participante) {
     return res.status(400).json({ error: 'nome_participante é obrigatório.' });
   }
+  if (!row.email) {
+    return res.status(400).json({ error: 'email é obrigatório.' });
+  }
 
   try {
     const result = await pool.query(
       `INSERT INTO meu_porque_respostas (
-        nome_participante, empresa, objetivo, sonho, mudanca, visao_futuro
-      ) VALUES ($1,$2,$3,$4,$5,$6)
+        nome_participante, empresa, email, objetivo, sonho, mudanca, visao_futuro
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7)
       RETURNING id`,
-      [row.nome_participante, row.empresa, row.objetivo, row.sonho, row.mudanca, row.visao_futuro]
+      [row.nome_participante, row.empresa, row.email, row.objetivo, row.sonho, row.mudanca, row.visao_futuro]
     );
     res.status(201).json({ id: result.rows[0].id });
   } catch (err) {
@@ -486,6 +501,7 @@ app.post('/api/meu-porque/pdf', pdfLimiter, async (req, res) => {
   const data = {
     nome_participante: String(b.nome_participante || '').slice(0, 200),
     empresa: String(b.empresa || '').slice(0, 200),
+    email: String(b.email || '').slice(0, 200),
     objetivo: String(b.objetivo || '').slice(0, 4000),
     sonho: String(b.sonho || '').slice(0, 4000),
     mudanca: String(b.mudanca || '').slice(0, 4000),
@@ -517,7 +533,7 @@ app.get('/api/meu-porque', requireAdmin, async (req, res) => {
 app.get('/api/meu-porque.csv', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM meu_porque_respostas ORDER BY id DESC');
-    const cols = ['id', 'criado_em', 'nome_participante', 'empresa', 'objetivo', 'sonho', 'mudanca', 'visao_futuro'];
+    const cols = ['id', 'criado_em', 'nome_participante', 'empresa', 'email', 'objetivo', 'sonho', 'mudanca', 'visao_futuro'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const header = cols.join(';');
     const lines = result.rows.map(r => cols.map(c => esc(r[c])).join(';'));
