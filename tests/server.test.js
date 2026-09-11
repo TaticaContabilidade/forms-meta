@@ -325,10 +325,7 @@ describe('API /api/disc', () => {
     await request(app).delete(`/api/disc/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 
-  test('com um líder cadastrado pra empresa, o envio continua respondendo 201 normalmente (notificação é best-effort, sem await)', async () => {
-    // SMTP não está configurado no ambiente de teste — a notificação deve
-    // ser ignorada (só um aviso no log, ver src/email.js) sem nunca
-    // atrasar nem derrubar a resposta do POST /api/disc.
+  test('POST /api/disc não notifica sozinho — fica pendente (notificado_em NULL) até o botão "Notificar pendentes" ser usado', async () => {
     const lider = await request(app)
       .post('/api/lideres')
       .set('x-admin-token', ADMIN_TOKEN)
@@ -343,8 +340,73 @@ describe('API /api/disc', () => {
     });
     assert.equal(res.status, 201);
 
+    const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    const row = list.body.find(r => r.id === res.body.id);
+    assert.equal(row.notificado_em, null);
+
     await request(app).delete(`/api/disc/${res.body.id}`).set('x-admin-token', ADMIN_TOKEN);
     await request(app).delete(`/api/lideres/${lider.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+  });
+});
+
+describe('POST /api/disc/notificar-pendentes (botão "Notificar pendentes" do admin)', () => {
+  // 8 blocos com mais=1 (I), menos=0 (D) -> natural D=+8 — mesma
+  // construção usada em describe('API /api/disc') acima, repetida aqui
+  // porque é local àquele bloco (escopo de `describe`, não do arquivo).
+  const respostasComDDominante = {
+    a: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, { mais: 1, menos: 0 }])),
+    c: {},
+  };
+
+  test('sem token retorna 401', async () => {
+    const res = await request(app).post('/api/disc/notificar-pendentes');
+    assert.equal(res.status, 401);
+  });
+
+  test('processa uma linha pendente (com líder cadastrado), marca notificado_em e não reprocessa numa 2ª chamada', async () => {
+    const lider = await request(app)
+      .post('/api/lideres')
+      .set('x-admin-token', ADMIN_TOKEN)
+      .send({ empresa: 'Empresa Botão', nome: 'Chefe Botão', email: 'chefe.botao@example.com' });
+
+    const disc = await request(app).post('/api/disc').send({
+      nome_participante: 'Fulano Botão',
+      empresa: 'Empresa Botão',
+      email: 'fulano.botao@example.com',
+      respostas: respostasComDDominante,
+    });
+
+    const proc1 = await request(app).post('/api/disc/notificar-pendentes').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(proc1.status, 200);
+    assert.equal(proc1.body.processadas, 1);
+
+    const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    const row = list.body.find(r => r.id === disc.body.id);
+    assert.ok(row.notificado_em, 'notificado_em deveria estar preenchido depois de processar');
+
+    const proc2 = await request(app).post('/api/disc/notificar-pendentes').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(proc2.body.processadas, 0);
+
+    await request(app).delete(`/api/disc/${disc.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+    await request(app).delete(`/api/lideres/${lider.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+  });
+
+  test('DISC sem líder cadastrado pra empresa também é marcado como processado (não fica pendente pra sempre)', async () => {
+    const disc = await request(app).post('/api/disc').send({
+      nome_participante: 'Fulano Sem Líder',
+      empresa: 'Empresa Sem Líder Nenhum',
+      email: 'sem.lider@example.com',
+      respostas: respostasComDDominante,
+    });
+
+    const proc = await request(app).post('/api/disc/notificar-pendentes').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(proc.body.processadas, 1);
+
+    const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    const row = list.body.find(r => r.id === disc.body.id);
+    assert.ok(row.notificado_em);
+
+    await request(app).delete(`/api/disc/${disc.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 

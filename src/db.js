@@ -100,6 +100,14 @@ async function initSchema() {
     )
   `);
 
+  // Rastreio de notificação por e-mail aos líderes da empresa — NULL =
+  // ainda não processado. Disparo é manual (botão "Notificar pendentes"
+  // em admin.html, ver POST /api/disc/notificar-pendentes), não um job
+  // agendado — mesmo assim precisa desse rastreio pra saber quem já foi
+  // processado e não reenviar o mesmo e-mail toda vez que o botão for
+  // clicado de novo.
+  await pool.query(`ALTER TABLE disc_respostas ADD COLUMN IF NOT EXISTS notificado_em TEXT`);
+
   // "Meu Porquê" — ver comentário equivalente em CLAUDE.md sobre a
   // ausência de um cadastro único compartilhado entre as 3 ferramentas.
   await pool.query(`

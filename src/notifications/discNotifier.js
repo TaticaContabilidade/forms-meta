@@ -1,13 +1,15 @@
 // Notifica os líderes cadastrados pra uma empresa (tabela lideres_empresa,
-// ver src/db.js) sempre que um colaborador daquela empresa preenche o
-// DISC — pedido explícito do usuário: "quando o colaborador preencher a
-// dinâmica disc ela caia para os participantes" (aqui, "participantes" =
-// chefes/líderes técnicos, responsáveis por decidir alocação de pessoas
-// com base no perfil).
+// ver src/db.js) quando um colaborador daquela empresa preenche o DISC —
+// pedido explícito do usuário: "quando o colaborador preencher a dinâmica
+// disc ela caia para os participantes" (aqui, "participantes" = chefes/
+// líderes técnicos, responsáveis por decidir alocação de pessoas com base
+// no perfil).
 //
-// Chamada em src/server.js SEM `await` no caminho de resposta do POST
-// /api/disc — a submissão do participante nunca deve demorar ou falhar
-// por causa de um problema de e-mail. Erros daqui só são logados.
+// O disparo é MANUAL — um botão "Notificar pendentes" em admin.html chama
+// POST /api/disc/notificar-pendentes (ver processarNotificacoesPendentes
+// abaixo), não dispara sozinho a cada POST /api/disc nem roda num job
+// agendado (as duas abordagens já foram tentadas e descartadas por pedido
+// explícito do usuário — ver CHANGELOG).
 const { pool } = require('../db');
 const { generatePdfAsync } = require('../reports/pdfWorkerPool');
 const { discFilename } = require('../reports/discReport');
@@ -61,4 +63,50 @@ async function notificarLideresDisc(row) {
   );
 }
 
-module.exports = { notificarLideresDisc };
+// Máximo de linhas pendentes processadas numa única chamada — evita que um
+// acúmulo grande prenda a requisição do botão por tempo desproporcional;
+// se sobrar mais que isso, o admin só precisa clicar "Notificar pendentes"
+// de novo.
+const LOTE_MAXIMO_POR_EXECUCAO = 200;
+
+// Reivindica 1 linha pendente (notificado_em IS NULL) de forma atômica —
+// `FOR UPDATE SKIP LOCKED` evita que duas chamadas concorrentes (ex.: 2
+// cliques rápidos no botão) processem a mesma linha 2 vezes. Marca a linha
+// como notificada no mesmo instante em que a reivindica, não só depois do
+// e-mail sair — troca "nunca perder uma notificação mesmo se o SMTP
+// falhar" por "nunca notificar a mesma linha duas vezes". Erro de envio de
+// verdade (SMTP fora do ar etc.) só é logado (ver notificarLideresDisc),
+// sem retry automático — o admin pode reprocessar manualmente se quiser
+// (removeria a marcação direto no banco, não há UI pra isso hoje).
+async function reivindicarProximaLinhaPendente() {
+  const { rows } = await pool.query(`
+    UPDATE disc_respostas
+    SET notificado_em = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    WHERE id = (
+      SELECT id FROM disc_respostas
+      WHERE notificado_em IS NULL
+      ORDER BY id ASC
+      LIMIT 1
+      FOR UPDATE SKIP LOCKED
+    )
+    RETURNING *
+  `);
+  return rows[0] || null;
+}
+
+// Chamada pelo botão "Notificar pendentes" (POST /api/disc/notificar-
+// pendentes, ver server.js) — processa todas as linhas pendentes de uma
+// vez (até o limite acima) e retorna quantas foram processadas.
+async function processarNotificacoesPendentes() {
+  let processadas = 0;
+  for (; processadas < LOTE_MAXIMO_POR_EXECUCAO; processadas++) {
+    const row = await reivindicarProximaLinhaPendente();
+    if (!row) break;
+    await notificarLideresDisc(row).catch((err) => {
+      console.error(`Falha ao processar notificação do DISC id=${row.id}:`, err.message);
+    });
+  }
+  return processadas;
+}
+
+module.exports = { notificarLideresDisc, processarNotificacoesPendentes };

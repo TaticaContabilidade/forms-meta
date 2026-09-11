@@ -56,8 +56,10 @@
   <div class="tab-pane" id="tab-disc">
     <div class="toolbar" style="margin-bottom:16px;">
       <a class="btn" id="csvDiscLink" href="#" target="_blank"><button id="csvDiscBtn">Exportar CSV DISC</button></a>
+      <button class="primary" id="notificarPendentesBtn">Notificar pendentes</button>
       <span class="count" id="countDisc"></span>
     </div>
+    <p class="sub" id="notificarStatus"></p>
     <div class="scroll">
       <table id="tableDisc" style="display:none;">
         <thead>
@@ -67,7 +69,7 @@
             <th class="num">D nat.</th><th class="num">I nat.</th><th class="num">S nat.</th><th class="num">C nat.</th>
             <th class="num">D adap.</th><th class="num">I adap.</th><th class="num">S adap.</th><th class="num">C adap.</th>
             <th class="num">D int.</th><th class="num">I int.</th><th class="num">S int.</th><th class="num">C int.</th>
-            <th></th>
+            <th>Notificado</th><th></th>
           </tr>
         </thead>
         <tbody id="tbodyDisc"></tbody>
@@ -154,6 +156,29 @@
     const t = getToken();
     if (!t) { e.preventDefault(); alert('Informe o token antes de exportar.'); return; }
     $('csvDiscLink').href = '/api/disc.csv?token=' + encodeURIComponent(t);
+  });
+
+  $('notificarPendentesBtn').addEventListener('click', async () => {
+    const token = getToken();
+    const status = $('notificarStatus');
+    if (!token) { status.textContent = 'Informe o token de admin.'; return; }
+
+    status.textContent = 'Processando...';
+    try {
+      const resp = await fetch('/api/disc/notificar-pendentes', {
+        method: 'POST',
+        headers: { 'x-admin-token': token },
+      });
+      if (resp.status === 401) { status.textContent = 'Token inválido.'; return; }
+      if (!resp.ok) { status.textContent = 'Erro ao processar as notificações.'; return; }
+      const { processadas } = await resp.json();
+      status.textContent = processadas === 0
+        ? 'Nenhuma notificação pendente.'
+        : `${processadas} notificação(ões) processada(s).`;
+      loadDisc(token);
+    } catch (e) {
+      status.textContent = 'Não foi possível conectar ao servidor.';
+    }
   });
 
   $('csvPorqueBtn').addEventListener('click', (e) => {
@@ -280,6 +305,7 @@
         <td class="num">${(r.i_intensidade||0).toFixed(1)}</td>
         <td class="num">${(r.s_intensidade||0).toFixed(1)}</td>
         <td class="num">${(r.c_intensidade||0).toFixed(1)}</td>
+        <td>${r.notificado_em ? '✓ ' + r.notificado_em : '—'}</td>
         <td><button class="del" data-id="${r.id}" data-tipo="disc">remover</button></td>
       `;
       tbody.appendChild(tr);

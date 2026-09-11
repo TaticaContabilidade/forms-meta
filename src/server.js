@@ -16,7 +16,7 @@ const {
 } = require('./reports/discReport');
 const { calcNatural, calcAdaptado, calcIntensidade } = require('./discScoring');
 const { meuPorqueFilename } = require('./reports/meuPorqueReport');
-const { notificarLideresDisc } = require('./notifications/discNotifier');
+const { processarNotificacoesPendentes } = require('./notifications/discNotifier');
 // Geração de PDF acontece num worker à parte (pdfkit é síncrono/bloqueante
 // — ver comentário perto das 3 rotas /pdf), não mais chamando
 // generate*Pdf() direto aqui na thread principal.
@@ -360,12 +360,9 @@ app.post('/api/disc', async (req, res) => {
       ]
     );
     res.status(201).json({ id: result.rows[0].id });
-    // Sem `await` de propósito — notificar os líderes da empresa (se
-    // houver algum cadastrado) não deve atrasar nem derrubar a resposta
-    // pro participante. Erros ficam só no log (ver discNotifier.js).
-    notificarLideresDisc(row).catch((err) => {
-      console.error('Falha ao notificar líderes do DISC:', err.message);
-    });
+    // A notificação dos líderes da empresa NÃO é disparada aqui — é
+    // manual, via botão "Notificar pendentes" em admin.html (ver POST
+    // /api/disc/notificar-pendentes) — decisão explícita do usuário.
   } catch (err) {
     res.status(500).json({ error: 'Falha ao gravar o resultado DISC.' });
   }
@@ -504,6 +501,19 @@ app.delete('/api/lideres/:id', requireAdmin, async (req, res) => {
     res.status(204).end();
   } catch (err) {
     res.status(500).json({ error: 'Falha ao apagar o líder.' });
+  }
+});
+
+// Dispara manualmente o envio de e-mail pros líderes de cada empresa com
+// resultado DISC pendente (notificado_em IS NULL) — botão "Notificar
+// pendentes" em admin.html. Decisão explícita do usuário: nem automático
+// a cada envio, nem um job agendado — só quando o admin clicar.
+app.post('/api/disc/notificar-pendentes', requireAdmin, async (req, res) => {
+  try {
+    const processadas = await processarNotificacoesPendentes();
+    res.json({ processadas });
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao processar as notificações pendentes.' });
   }
 });
 
