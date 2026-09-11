@@ -17,6 +17,25 @@ process.env.NODE_ENV = 'test';
 const request = require('supertest');
 const app = require('../src/server');
 const { pool, ready } = require('../src/db');
+
+// Nunca deixa a suíte automatizada usar SMTP de verdade, mesmo que o
+// `.env` local tenha credenciais reais (pra testar o envio manualmente) —
+// os testes de /api/disc/notificar-pendentes usam e-mails fake
+// (@example.com) como líder, e sem isso aqui eles tentariam mandar e-mail
+// de verdade pra um endereço que não existe a cada `npm test` (aconteceu
+// de verdade: um bounce apareceu na caixa depois de rodar os testes com o
+// .env já configurado). Precisa vir DEPOIS do require('../src/server')
+// acima — é o que dispara o dotenv.config() que popula essas variáveis a
+// partir do .env; apagar antes não adiantaria (dotenv só define uma
+// variável se ela ainda não estiver setada, então apagar antes só faria
+// ele setar de novo). src/email.js lê essas variáveis a cada chamada, não
+// cacheia no require, então limpar depois já é suficiente.
+delete process.env.SMTP_HOST;
+delete process.env.SMTP_PORT;
+delete process.env.SMTP_SECURE;
+delete process.env.SMTP_USER;
+delete process.env.SMTP_PASS;
+delete process.env.SMTP_FROM;
 const { closePool } = require('../src/reports/pdfWorkerPool');
 
 before(async () => {
