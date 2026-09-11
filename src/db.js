@@ -100,6 +100,14 @@ async function initSchema() {
     )
   `);
 
+  // Rastreio de notificação por e-mail aos líderes da empresa — NULL =
+  // ainda não processado. Disparo é manual (botão "Notificar pendentes"
+  // em admin.html, ver POST /api/disc/notificar-pendentes), não um job
+  // agendado — mesmo assim precisa desse rastreio pra saber quem já foi
+  // processado e não reenviar o mesmo e-mail toda vez que o botão for
+  // clicado de novo.
+  await pool.query(`ALTER TABLE disc_respostas ADD COLUMN IF NOT EXISTS notificado_em TEXT`);
+
   // "Meu Porquê" — ver comentário equivalente em CLAUDE.md sobre a
   // ausência de um cadastro único compartilhado entre as 3 ferramentas.
   await pool.query(`
@@ -116,10 +124,26 @@ async function initSchema() {
     )
   `);
 
-  // `email` pedido depois das 3 tabelas já existirem em produção —
-  // `CREATE TABLE IF NOT EXISTS` acima não adiciona coluna nova a uma
-  // tabela que já existia (mesma situação de `notificado_em`, ver comentário
-  // acima).
+  // Líderes/chefes de cada empresa cliente que devem ser notificados por
+  // e-mail quando um colaborador daquela empresa preenche o DISC — ver
+  // src/notifications/discNotifier.js. `empresa` aqui é comparada por
+  // igualdade de texto com o campo `empresa` digitado livremente em
+  // disc_respostas — grafias diferentes (maiúsculas, espaço, "Ltda" etc.)
+  // não casam automaticamente; cadastre exatamente como os participantes
+  // dessa empresa costumam digitar.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS lideres_empresa (
+      id SERIAL PRIMARY KEY,
+      criado_em TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
+      empresa TEXT NOT NULL,
+      nome TEXT,
+      email TEXT NOT NULL
+    )
+  `);
+
+  // `email` (identidade do participante) pedido depois das 3 tabelas já
+  // existirem em produção — `CREATE TABLE IF NOT EXISTS` acima não
+  // adiciona coluna nova a uma tabela que já existia.
   await pool.query(`ALTER TABLE metas ADD COLUMN IF NOT EXISTS email TEXT`);
   await pool.query(`ALTER TABLE disc_respostas ADD COLUMN IF NOT EXISTS email TEXT`);
   await pool.query(`ALTER TABLE meu_porque_respostas ADD COLUMN IF NOT EXISTS email TEXT`);

@@ -16,6 +16,7 @@ const {
 } = require('./reports/discReport');
 const { calcNatural, calcAdaptado, calcIntensidade } = require('./discScoring');
 const { meuPorqueFilename } = require('./reports/meuPorqueReport');
+const { processarNotificacoesPendentes } = require('./notifications/discNotifier');
 // Geração de PDF acontece num worker à parte (pdfkit é síncrono/bloqueante
 // — ver comentário perto das 3 rotas /pdf), não mais chamando
 // generate*Pdf() direto aqui na thread principal.
@@ -359,6 +360,9 @@ app.post('/api/disc', async (req, res) => {
       ]
     );
     res.status(201).json({ id: result.rows[0].id });
+    // A notificação dos líderes da empresa NÃO é disparada aqui — é
+    // manual, via botão "Notificar pendentes" em admin.html (ver POST
+    // /api/disc/notificar-pendentes) — decisão explícita do usuário.
   } catch (err) {
     res.status(500).json({ error: 'Falha ao gravar o resultado DISC.' });
   }
@@ -451,6 +455,65 @@ app.delete('/api/disc/:id', requireAdmin, async (req, res) => {
     res.status(204).end();
   } catch (err) {
     res.status(500).json({ error: 'Falha ao apagar o resultado DISC.' });
+  }
+});
+
+// ---------- rotas líderes por empresa (notificação do DISC) ----------
+// Cadastro de quem recebe o e-mail com o perfil DISC de cada empresa (ver
+// src/notifications/discNotifier.js) — CRUD simples, mesma autenticação
+// (x-admin-token) das outras 3 tabelas, sem sistema de login separado.
+
+app.post('/api/lideres', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const row = {
+    empresa: String(b.empresa || '').trim().slice(0, 200),
+    nome: String(b.nome || '').trim().slice(0, 200),
+    email: String(b.email || '').trim().slice(0, 200),
+  };
+
+  if (!row.empresa || !row.email) {
+    return res.status(400).json({ error: 'empresa e email são obrigatórios.' });
+  }
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO lideres_empresa (empresa, nome, email) VALUES ($1,$2,$3) RETURNING id',
+      [row.empresa, row.nome, row.email]
+    );
+    res.status(201).json({ id: result.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao cadastrar o líder.' });
+  }
+});
+
+app.get('/api/lideres', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM lideres_empresa ORDER BY empresa, nome');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao listar os líderes.' });
+  }
+});
+
+app.delete('/api/lideres/:id', requireAdmin, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM lideres_empresa WHERE id = $1', [req.params.id]);
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao apagar o líder.' });
+  }
+});
+
+// Dispara manualmente o envio de e-mail pros líderes de cada empresa com
+// resultado DISC pendente (notificado_em IS NULL) — botão "Notificar
+// pendentes" em admin.html. Decisão explícita do usuário: nem automático
+// a cada envio, nem um job agendado — só quando o admin clicar.
+app.post('/api/disc/notificar-pendentes', requireAdmin, async (req, res) => {
+  try {
+    const processadas = await processarNotificacoesPendentes();
+    res.json({ processadas });
+  } catch (err) {
+    res.status(500).json({ error: 'Falha ao processar as notificações pendentes.' });
   }
 });
 

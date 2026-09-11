@@ -1069,6 +1069,70 @@ seguem só no histórico do `git log`.
   sincronização apagasse os recursos já criados). `render.yaml` removido
   do repositório.
 
+## Alterações branch dev
+
+### 2026-09-09
+
+- **`dev` resetada pra igualar `main`.** A branch `dev` no GitHub estava
+  com conteúdo defasado por um erro de uso do `git pull`/rebase: o usuário
+  resolveu conflitos com `git checkout --theirs <arquivo>` acreditando que
+  isso traria a versão de `main`, mas num rebase o significado de
+  `--ours`/`--theirs` é invertido em relação a um merge normal — `--theirs`
+  pegou o conteúdo antigo da própria `dev`. Isso deixou `src/server.js`
+  (131 linhas, ainda em `better-sqlite3`, só as rotas de `/api/metas`),
+  `package.json`, `admin.html`/`index.html` e CSS correspondentes numa
+  versão bem anterior, mesmo com `src/db.js` (Postgres) presente e
+  intacto — um estado inconsistente. `main` nunca foi afetado (branches
+  git não se sobrescrevem entre si só por isso). Resetado com `git reset
+  --hard main` + `git push --force-with-lease`.
+- **Docker Compose como servidor de desenvolvimento** (`Dockerfile`,
+  `docker-compose.yml`, `.dockerignore`, novo script `npm run dev`): app +
+  Postgres sobem juntos com `docker compose up --build`, isolados dos
+  containers manuais já usados no projeto (`forms-meta-pg`,
+  `forms-meta-pg-test` — o serviço `db` do compose não expõe porta pro
+  host de propósito, evita colisão). Código montado por bind mount,
+  rodando com `node --watch` (nativo do Node, sem precisar de `nodemon`) —
+  editar um arquivo reinicia o processo sozinho. Testado: build, health
+  check e hot-reload (tocando `src/server.js`) confirmados ao vivo.
+- **Notificação por e-mail de líderes quando um colaborador preenche o
+  DISC** — pedido do usuário: "quando o colaborador preencher a dinâmica
+  disc ela caia para os participantes", esclarecido depois que
+  "participantes" aqui são chefes/líderes técnicos responsáveis por
+  decidir alocação de pessoas com base no perfil, relacionados por
+  empresa (texto igual ao que o colaborador digita).
+  - Nova tabela `lideres_empresa` (`empresa`, `nome`, `email`) em
+    `src/db.js`.
+  - `src/email.js` (novo): wrapper fino sobre `nodemailer`. Ao contrário
+    de `DATABASE_URL` (obrigatório), SMTP é **opcional** — sem
+    `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` configurados, só loga um aviso (1
+    vez) e a notificação fica desligada, sem derrubar o resto do app.
+  - `src/notifications/discNotifier.js` (novo): busca os líderes da
+    mesma empresa, gera o PDF do perfil (reaproveitando
+    `generatePdfAsync('disc', data)`/`discFilename()` já usados nas
+    rotas de PDF existentes) e manda um e-mail com o PDF anexado pra
+    cada um. Chamado em `POST /api/disc` **sem `await`**, depois de já
+    ter respondido ao participante — notificação nunca atrasa nem
+    derruba a submissão por causa de SMTP fora do ar.
+  - 3 rotas novas (`POST`/`GET`/`DELETE /api/lideres`, todas atrás de
+    `requireAdmin`) e uma 4ª aba em `admin.html` ("Líderes por Empresa")
+    pra cadastrar/listar/remover — **decisão explícita do usuário**:
+    reaproveitar o mesmo `x-admin-token` que já protege as outras 3 abas,
+    em vez de um sistema de login/senha separado (cogitado, mas achado
+    trabalhoso demais pro que era necessário).
+  - `/admin.html` deixou de ter link público — removido do rodapé de
+    `ferramentas.html` ("Painel do facilitador"), a pedido do usuário (a
+    página é só pra uso interno da Tática). Continua acessível direto
+    pela URL, só não é mais descoberta por quem navega pelo site.
+  - `.env.example`/`CLAUDE.md` documentam as variáveis `SMTP_*` (exemplo
+    com Gmail/Google Workspace, incluindo o aviso de precisar gerar uma
+    "senha de app", não a senha normal da conta).
+  - Testado: `npm test` (99/99, 8 testes novos — CRUD de líderes + 1
+    verificando que a submissão do DISC responde 201 normalmente mesmo
+    com um líder cadastrado e SMTP não configurado). Smoke test ao vivo
+    (servidor real, `curl`): cadastro de líder, envio de DISC pra mesma
+    empresa, log confirmando a tentativa de notificação (aviso de SMTP
+    não configurado) sem nenhum atraso na resposta do POST.
+
 ## Alterações branch fix/botao-enviar-travado
 
 ### 2026-09-10
@@ -1147,3 +1211,80 @@ seguem só no histórico do `git log`.
   ("botão de enviar ficava travado") — fluxo de reset não desfazendo
   algum resquício visual/de estado deixado por um envio anterior.
   Testado: 1 teste de regressão novo + suíte completa (100/100).
+
+## Alterações branch dev (retomada)
+
+### 2026-09-11
+
+- **`main` mesclada de volta na `dev`** (`git merge main`) — a `dev` tinha
+  ficado defasada desde o reset (ver entrada "dev resetada pra igualar
+  main" acima); enquanto isso, `main` recebeu o campo de e-mail, a
+  remoção do link de admin e o fix da calculadora. Conflitos em
+  `CHANGELOG.md` (concatenação simples, sem perda de conteúdo) e
+  `src/db.js` (as 3 tabelas ganharam coluna `email` via `main` ao mesmo
+  tempo que `dev` criava `lideres_empresa` — as duas mudanças convivem,
+  não se sobrepõem). 1 teste ajustado depois (`POST /api/disc` sem
+  `email` no payload passou a exigir o campo).
+- **Notificação de líderes: job periódico abandonado, disparo agora é
+  manual** — pedido do usuário: "o método que estava sendo implementado
+  na dev não precisa mais... pensei em um botão pra disparar". O job
+  (`discNotificationJob.js`, `setInterval`) nunca chegou a ser commitado
+  (só existia no stash de uma sessão anterior, descartado sem uso) — o
+  desenho final ficou mais simples que ele: sem scheduler nenhum,
+  `disc_respostas.notificado_em` (`NULL` = pendente) só é lido/escrito
+  quando o admin clica "Notificar pendentes" (nova aba DISC do
+  `admin.html`), que chama `POST /api/disc/notificar-pendentes`
+  (`processarNotificacoesPendentes()` em `discNotifier.js` — mesma
+  query `FOR UPDATE SKIP LOCKED` que o job teria usado, só que chamada
+  sob demanda em vez de num timer). `POST /api/disc` não dispara mais
+  nada sozinho (nem inline, nem job) — só grava, deixando
+  `notificado_em` NULL até o próximo clique no botão.
+  - Protocolo continua SMTP genérico (`src/email.js`, `nodemailer`) —
+    pedido explícito do usuário pra não ficar amarrado só ao Gmail;
+    `.env.example` reforça isso (Gmail é só o exemplo usado, por ser o
+    provedor da Tática).
+  - Nova coluna `admin.html` ("Notificado") na aba DISC mostrando quando
+    (ou se ainda não) cada linha foi processada.
+  - Testado: `npm test` (111/111 — 3 testes novos pra
+    `POST /api/disc/notificar-pendentes`, 1 teste do POST /api/disc
+    ajustado pra refletir que não notifica mais sozinho). Smoke test ao
+    vivo (servidor real, `curl`, banco local): cadastrado um líder com
+    `levi@taticacontabilidade.com`, enviado um DISC pra mesma empresa,
+    confirmado `notificado_em` NULL antes do botão e preenchido depois
+    de chamar `/api/disc/notificar-pendentes` — fluxo completo validado,
+    só falta SMTP de verdade configurado (`SMTP_HOST`/`SMTP_USER`/
+    `SMTP_PASS` reais) pra receber o e-mail de fato.
+
+### 2026-09-11 (SMTP real configurado e testado)
+
+- **SMTP configurado e testado com envio de verdade.** Tentativa inicial
+  de usar "senha de app" do Google esbarrou 2 vezes (conta Workspace e
+  conta pessoal) — precisa de Verificação em 2 Etapas ativada na conta
+  pra essa opção nem aparecer, e no caso do Workspace o admin do domínio
+  pode bloquear mesmo com 2FA ativo. O usuário conseguiu gerar uma senha
+  de app na conta `levi@taticacontabilidade.com` (2FA foi ativado) —
+  `SMTP_HOST=smtp.gmail.com`, porta 587, `secure=false` (STARTTLS),
+  salvos no `.env` local. 2 envios reais confirmados recebidos pelo
+  usuário (líder cadastrado com o próprio e-mail, DISC de teste enviado,
+  botão "Notificar pendentes" clicado).
+  - **Bug achado na prática**: com credenciais SMTP reais no `.env`,
+    rodar `npm test` fazia os testes de `/api/disc/notificar-pendentes`
+    tentarem mandar e-mail de verdade pros líderes fake (`@example.com`)
+    que esses testes cadastram — gerou um bounce real na caixa de
+    entrada do usuário, que notou e perguntou a respeito. Corrigido:
+    `tests/server.test.js` agora apaga as variáveis `SMTP_*` do
+    `process.env` logo depois do `require('../src/server')` (que é
+    quando o `dotenv.config()` as carregaria do `.env`) — `src/email.js`
+    lê essas variáveis a cada chamada, não cacheia no require, então
+    isso já garante que a suíte nunca dispara e-mail de verdade, não
+    importa o que esteja configurado localmente.
+  - **Texto do e-mail atualizado** com o texto fornecido pelo usuário
+    (`texto-email.md`, raiz do repo, não versionado — material de
+    referência), incrementado a pedido (nota no fim do arquivo:
+    "Incremente o texto e deixe mais elaborado"). Mensagem motivacional
+    de encerramento de treinamento, com a referência ao colaborador/PDF
+    inserida no meio, entre o parágrafo de "coloquem em prática" e o de
+    encerramento — testado com outro envio real confirmado recebido.
+  - Ainda falta: configurar as mesmas variáveis `SMTP_*` no dashboard do
+    Render pra funcionar em produção (só está testado localmente até
+    aqui).

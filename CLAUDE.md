@@ -44,7 +44,11 @@ de treinamento comercial em `public/`:
   das outras 2). Tem "Salvar PDF" ao lado de "Enviar minhas respostas", os 2
   reaproveitando a mesma validação (nome + as 4 perguntas respondidas).
 - `admin.html` — painel autenticado (`x-admin-token` / `?token=`) para listar,
-  exportar CSV e apagar registros das três tabelas.
+  exportar CSV e apagar registros das três tabelas, além de uma 4ª aba
+  ("Líderes por Empresa") pra cadastrar quem recebe notificação por e-mail
+  quando um colaborador daquela empresa preenche o DISC (ver seção
+  "Notificação de líderes por e-mail" abaixo). Sem link público em nenhuma
+  página — acessível só por quem souber a URL direto.
 
 Todas as páginas com `<a>← Voltar ao menu</a>` linkam pra
 `/ferramentas.html`, não pra `/` — `/` agora é a landing page, não o menu.
@@ -214,6 +218,66 @@ nenhum simulava um `disc_state` no formato anterior. `normalizarRespostasA()`
 sempre precisa saber ler o formato imediatamente anterior ao atual, não só
 o "correto".
 
+### Notificação de líderes por e-mail (DISC)
+
+Quando um colaborador envia o DISC (`POST /api/disc`), o servidor busca na
+tabela `lideres_empresa` (ver `src/db.js`) todos os líderes cadastrados
+com a mesma `empresa` (comparação de texto exata — grafias diferentes não
+casam, ver aviso na própria aba do admin) e manda um e-mail pra cada um
+com o PDF do perfil DISC anexado (`src/notifications/discNotifier.js`,
+reaproveita o mesmo `generatePdfAsync('disc', data)`/`discFilename()` das
+outras rotas de PDF). Pedido explícito do usuário: os "participantes" que
+recebem a notificação não são colegas do colaborador, são os chefes/
+líderes técnicos responsáveis por decidir alocação de pessoas com base no
+perfil.
+
+**Disparo é manual — botão "Notificar pendentes" na aba DISC do
+`admin.html`, não automático nem agendado.** Já passou por 2 desenhos
+antes deste, os 2 descartados por pedido explícito do usuário: 1) disparo
+automático inline logo após o `POST /api/disc` (sem `await`, fire-and-
+forget); 2) um job periódico (`setInterval`) que varria o banco sozinho
+de tempos em tempos. O usuário decidiu que queria controle manual — "o
+banco já tá com registro, pensei em um botão pra disparar" — porque as
+submissões já se acumulam no banco e o gatilho de quando notificar deve
+ser uma decisão do admin, não automático. `disc_respostas.notificado_em`
+(coluna `TEXT`, `NULL` = pendente) rastreia quem já foi processado, pra
+não reenviar o mesmo e-mail toda vez que o botão for clicado de novo.
+`POST /api/disc/notificar-pendentes` (`requireAdmin`) chama
+`processarNotificacoesPendentes()` (`src/notifications/discNotifier.js`),
+que reivindica 1 linha pendente por vez com `UPDATE ... FOR UPDATE SKIP
+LOCKED` (atômico — dois cliques rápidos no botão nunca processam a mesma
+linha 2 vezes) e chama `notificarLideresDisc(row)` pra cada uma, até
+processar tudo ou bater no limite de 200 por chamada. Erros de envio (SMTP
+fora do ar, credencial errada etc.) só são logados — a linha já foi
+marcada como processada no momento em que foi reivindicada, então um erro
+de SMTP não trava as outras linhas pendentes nem faz a mesma linha ser
+reprocessada sozinha depois (sem retry automático; reprocessar manualmente
+exigiria zerar `notificado_em` direto no banco, não existe UI pra isso).
+
+**Cadastro de líderes é uma aba nova dentro do `/admin.html` já
+existente** (`Líderes por Empresa`), protegida pelo mesmo `x-admin-token`
+que já protege as outras 3 abas — decisão explícita do usuário depois de
+cogitar um sistema de login separado (usuário/senha) e achar trabalhoso
+demais pro que era necessário. Não crie um sistema de autenticação novo
+pra essa aba sem pedido explícito de novo.
+
+**SMTP é opcional, ao contrário de `DATABASE_URL`.** `src/email.js`
+não lança erro nenhum se `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` não
+estiverem configurados — só loga um aviso (1 vez só, não a cada
+tentativa) e a notificação fica desligada; o resto do app (metas, disc,
+meu-porque, PDFs) continua funcionando normalmente. Ver `.env.example`
+pros valores esperados (testado com Gmail/Google Workspace — precisa de
+uma "senha de app" gerada em `myaccount.google.com/apppasswords`, não a
+senha normal da conta, porque contas com 2FA não aceitam autenticação
+SMTP básica).
+
+**`/admin.html` não tem mais link público.** Ele era linkado no rodapé de
+`ferramentas.html` ("Painel do facilitador") — removido por pedido
+explícito do usuário (a página é só pra uso interno da Tática, não deveria
+estar visível/clicável por participantes). O painel continua acessível
+direto pela URL — não é bloqueio de acesso, só deixou de ser descoberto
+por quem só navega pelo site.
+
 ### Calculadora de meta comercial: números pt-BR
 
 `parseBRNumber()` em `calculadora.html` segue a convenção pt-BR: `.` é
@@ -350,7 +414,16 @@ docker run -d --name forms-meta-pg -e POSTGRES_PASSWORD=postgres \
 e aponte `DATABASE_URL=postgresql://postgres:postgres@localhost:5434/forms_meta`
 no `.env` (ver `.env.example`).
 
-### Robustez pra >2k participantes simultâneos — dívida reconhecida, trabalho em andamento
+**Alternativa: `docker compose up`** (`Dockerfile` + `docker-compose.yml`,
+raiz do repo) sobe app + Postgres juntos, isolados dos containers manuais
+acima — não precisa de `npm install` nem de Postgres na máquina, só Docker.
+O serviço `db` não expõe porta pro host de propósito (evita colidir com
+`forms-meta-pg`/`forms-meta-pg-test`) — o app fala com ele pelo nome do
+serviço (`db`) dentro da rede do compose. Código montado por bind mount
+(`volumes: .:/app`, com um volume anônimo à parte só pra `node_modules`,
+pra não sobrescrever com o do host) e rodando com `node --watch` — editar
+qualquer arquivo reinicia o processo sozinho, sem rebuildar a imagem.
+`docker compose down` pra encerrar (`-v` também apaga o volume do banco).
 
 Práticas de DevOpsSec não foram levadas em conta desde o início do projeto —
 deveriam ter sido. Boa parte dos gargalos identificados já foi corrigida;
