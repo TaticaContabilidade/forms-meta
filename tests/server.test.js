@@ -338,6 +338,7 @@ describe('API /api/disc', () => {
     const res = await request(app).post('/api/disc').send({
       nome_participante: 'Fulano Notificado',
       empresa: 'Empresa Notificação',
+      email: 'fulano.notificado@example.com',
       respostas: respostasComDDominante,
     });
     assert.equal(res.status, 201);
