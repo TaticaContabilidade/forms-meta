@@ -57,6 +57,7 @@ async function initSchema() {
       criado_em TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
       nome_participante TEXT,
       empresa TEXT,
+      email TEXT,
       faturamento DOUBLE PRECISION,
       crescimento_pct DOUBLE PRECISION,
       churn_pct DOUBLE PRECISION,
@@ -80,6 +81,7 @@ async function initSchema() {
       criado_em TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
       nome_participante TEXT,
       empresa TEXT,
+      email TEXT,
       d_natural DOUBLE PRECISION,
       i_natural DOUBLE PRECISION,
       s_natural DOUBLE PRECISION,
@@ -106,6 +108,7 @@ async function initSchema() {
       criado_em TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
       nome_participante TEXT,
       empresa TEXT,
+      email TEXT,
       objetivo TEXT,
       sonho TEXT,
       mudanca TEXT,
@@ -129,6 +132,13 @@ async function initSchema() {
       email TEXT NOT NULL
     )
   `);
+
+  // `email` (identidade do participante) pedido depois das 3 tabelas já
+  // existirem em produção — `CREATE TABLE IF NOT EXISTS` acima não
+  // adiciona coluna nova a uma tabela que já existia.
+  await pool.query(`ALTER TABLE metas ADD COLUMN IF NOT EXISTS email TEXT`);
+  await pool.query(`ALTER TABLE disc_respostas ADD COLUMN IF NOT EXISTS email TEXT`);
+  await pool.query(`ALTER TABLE meu_porque_respostas ADD COLUMN IF NOT EXISTS email TEXT`);
 }
 
 // Dispara a criação do schema assim que este módulo é carregado (não só

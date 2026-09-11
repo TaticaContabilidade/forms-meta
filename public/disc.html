@@ -52,6 +52,9 @@
       <label>Sua empresa
         <input type="text" id="empresaDisc" name="empresaDisc" placeholder="Nome da empresa" autocomplete="organization">
       </label>
+      <label>Seu e-mail
+        <input type="email" id="emailDisc" name="emailDisc" placeholder="seu@email.com" autocomplete="email">
+      </label>
     </div>
   </div>
 
@@ -500,6 +503,7 @@ function saveState() {
       ...state,
       nomeDisc: document.getElementById('nomeDisc').value,
       empresaDisc: document.getElementById('empresaDisc').value,
+      emailDisc: document.getElementById('emailDisc').value,
     };
     localStorage.setItem('disc_state', JSON.stringify(toSave));
   } catch(e){}
@@ -538,6 +542,7 @@ function loadState() {
       };
       if (parsed.nomeDisc) document.getElementById('nomeDisc').value = parsed.nomeDisc;
       if (parsed.empresaDisc) document.getElementById('empresaDisc').value = parsed.empresaDisc;
+      if (parsed.emailDisc) document.getElementById('emailDisc').value = parsed.emailDisc;
     }
   } catch(e){}
 }
@@ -971,9 +976,11 @@ function showPart(part) {
 function montarPayloadBase() {
   const nome = document.getElementById('nomeDisc').value.trim();
   const empresa = document.getElementById('empresaDisc').value.trim();
+  const email = document.getElementById('emailDisc').value.trim();
   return {
     nome_participante: nome,
     empresa: empresa,
+    email: email,
   };
 }
 
@@ -989,6 +996,15 @@ async function sendResultado(data) {
     const nomeInput = document.getElementById('nomeDisc');
     nomeInput.focus();
     if (nomeInput.scrollIntoView) nomeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  if (!payload.email) {
+    statusEl.textContent = 'Preencha seu e-mail no início do formulário para registrar.';
+    statusEl.style.color = 'var(--danger)';
+    const emailInput = document.getElementById('emailDisc');
+    emailInput.focus();
+    if (emailInput.scrollIntoView) emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -1072,6 +1088,7 @@ loadState();
 
 document.getElementById('nomeDisc').addEventListener('input', saveState);
 document.getElementById('empresaDisc').addEventListener('input', saveState);
+document.getElementById('emailDisc').addEventListener('input', saveState);
 
 renderParteA();
 renderParteB();
@@ -1157,8 +1174,16 @@ document.getElementById('confirmResetYes').addEventListener('click', () => {
   confirmReset.style.display = 'none';
   document.getElementById('nomeDisc').value = '';
   document.getElementById('empresaDisc').value = '';
+  document.getElementById('emailDisc').value = '';
   state = { part: 'A', faseA: 'mais', respostasA: {}, respostasC: {} };
   try { localStorage.removeItem('disc_state'); } catch(e){}
+  // Bug: sendResultado() desabilita btnSend permanentemente após um envio
+  // com sucesso (evita reenvio duplicado) — sem isso aqui, quem refazia a
+  // avaliação chegava no resultado de novo com o botão travado, sem
+  // conseguir reenviar (reportado pelo usuário).
+  document.getElementById('btnSend').disabled = false;
+  const statusEl = document.getElementById('sendStatus');
+  statusEl.textContent = '';
   renderParteA();
   renderParteB();
   showPart('A');

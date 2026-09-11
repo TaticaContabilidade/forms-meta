@@ -293,6 +293,37 @@ os dois lados. Não inclui a tabela de equipe (`t-meta-<idx>`, meta mensal
 por pessoa) — layout de tabela compacta, sem espaço óbvio pra um preview
 por linha; reavaliar se isso também virar uma fonte de confusão relatada.
 
+### Campo de e-mail nas 3 ferramentas
+
+`nome_participante`/`empresa` ganharam um 3º campo de identidade,
+`email`, nas três ferramentas (calculadora, DISC, Meu Porquê) — pedido
+explícito do usuário. **Obrigatório em todo lugar onde `nome` já é
+obrigatório, opcional onde `nome` não é** (mesma decisão explícita do
+usuário: "obrigatório, como o nome") — como o "obrigatório" de `nome`
+já era inconsistente entre ferramenta e botão antes desta mudança, o
+e-mail segue exatamente essa mesma inconsistência por arquivo, não um
+padrão novo e uniforme:
+
+- `calculadora.html`/`disc.html`: obrigatório pro botão "Enviar"
+  (bloqueia com foco + mensagem, igual a `nome`), **não** obrigatório
+  pro "Salvar PDF" (mesmo padrão que `nome` já tinha aí — o PDF nunca
+  exigiu identidade completa, só os campos de cálculo/respostas).
+- `meu-porque.html`: obrigatório pros 2 botões — `validarEMontarPayload()`
+  já validava `nome` pros 2 (`Enviar` e `Salvar PDF` reaproveitam a mesma
+  função), então `email` entra na mesma validação compartilhada.
+
+Persistido no `localStorage` junto com nome/empresa (mesmo padrão de
+sempre) em todas as 3. Coluna `email TEXT` nas 3 tabelas (`metas`,
+`disc_respostas`, `meu_porque_respostas`) — adicionada via `ALTER TABLE
+... ADD COLUMN IF NOT EXISTS` em `src/db.js` além do `CREATE TABLE`
+(mesmo motivo de `notificado_em`: as tabelas já existiam em produção,
+`CREATE TABLE IF NOT EXISTS` sozinho não adicionaria a coluna nova).
+Exigido com `400` no servidor nas 3 rotas `POST` principais (nunca nas
+rotas `/pdf`, que não exigem `nome` também) — **nunca confie só na
+validação client-side pra campo obrigatório**, sempre espelhe no
+servidor. Aparece como coluna nova em `admin.html` (as 3 tabelas) e nos
+3 CSVs exportados.
+
 ### Identidade visual (favicon)
 
 `public/favicon.ico` e `public/img/favicon-{16,32}.png` /

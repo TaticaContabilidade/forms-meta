@@ -92,12 +92,19 @@ describe('API /api/metas', () => {
     assert.match(res.body.error, /nome_participante/);
   });
 
+  test('POST sem email retorna 400', async () => {
+    const res = await request(app).post('/api/metas').send({ nome_participante: 'Fulano de Tal' });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /email/);
+  });
+
   test('POST com dados válidos cria o registro', async () => {
     const res = await request(app)
       .post('/api/metas')
       .send({
         nome_participante: 'Fulano de Tal',
         empresa: 'Empresa X',
+        email: 'fulano@example.com',
         faturamento: 10000,
         crescimento_pct: 10,
         churn_pct: 2,
@@ -126,6 +133,7 @@ describe('API /api/metas', () => {
     const row = res.body.find(r => r.id === createdId);
     assert.ok(row);
     assert.equal(row.nome_participante, 'Fulano de Tal');
+    assert.equal(row.email, 'fulano@example.com');
     assert.deepEqual(row.equipe, [{ nome: 'Vendedor 1' }]);
   });
 
@@ -152,7 +160,7 @@ describe('API /api/metas', () => {
   });
 
   test('DELETE sem token retorna 401 e não apaga nada', async () => {
-    const create = await request(app).post('/api/metas').send({ nome_participante: 'Outro' });
+    const create = await request(app).post('/api/metas').send({ nome_participante: 'Outro', email: 'outro@example.com' });
     const id = create.body.id;
 
     const del = await request(app).delete(`/api/metas/${id}`);
@@ -220,6 +228,7 @@ describe('API /api/disc', () => {
   const payloadValido = {
     nome_participante: 'Ciclana Souza',
     empresa: 'Empresa Y',
+    email: 'ciclana@example.com',
     d_natural: 1, i_natural: 1, s_natural: 99, c_natural: 1,
     d_adaptado: 1, i_adaptado: 1, s_adaptado: 1, c_adaptado: 1,
     d_intensidade: 1, i_intensidade: 1, s_intensidade: 1, c_intensidade: 1,
@@ -232,6 +241,12 @@ describe('API /api/disc', () => {
     const res = await request(app).post('/api/disc').send({ empresa: 'Empresa Y' });
     assert.equal(res.status, 400);
     assert.match(res.body.error, /nome_participante/);
+  });
+
+  test('POST sem email retorna 400', async () => {
+    const res = await request(app).post('/api/disc').send({ nome_participante: 'Ciclana Souza' });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /email/);
   });
 
   test('POST com dados válidos cria o registro', async () => {
@@ -257,6 +272,7 @@ describe('API /api/disc', () => {
     assert.equal(row.i_natural, 0);
     assert.equal(row.d_adaptado, 0);
     assert.equal(row.i_adaptado, 8); // adaptado vem da contagem de MAIS (item 01 do reteste)
+    assert.equal(row.email, 'ciclana@example.com');
     assert.deepEqual(JSON.parse(row.respostas_json), payloadValido.respostas);
   });
 
@@ -290,6 +306,7 @@ describe('API /api/disc', () => {
 
     const create = await request(app).post('/api/disc').send({
       nome_participante: 'Empate Teste',
+      email: 'empate@example.com',
       respostas: respostasEmpate,
     });
     assert.equal(create.status, 201);
@@ -474,6 +491,7 @@ describe('API /api/meu-porque', () => {
   const payloadValido = {
     nome_participante: 'Fulano de Tal',
     empresa: 'Empresa Y',
+    email: 'fulano@example.com',
     objetivo: 'Crescer 30% no ano',
     sonho: 'Ter uma equipe que roda sem mim',
     mudanca: 'Delegar de verdade',
@@ -484,6 +502,12 @@ describe('API /api/meu-porque', () => {
     const res = await request(app).post('/api/meu-porque').send({ empresa: 'Empresa Y' });
     assert.equal(res.status, 400);
     assert.match(res.body.error, /nome_participante/);
+  });
+
+  test('POST sem email retorna 400', async () => {
+    const res = await request(app).post('/api/meu-porque').send({ nome_participante: 'Fulano de Tal' });
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /email/);
   });
 
   test('POST com dados válidos cria o registro', async () => {
@@ -504,6 +528,7 @@ describe('API /api/meu-porque', () => {
     const row = res.body.find(r => r.id === createdId);
     assert.ok(row);
     assert.equal(row.nome_participante, 'Fulano de Tal');
+    assert.equal(row.email, 'fulano@example.com');
     assert.equal(row.objetivo, payloadValido.objetivo);
     assert.equal(row.sonho, payloadValido.sonho);
     assert.equal(row.mudanca, payloadValido.mudanca);

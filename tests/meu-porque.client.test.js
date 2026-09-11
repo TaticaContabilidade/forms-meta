@@ -38,6 +38,8 @@ function preencherTudo(win) {
   input(win, doc.getElementById('nomeParticipante'));
   doc.getElementById('empresaParticipante').value = 'Empresa Y';
   input(win, doc.getElementById('empresaParticipante'));
+  doc.getElementById('emailParticipante').value = 'ciclana@example.com';
+  input(win, doc.getElementById('emailParticipante'));
   doc.getElementById('objetivo').value = 'Crescer 30% no ano';
   input(win, doc.getElementById('objetivo'));
   doc.getElementById('sonho').value = 'Ter uma equipe que roda sem mim';
@@ -57,11 +59,25 @@ describe('validação antes de enviar/gerar PDF', () => {
     assert.match(doc.getElementById('sendStatus').textContent, /Preencha seu nome/);
   });
 
+  test('e-mail vazio bloqueia o envio, mesmo com o nome preenchido', () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    doc.getElementById('nomeParticipante').value = 'Ciclana';
+    input(win, doc.getElementById('nomeParticipante'));
+
+    click(win, doc.getElementById('sendBtn'));
+
+    assert.equal(win.document.activeElement, doc.getElementById('emailParticipante'));
+    assert.match(doc.getElementById('sendStatus').textContent, /Preencha seu e-mail/);
+  });
+
   test('com nome mas sem as perguntas, sinaliza TODOS os blocos pendentes de uma vez', () => {
     const { window: win } = criarPagina();
     const doc = win.document;
     doc.getElementById('nomeParticipante').value = 'Ciclana';
     input(win, doc.getElementById('nomeParticipante'));
+    doc.getElementById('emailParticipante').value = 'ciclana@example.com';
+    input(win, doc.getElementById('emailParticipante'));
 
     click(win, doc.getElementById('sendBtn'));
 
@@ -76,6 +92,8 @@ describe('validação antes de enviar/gerar PDF', () => {
     const doc = win.document;
     doc.getElementById('nomeParticipante').value = 'Ciclana';
     input(win, doc.getElementById('nomeParticipante'));
+    doc.getElementById('emailParticipante').value = 'ciclana@example.com';
+    input(win, doc.getElementById('emailParticipante'));
     click(win, doc.getElementById('sendBtn'));
     assert.ok(doc.getElementById('bloco-objetivo').classList.contains('pending'));
 
@@ -92,6 +110,19 @@ describe('validação antes de enviar/gerar PDF', () => {
     assert.equal(win.document.activeElement, doc.getElementById('nomeParticipante'));
     assert.match(doc.getElementById('sendStatus').textContent, /Preencha seu nome antes de gerar o PDF/);
   });
+
+  test('regressão: "Enviar" reabilita depois de um envio bem-sucedido (ficava travado, sem nenhum "Refazer" nesta ferramenta pra desempacar)', async () => {
+    const { window: win } = criarPagina();
+    const doc = win.document;
+    preencherTudo(win);
+    win.fetch = async () => ({ ok: true });
+
+    click(win, doc.getElementById('sendBtn'));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    assert.equal(doc.getElementById('sendBtn').disabled, false);
+    assert.match(doc.getElementById('sendStatus').textContent, /enviadas com sucesso/);
+  });
 });
 
 describe('persistência local', () => {
@@ -107,6 +138,7 @@ describe('persistência local', () => {
     const doc2 = dom2.window.document;
     assert.equal(doc2.getElementById('nomeParticipante').value, 'Ciclana');
     assert.equal(doc2.getElementById('empresaParticipante').value, 'Empresa Y');
+    assert.equal(doc2.getElementById('emailParticipante').value, 'ciclana@example.com');
     assert.equal(doc2.getElementById('objetivo').value, 'Crescer 30% no ano');
     assert.equal(doc2.getElementById('sonho').value, 'Ter uma equipe que roda sem mim');
     assert.equal(doc2.getElementById('mudanca').value, 'Delegar de verdade');

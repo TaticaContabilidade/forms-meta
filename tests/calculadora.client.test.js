@@ -181,11 +181,20 @@ describe('auditoria 3: validação inline por campo (não só nos botões)', () 
   test('enviar com campo obrigatório vazio acende o alerta de todos os pendentes de uma vez', () => {
     const { window: win } = criarPagina();
     setVal(win, 'nomeParticipante', 'Fulano');
+    setVal(win, 'emailParticipante', 'fulano@example.com');
     win.document.getElementById('sendBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
     // nenhum dos 5 campos obrigatórios foi preenchido
     assert.match(texto(win, 'faturamento-alert'), /Obrigatório/);
     assert.match(texto(win, 'ticket-alert'), /Obrigatório/);
     assert.match(texto(win, 'conversaoPct-alert'), /Obrigatório/);
+  });
+
+  test('e-mail vazio bloqueia o envio, mesmo com o nome preenchido', () => {
+    const { window: win } = criarPagina();
+    setVal(win, 'nomeParticipante', 'Fulano');
+    win.document.getElementById('sendBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    assert.match(texto(win, 'sendStatus'), /Preencha seu e-mail/);
+    assert.equal(win.document.activeElement, win.document.getElementById('emailParticipante'));
   });
 });
 
@@ -193,6 +202,7 @@ describe('validação e equipe (F-03, F-07, F-08, F-14)', () => {
   test('F-03: envio bloqueado se faltar um dos 5 campos que sustentam a conta', () => {
     const { window: win } = criarPagina();
     setVal(win, 'nomeParticipante', 'Fulano');
+    setVal(win, 'emailParticipante', 'fulano@example.com');
     // faturamento, crescimentoPct, churnPct, ticket, conversaoPct ficam vazios
     win.document.getElementById('sendBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
     const status = texto(win, 'sendStatus');
@@ -298,6 +308,19 @@ describe('persistência local (F-17)', () => {
     win.document.getElementById('confirmResetYes').dispatchEvent(new win.Event('click', { bubbles: true }));
 
     assert.equal(win.localStorage.getItem('calculadora_meta_state'), null);
+  });
+
+  test('regressão: "Recomeçar" limpa a mensagem de "meta enviada com sucesso" (ficava visível depois do reset)', () => {
+    const { window: win } = criarPagina();
+    const sendStatus = win.document.getElementById('sendStatus');
+    // simula o estado deixado por um envio bem-sucedido, sem precisar
+    // mockar fetch — só o que o reset deveria desfazer importa aqui.
+    sendStatus.textContent = 'Meta enviada com sucesso. Você já pode salvar o PDF, se quiser.';
+
+    win.document.getElementById('resetBtn').dispatchEvent(new win.Event('click', { bubbles: true }));
+    win.document.getElementById('confirmResetYes').dispatchEvent(new win.Event('click', { bubbles: true }));
+
+    assert.doesNotMatch(sendStatus.textContent, /enviada com sucesso/);
   });
 
   test('recarregar a página restaura nome, campos e equipe salvos', () => {

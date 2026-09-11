@@ -38,7 +38,7 @@
       <table id="tableMetas" style="display:none;">
         <thead>
           <tr>
-            <th>Data</th><th>Nome</th><th>Empresa</th>
+            <th>Data</th><th>Nome</th><th>Empresa</th><th>E-mail</th>
             <th class="num">Faturamento</th><th class="num">Meta mensal</th>
             <th class="num">Contratos/mês</th><th class="num">Contatos necess.</th>
             <th class="num">Hunter</th><th class="num">Farmer</th>
@@ -62,7 +62,7 @@
       <table id="tableDisc" style="display:none;">
         <thead>
           <tr>
-            <th>Data</th><th>Nome</th><th>Empresa</th>
+            <th>Data</th><th>Nome</th><th>Empresa</th><th>E-mail</th>
             <th>Perfil dominante</th><th>Arquétipo</th>
             <th class="num">D nat.</th><th class="num">I nat.</th><th class="num">S nat.</th><th class="num">C nat.</th>
             <th class="num">D adap.</th><th class="num">I adap.</th><th class="num">S adap.</th><th class="num">C adap.</th>
@@ -87,7 +87,7 @@
       <table id="tablePorque" style="display:none;">
         <thead>
           <tr>
-            <th>Data</th><th>Nome</th><th>Empresa</th>
+            <th>Data</th><th>Nome</th><th>Empresa</th><th>E-mail</th>
             <th>Objetivo</th><th>Sonho</th><th>Mudança</th><th>Visão de futuro</th>
             <th></th>
           </tr>
@@ -237,6 +237,7 @@
         <td>${r.criado_em || ''}</td>
         <td>${escapeHtml(r.nome_participante)}</td>
         <td>${escapeHtml(r.empresa)}</td>
+        <td>${escapeHtml(r.email)}</td>
         <td class="num">${fmtBRL(r.faturamento)}</td>
         <td class="num">${fmtBRL(r.meta_mensal)}</td>
         <td class="num">${(r.contratos_mes||0).toFixed(1)}</td>
@@ -264,6 +265,7 @@
         <td>${r.criado_em || ''}</td>
         <td>${escapeHtml(r.nome_participante)}</td>
         <td>${escapeHtml(r.empresa)}</td>
+        <td>${escapeHtml(r.email)}</td>
         <td>${badge}</td>
         <td>${escapeHtml(r.arquetipo)}</td>
         <td class="num">${r.d_natural > 0 ? '+' : ''}${r.d_natural}</td>
@@ -304,6 +306,7 @@
         <td>${r.criado_em || ''}</td>
         <td>${escapeHtml(r.nome_participante)}</td>
         <td>${escapeHtml(r.empresa)}</td>
+        <td>${escapeHtml(r.email)}</td>
         <td title="${escapeHtml(r.objetivo)}">${escapeHtml(truncar(r.objetivo, 60))}</td>
         <td title="${escapeHtml(r.sonho)}">${escapeHtml(truncar(r.sonho, 60))}</td>
         <td title="${escapeHtml(r.mudanca)}">${escapeHtml(truncar(r.mudanca, 60))}</td>
