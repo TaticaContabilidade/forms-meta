@@ -15,6 +15,38 @@ const { generatePdfAsync } = require('../reports/pdfWorkerPool');
 const { discFilename } = require('../reports/discReport');
 const { enviarEmail } = require('../email');
 
+// Texto do e-mail — base fornecida pelo usuário (texto-email.md, na raiz
+// do repo, não versionado — mesma convenção de material de referência
+// solto do CLAUDE.md), incrementado a pedido (nota no fim do arquivo:
+// "Incremente o texto e deixe mais elaborado"). A parte específica do
+// colaborador/PDF fica inserida no meio, entre o parágrafo de "coloquem
+// em prática" e o de encerramento — o resto é o texto motivacional
+// original.
+function montarTextoEmail(row) {
+  return (
+    'Foi uma alegria enorme dividir esse momento com vocês. Ver a sala inteira ' +
+    'engajada — respondendo aos exercícios, preenchendo as metas e enviando o ' +
+    'DISC pro time ali, na hora — me mostrou que a vontade de estruturar um ' +
+    'comercial de verdade é real, e urgente, pra muita gente.\n\n' +
+    'Tudo que compartilhei não é teoria: é o que vivemos na prática, com ' +
+    'acertos e também com muitos tropeços pelo caminho. Se serviu de ' +
+    'inspiração, meu trabalho já valeu a pena.\n\n' +
+    'Agora vem a parte que realmente importa: colocar em prática. Usem a ' +
+    'ferramenta com o time e comecem já na próxima segunda-feira a construir ' +
+    'essa cultura comercial — passo a passo, sem pressa, mas com ' +
+    'constância.\n\n' +
+    `Falando nisso: ${row.nome_participante}, da ${row.empresa}, acabou de ` +
+    'concluir a avaliação DISC. O perfil comportamental completo — natural, ' +
+    'adaptado e a intensidade de cada traço — está no PDF anexado a este ' +
+    'e-mail, pronto pra apoiar as próximas decisões de alocação e ' +
+    'desenvolvimento do time.\n\n' +
+    'E se em algum momento vocês precisarem de uma mão, de trocar uma ideia ' +
+    'ou tirar uma dúvida nessa jornada, podem contar comigo. Fico à ' +
+    'disposição pra colaborar com o crescimento de cada um.\n\n' +
+    'Vamos construir juntos! 🚀'
+  );
+}
+
 async function notificarLideresDisc(row) {
   const { rows: lideres } = await pool.query(
     'SELECT nome, email FROM lideres_empresa WHERE empresa = $1',
@@ -50,11 +82,7 @@ async function notificarLideresDisc(row) {
       enviarEmail({
         to: lider.email,
         subject: `Novo perfil DISC: ${row.nome_participante} (${row.empresa})`,
-        text:
-          `${row.nome_participante}, da ${row.empresa}, acabou de preencher a avaliação DISC.\n\n` +
-          `Perfil dominante: ${row.perfil_dominante}\n` +
-          `Arquétipo: ${row.arquetipo}\n\n` +
-          `O relatório completo está anexado em PDF.`,
+        text: montarTextoEmail(row),
         attachments: [{ filename, content: pdfBuffer }],
       }).catch((err) => {
         console.error(`Falha ao notificar líder ${lider.email} (${row.empresa}):`, err.message);
