@@ -1254,3 +1254,37 @@ seguem só no histórico do `git log`.
     de chamar `/api/disc/notificar-pendentes` — fluxo completo validado,
     só falta SMTP de verdade configurado (`SMTP_HOST`/`SMTP_USER`/
     `SMTP_PASS` reais) pra receber o e-mail de fato.
+
+### 2026-09-11 (SMTP real configurado e testado)
+
+- **SMTP configurado e testado com envio de verdade.** Tentativa inicial
+  de usar "senha de app" do Google esbarrou 2 vezes (conta Workspace e
+  conta pessoal) — precisa de Verificação em 2 Etapas ativada na conta
+  pra essa opção nem aparecer, e no caso do Workspace o admin do domínio
+  pode bloquear mesmo com 2FA ativo. O usuário conseguiu gerar uma senha
+  de app na conta `levi@taticacontabilidade.com` (2FA foi ativado) —
+  `SMTP_HOST=smtp.gmail.com`, porta 587, `secure=false` (STARTTLS),
+  salvos no `.env` local. 2 envios reais confirmados recebidos pelo
+  usuário (líder cadastrado com o próprio e-mail, DISC de teste enviado,
+  botão "Notificar pendentes" clicado).
+  - **Bug achado na prática**: com credenciais SMTP reais no `.env`,
+    rodar `npm test` fazia os testes de `/api/disc/notificar-pendentes`
+    tentarem mandar e-mail de verdade pros líderes fake (`@example.com`)
+    que esses testes cadastram — gerou um bounce real na caixa de
+    entrada do usuário, que notou e perguntou a respeito. Corrigido:
+    `tests/server.test.js` agora apaga as variáveis `SMTP_*` do
+    `process.env` logo depois do `require('../src/server')` (que é
+    quando o `dotenv.config()` as carregaria do `.env`) — `src/email.js`
+    lê essas variáveis a cada chamada, não cacheia no require, então
+    isso já garante que a suíte nunca dispara e-mail de verdade, não
+    importa o que esteja configurado localmente.
+  - **Texto do e-mail atualizado** com o texto fornecido pelo usuário
+    (`texto-email.md`, raiz do repo, não versionado — material de
+    referência), incrementado a pedido (nota no fim do arquivo:
+    "Incremente o texto e deixe mais elaborado"). Mensagem motivacional
+    de encerramento de treinamento, com a referência ao colaborador/PDF
+    inserida no meio, entre o parágrafo de "coloquem em prática" e o de
+    encerramento — testado com outro envio real confirmado recebido.
+  - Ainda falta: configurar as mesmas variáveis `SMTP_*` no dashboard do
+    Render pra funcionar em produção (só está testado localmente até
+    aqui).
