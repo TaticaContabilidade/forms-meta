@@ -231,11 +231,28 @@ recebem a notificação não são colegas do colaborador, são os chefes/
 líderes técnicos responsáveis por decidir alocação de pessoas com base no
 perfil.
 
-`notificarLideresDisc(row)` é chamado **sem `await`** logo depois de
-responder ao participante (`res.status(201).json(...)` primeiro, depois a
-chamada) — a submissão do colaborador nunca deve demorar nem falhar por
-causa de um problema de e-mail/SMTP. Erros de envio (SMTP fora do ar,
-credencial errada, etc.) só são logados, nunca propagados pro participante.
+**Disparo é manual — botão "Notificar pendentes" na aba DISC do
+`admin.html`, não automático nem agendado.** Já passou por 2 desenhos
+antes deste, os 2 descartados por pedido explícito do usuário: 1) disparo
+automático inline logo após o `POST /api/disc` (sem `await`, fire-and-
+forget); 2) um job periódico (`setInterval`) que varria o banco sozinho
+de tempos em tempos. O usuário decidiu que queria controle manual — "o
+banco já tá com registro, pensei em um botão pra disparar" — porque as
+submissões já se acumulam no banco e o gatilho de quando notificar deve
+ser uma decisão do admin, não automático. `disc_respostas.notificado_em`
+(coluna `TEXT`, `NULL` = pendente) rastreia quem já foi processado, pra
+não reenviar o mesmo e-mail toda vez que o botão for clicado de novo.
+`POST /api/disc/notificar-pendentes` (`requireAdmin`) chama
+`processarNotificacoesPendentes()` (`src/notifications/discNotifier.js`),
+que reivindica 1 linha pendente por vez com `UPDATE ... FOR UPDATE SKIP
+LOCKED` (atômico — dois cliques rápidos no botão nunca processam a mesma
+linha 2 vezes) e chama `notificarLideresDisc(row)` pra cada uma, até
+processar tudo ou bater no limite de 200 por chamada. Erros de envio (SMTP
+fora do ar, credencial errada etc.) só são logados — a linha já foi
+marcada como processada no momento em que foi reivindicada, então um erro
+de SMTP não trava as outras linhas pendentes nem faz a mesma linha ser
+reprocessada sozinha depois (sem retry automático; reprocessar manualmente
+exigiria zerar `notificado_em` direto no banco, não existe UI pra isso).
 
 **Cadastro de líderes é uma aba nova dentro do `/admin.html` já
 existente** (`Líderes por Empresa`), protegida pelo mesmo `x-admin-token`

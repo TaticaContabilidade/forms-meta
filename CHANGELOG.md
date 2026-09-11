@@ -1211,3 +1211,46 @@ seguem só no histórico do `git log`.
   ("botão de enviar ficava travado") — fluxo de reset não desfazendo
   algum resquício visual/de estado deixado por um envio anterior.
   Testado: 1 teste de regressão novo + suíte completa (100/100).
+
+## Alterações branch dev (retomada)
+
+### 2026-09-11
+
+- **`main` mesclada de volta na `dev`** (`git merge main`) — a `dev` tinha
+  ficado defasada desde o reset (ver entrada "dev resetada pra igualar
+  main" acima); enquanto isso, `main` recebeu o campo de e-mail, a
+  remoção do link de admin e o fix da calculadora. Conflitos em
+  `CHANGELOG.md` (concatenação simples, sem perda de conteúdo) e
+  `src/db.js` (as 3 tabelas ganharam coluna `email` via `main` ao mesmo
+  tempo que `dev` criava `lideres_empresa` — as duas mudanças convivem,
+  não se sobrepõem). 1 teste ajustado depois (`POST /api/disc` sem
+  `email` no payload passou a exigir o campo).
+- **Notificação de líderes: job periódico abandonado, disparo agora é
+  manual** — pedido do usuário: "o método que estava sendo implementado
+  na dev não precisa mais... pensei em um botão pra disparar". O job
+  (`discNotificationJob.js`, `setInterval`) nunca chegou a ser commitado
+  (só existia no stash de uma sessão anterior, descartado sem uso) — o
+  desenho final ficou mais simples que ele: sem scheduler nenhum,
+  `disc_respostas.notificado_em` (`NULL` = pendente) só é lido/escrito
+  quando o admin clica "Notificar pendentes" (nova aba DISC do
+  `admin.html`), que chama `POST /api/disc/notificar-pendentes`
+  (`processarNotificacoesPendentes()` em `discNotifier.js` — mesma
+  query `FOR UPDATE SKIP LOCKED` que o job teria usado, só que chamada
+  sob demanda em vez de num timer). `POST /api/disc` não dispara mais
+  nada sozinho (nem inline, nem job) — só grava, deixando
+  `notificado_em` NULL até o próximo clique no botão.
+  - Protocolo continua SMTP genérico (`src/email.js`, `nodemailer`) —
+    pedido explícito do usuário pra não ficar amarrado só ao Gmail;
+    `.env.example` reforça isso (Gmail é só o exemplo usado, por ser o
+    provedor da Tática).
+  - Nova coluna `admin.html` ("Notificado") na aba DISC mostrando quando
+    (ou se ainda não) cada linha foi processada.
+  - Testado: `npm test` (111/111 — 3 testes novos pra
+    `POST /api/disc/notificar-pendentes`, 1 teste do POST /api/disc
+    ajustado pra refletir que não notifica mais sozinho). Smoke test ao
+    vivo (servidor real, `curl`, banco local): cadastrado um líder com
+    `levi@taticacontabilidade.com`, enviado um DISC pra mesma empresa,
+    confirmado `notificado_em` NULL antes do botão e preenchido depois
+    de chamar `/api/disc/notificar-pendentes` — fluxo completo validado,
+    só falta SMTP de verdade configurado (`SMTP_HOST`/`SMTP_USER`/
+    `SMTP_PASS` reais) pra receber o e-mail de fato.
