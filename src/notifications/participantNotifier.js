@@ -29,22 +29,26 @@ const NOMES_FERRAMENTA = {
 
 // Texto do e-mail — base fornecida pelo usuário (texto-email.md, na raiz
 // do repo, não versionado — material de referência), incrementado a
-// pedido ("Incremente o texto e deixe mais elaborado"). A parte
-// específica do participante/PDFs fica no meio, listando dinamicamente
-// quais ferramentas ele completou (pode ser 1, 2 ou as 3).
+// pedido ("Incremente o texto e deixe mais elaborado"). Reescrito depois
+// pra tirar a 1ª pessoa de quem esteve na palestra — quem dispara o
+// e-mail (o usuário, via SMTP_FROM) não é necessariamente quem deu o
+// treinamento, então o texto fala da Tática/do treinamento de forma mais
+// geral, sem alegar presença pessoal na sala. A parte específica do
+// participante/PDFs fica no meio, listando dinamicamente quais
+// ferramentas ele completou (pode ser 1, 2 ou as 3).
 function montarTextoEmail(itens) {
   const { nome_participante, empresa } = itens[0].row;
   const ferramentas = [...new Set(itens.map((i) => NOMES_FERRAMENTA[i.tipo]))].join(', ');
   const plural = itens.length > 1;
 
   return (
-    'Foi uma alegria enorme dividir esse momento com vocês. Ver a sala inteira ' +
-    'engajada — respondendo aos exercícios, preenchendo as metas e enviando o ' +
-    'DISC pro time ali, na hora — me mostrou que a vontade de estruturar um ' +
-    'comercial de verdade é real, e urgente, pra muita gente.\n\n' +
-    'Tudo que compartilhei não é teoria: é o que vivemos na prática, com ' +
-    'acertos e também com muitos tropeços pelo caminho. Se serviu de ' +
-    'inspiração, meu trabalho já valeu a pena.\n\n' +
+    'Foi uma alegria enorme ver o quanto vocês se engajaram no treinamento — ' +
+    'respondendo aos exercícios, preenchendo as metas e enviando o DISC pro ' +
+    'time ali, na hora. Isso mostra que a vontade de estruturar um comercial ' +
+    'de verdade é real, e urgente, pra muita gente.\n\n' +
+    'Tudo que foi compartilhado ali não é teoria: é o que a Tática vive na ' +
+    'prática, com acertos e também com muitos tropeços pelo caminho. Se ' +
+    'serviu de inspiração, o objetivo já foi alcançado.\n\n' +
     'Agora vem a parte que realmente importa: colocar em prática. Usem a ' +
     'ferramenta com o time e comecem já na próxima segunda-feira a construir ' +
     'essa cultura comercial — passo a passo, sem pressa, mas com ' +
@@ -53,7 +57,7 @@ function montarTextoEmail(itens) {
     `${ferramentas}. ${plural ? 'Os relatórios completos estão anexados' : 'O relatório completo está anexado'} ` +
     'a este e-mail.\n\n' +
     'E se em algum momento vocês precisarem de uma mão, de trocar uma ideia ' +
-    'ou tirar uma dúvida nessa jornada, podem contar comigo. Fico à ' +
+    'ou tirar uma dúvida nessa jornada, podem contar com a gente. Ficamos à ' +
     'disposição pra colaborar com o crescimento de cada um.\n\n' +
     'Vamos construir juntos! 🚀'
   );
