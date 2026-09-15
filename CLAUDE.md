@@ -44,11 +44,11 @@ de treinamento comercial em `public/`:
   das outras 2). Tem "Salvar PDF" ao lado de "Enviar minhas respostas", os 2
   reaproveitando a mesma validação (nome + as 4 perguntas respondidas).
 - `admin.html` — painel autenticado (`x-admin-token` / `?token=`) para listar,
-  exportar CSV e apagar registros das três tabelas, além de uma 4ª aba
-  ("Líderes por Empresa") pra cadastrar quem recebe notificação por e-mail
-  quando um colaborador daquela empresa preenche o DISC (ver seção
-  "Notificação de líderes por e-mail" abaixo). Sem link público em nenhuma
-  página — acessível só por quem souber a URL direto.
+  exportar CSV e apagar registros das três tabelas, além de um botão no
+  topo da página pra ligar/desligar a rotina de notificação por e-mail
+  (ver seção "Notificação por e-mail ao próprio participante" abaixo).
+  Sem link público em nenhuma página — acessível só por quem souber a URL
+  direto.
 
 Todas as páginas com `<a>← Voltar ao menu</a>` linkam pra
 `/ferramentas.html`, não pra `/` — `/` agora é a landing page, não o menu.
@@ -218,58 +218,80 @@ nenhum simulava um `disc_state` no formato anterior. `normalizarRespostasA()`
 sempre precisa saber ler o formato imediatamente anterior ao atual, não só
 o "correto".
 
-### Notificação de líderes por e-mail (DISC)
+### Notificação por e-mail ao próprio participante
 
-Quando um colaborador envia o DISC (`POST /api/disc`), o servidor busca na
-tabela `lideres_empresa` (ver `src/db.js`) todos os líderes cadastrados
-com a mesma `empresa` (comparação de texto exata — grafias diferentes não
-casam, ver aviso na própria aba do admin) e manda um e-mail pra cada um
-com o PDF do perfil DISC anexado (`src/notifications/discNotifier.js`,
-reaproveita o mesmo `generatePdfAsync('disc', data)`/`discFilename()` das
-outras rotas de PDF). Pedido explícito do usuário: os "participantes" que
-recebem a notificação não são colegas do colaborador, são os chefes/
-líderes técnicos responsáveis por decidir alocação de pessoas com base no
-perfil.
+Cada participante recebe, por e-mail, os PDFs de tudo que ele mesmo
+preencheu (calculadora, DISC, Meu Porquê) — usando o `email` que ele
+digitou em cada ferramenta (ver seção "Campo de e-mail nas 3 ferramentas"
+acima), agrupado: se a mesma pessoa preencheu 2 ou 3 ferramentas com o
+mesmo e-mail, ela recebe **1 e-mail só**, com todos os PDFs pendentes
+anexados — não 1 e-mail por ferramenta. `src/notifications/participantNotifier.js`
+concentra essa lógica; `generatePdfAsync()`/os `*Filename()` de cada
+relatório são os mesmos já usados nas rotas `/pdf`.
 
-**Disparo é manual — botão "Notificar pendentes" na aba DISC do
-`admin.html`, não automático nem agendado.** Já passou por 2 desenhos
-antes deste, os 2 descartados por pedido explícito do usuário: 1) disparo
-automático inline logo após o `POST /api/disc` (sem `await`, fire-and-
-forget); 2) um job periódico (`setInterval`) que varria o banco sozinho
-de tempos em tempos. O usuário decidiu que queria controle manual — "o
-banco já tá com registro, pensei em um botão pra disparar" — porque as
-submissões já se acumulam no banco e o gatilho de quando notificar deve
-ser uma decisão do admin, não automático. `disc_respostas.notificado_em`
-(coluna `TEXT`, `NULL` = pendente) rastreia quem já foi processado, pra
-não reenviar o mesmo e-mail toda vez que o botão for clicado de novo.
-`POST /api/disc/notificar-pendentes` (`requireAdmin`) chama
-`processarNotificacoesPendentes()` (`src/notifications/discNotifier.js`),
-que reivindica 1 linha pendente por vez com `UPDATE ... FOR UPDATE SKIP
-LOCKED` (atômico — dois cliques rápidos no botão nunca processam a mesma
-linha 2 vezes) e chama `notificarLideresDisc(row)` pra cada uma, até
-processar tudo ou bater no limite de 200 por chamada. Erros de envio (SMTP
-fora do ar, credencial errada etc.) só são logados — a linha já foi
-marcada como processada no momento em que foi reivindicada, então um erro
-de SMTP não trava as outras linhas pendentes nem faz a mesma linha ser
-reprocessada sozinha depois (sem retry automático; reprocessar manualmente
-exigiria zerar `notificado_em` direto no banco, não existe UI pra isso).
+**Isso substituiu uma feature anterior de "líderes por empresa"**
+(cadastro manual de quem recebia notificação por empresa, quando um
+colaborador enchia o DISC) — removida por completo (tabela
+`lideres_empresa` incluída, via `DROP TABLE IF EXISTS` em `src/db.js`) a
+pedido explícito do usuário depois que o desenho mudou pra notificar o
+próprio participante em vez do chefe dele. Não reintroduza esse conceito
+sem pedido explícito de novo.
 
-**Cadastro de líderes é uma aba nova dentro do `/admin.html` já
-existente** (`Líderes por Empresa`), protegida pelo mesmo `x-admin-token`
-que já protege as outras 3 abas — decisão explícita do usuário depois de
-cogitar um sistema de login separado (usuário/senha) e achar trabalhoso
-demais pro que era necessário. Não crie um sistema de autenticação novo
-pra essa aba sem pedido explícito de novo.
+**Disparo é uma ROTINA que liga/desliga via botão em `admin.html`
+(topo da página, fora das abas — processa as 3 ferramentas, não faz
+sentido morar numa aba só).** Já passou por 3 formatos, os 2 primeiros
+descartados por pedido explícito do usuário: 1) disparo automático inline
+logo após cada `POST` (sem `await`, fire-and-forget); 2) um botão de
+clique único que processava os pendentes na hora e parava. O formato
+atual: `iniciarRotina()`/`pararRotina()` (`src/notifications/participantNotifier.js`)
+ligam/desligam um `setInterval` (padrão a cada 2min,
+`NOTIFICATION_ROUTINE_INTERVAL_MS` pra mudar) que roda
+`executarCicloRotina()` — 1 execução imediata ao ativar (não espera o 1º
+intervalo) e depois repete. Estado (ativa/inativa) fica **só em
+memória**, nunca persiste em banco — reinicia sempre desligada a cada
+boot/deploy, de propósito (exige uma ativação manual consciente depois de
+qualquer restart, em vez de assumir que devia continuar rodando).
+
+`metas`/`disc_respostas`/`meu_porque_respostas` têm `notificado_em`
+(coluna `TEXT`, `NULL` = pendente) cada uma. A cada ciclo:
+`buscarEmailsPendentes()` lista os e-mails distintos com pelo menos 1
+pendência em qualquer das 3 tabelas; pra cada um, `processarParticipante()`
+reivindica (via `UPDATE ... WHERE email = $1 AND notificado_em IS NULL
+RETURNING *`) todas as pendências desse e-mail nas 3 tabelas — um `UPDATE`
+comum já é atômico o bastante aqui (não precisa de `FOR UPDATE SKIP
+LOCKED`, que fazia sentido no desenho anterior por reivindicar 1 linha de
+uma fila compartilhada; aqui cada chamada já mira só as linhas de 1
+e-mail específico) — gera 1 PDF por pendência e manda tudo junto num
+e-mail só. Erros de envio (SMTP fora do ar, credencial errada etc.) só
+são logados — as linhas já foram marcadas como processadas no momento em
+que foram reivindicadas, então um erro não trava as outras nem faz a
+mesma pendência ser reprocessada sozinha depois (sem retry automático;
+reprocessar manualmente exigiria zerar `notificado_em` direto no banco,
+não existe UI pra isso).
+
+Rotas: `POST /api/rotina-notificacao/ativar`, `POST
+/api/rotina-notificacao/desativar`, `GET /api/rotina-notificacao/status`
+— todas atrás de `requireAdmin`.
 
 **SMTP é opcional, ao contrário de `DATABASE_URL`.** `src/email.js`
 não lança erro nenhum se `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` não
 estiverem configurados — só loga um aviso (1 vez só, não a cada
 tentativa) e a notificação fica desligada; o resto do app (metas, disc,
-meu-porque, PDFs) continua funcionando normalmente. Ver `.env.example`
-pros valores esperados (testado com Gmail/Google Workspace — precisa de
-uma "senha de app" gerada em `myaccount.google.com/apppasswords`, não a
-senha normal da conta, porque contas com 2FA não aceitam autenticação
-SMTP básica).
+meu-porque, PDFs) continua funcionando normalmente. Protocolo SMTP
+genérico de propósito (não amarrado ao Gmail) — pedido explícito do
+usuário. Ver `.env.example` pros valores esperados (testado com Gmail/
+Google Workspace — precisa de uma "senha de app" gerada em
+`myaccount.google.com/apppasswords`, não a senha normal da conta, porque
+contas com 2FA não aceitam autenticação SMTP básica; se a conta não tiver
+2FA ativado, a opção de senha de app nem aparece).
+
+**Testes automatizados nunca podem usar SMTP de verdade** — mesmo que o
+`.env` local tenha credenciais reais (pra testar manualmente), a suíte
+(`tests/server.test.js`) apaga as variáveis `SMTP_*` do `process.env`
+logo depois do `require('../src/server')` (aconteceu na prática: um
+teste que usava e-mail fake `@example.com` gerou um bounce real na caixa
+de entrada antes desse fix). `src/email.js` lê essas variáveis a cada
+chamada, não cacheia no `require`, então limpar depois já é suficiente.
 
 **`/admin.html` não tem mais link público.** Ele era linkado no rodapé de
 `ferramentas.html` ("Painel do facilitador") — removido por pedido

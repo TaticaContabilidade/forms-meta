@@ -1288,3 +1288,57 @@ seguem só no histórico do `git log`.
   - Ainda falta: configurar as mesmas variáveis `SMTP_*` no dashboard do
     Render pra funcionar em produção (só está testado localmente até
     aqui).
+
+## Alterações branch feat/notificacao-participante
+
+### 2026-09-15
+
+- **Notificação reformulada: agora é pro próprio participante, não mais
+  "líderes por empresa"** — pedido do usuário depois que a feature de
+  líderes já estava em produção: "vc tem q pegar os registros já existes
+  no banco e enviar o email para eles, não criar um botão pra cadastro" —
+  o destinatário passou a ser o e-mail que o próprio participante digitou
+  em cada ferramenta (já coletado desde a feature de campo de e-mail),
+  agrupado entre as 3 tabelas: quem preencheu calculadora + DISC + Meu
+  Porquê com o mesmo e-mail recebe **1 e-mail só**, com todos os PDFs
+  pendentes anexados — não 1 por ferramenta. Também mudou o gatilho: "o
+  botão que eu mencionei seria para ativar e desativar a rotina" — não é
+  mais um botão de clique único, é uma rotina (`setInterval`,
+  configurável via `NOTIFICATION_ROUTINE_INTERVAL_MS`) que liga/desliga.
+  - **Removida por completo a feature de "líderes por empresa"**
+    (tabela `lideres_empresa` via `DROP TABLE IF EXISTS`, aba no admin,
+    rotas `/api/lideres`, `src/notifications/discNotifier.js`) — decisão
+    explícita do usuário ("remove tudo") depois de confirmado que ela já
+    estava em produção mas seria substituída, não mantida em paralelo.
+  - `src/notifications/participantNotifier.js` (novo, substitui
+    `discNotifier.js`): `buscarEmailsPendentes()` lista e-mails com
+    pendência em qualquer das 3 tabelas; `processarParticipante(email)`
+    reivindica (via `UPDATE ... RETURNING`) as pendências desse e-mail
+    nas 3 tabelas, gera 1 PDF por pendência (reaproveitando
+    `generatePdfAsync`/os `*Filename()` já usados nas rotas `/pdf`) e
+    manda tudo num e-mail só; `iniciarRotina()`/`pararRotina()` ligam/
+    desligam o `setInterval` (estado só em memória, reinicia desligada a
+    cada boot).
+  - `notificado_em` (coluna `TEXT`, `NULL` = pendente) adicionada em
+    `metas` e `meu_porque_respostas` também (antes só existia em
+    `disc_respostas`).
+  - Rotas novas: `POST /api/rotina-notificacao/ativar`, `POST
+    /api/rotina-notificacao/desativar`, `GET
+    /api/rotina-notificacao/status` (todas `requireAdmin`).
+  - `admin.html`: aba "Líderes por Empresa" removida; botão de
+    ativar/desativar a rotina movido pro topo da página (fora das abas,
+    já que agora processa as 3 ferramentas); coluna "Notificado"
+    adicionada nas 3 tabelas (antes só existia na de DISC).
+  - Texto do e-mail (`montarTextoEmail`) adaptado pra descrever
+    dinamicamente quais ferramentas o participante completou (1, 2 ou as
+    3), em vez de mencionar só o DISC.
+  - Testado: `npm test` (107/107, incluindo testes novos pra
+    `POST /api/rotina-notificacao/*` e pro agrupamento por e-mail entre
+    tabelas). Smoke test ao vivo (servidor real, banco local): enviada
+    meta + DISC com o mesmo e-mail, rotina ativada, confirmado que as 2
+    linhas ficaram com o **mesmo timestamp** de `notificado_em`
+    (confirma que foram agrupadas num envio só, não dois e-mails).
+    UI de `admin.html` validada ao vivo com um script `jsdom` rodando
+    contra o servidor real (sem ferramenta de navegador disponível nesta
+    sessão) — login, carregar, toggle da rotina, coluna "Notificado"
+    atualizando depois do ciclo, tudo conferido.

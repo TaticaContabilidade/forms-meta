@@ -20,16 +20,16 @@ const { pool, ready } = require('../src/db');
 
 // Nunca deixa a suíte automatizada usar SMTP de verdade, mesmo que o
 // `.env` local tenha credenciais reais (pra testar o envio manualmente) —
-// os testes de /api/disc/notificar-pendentes usam e-mails fake
-// (@example.com) como líder, e sem isso aqui eles tentariam mandar e-mail
-// de verdade pra um endereço que não existe a cada `npm test` (aconteceu
-// de verdade: um bounce apareceu na caixa depois de rodar os testes com o
-// .env já configurado). Precisa vir DEPOIS do require('../src/server')
-// acima — é o que dispara o dotenv.config() que popula essas variáveis a
-// partir do .env; apagar antes não adiantaria (dotenv só define uma
-// variável se ela ainda não estiver setada, então apagar antes só faria
-// ele setar de novo). src/email.js lê essas variáveis a cada chamada, não
-// cacheia no require, então limpar depois já é suficiente.
+// os testes da rotina de notificação usam e-mails fake (@example.com), e
+// sem isso aqui eles tentariam mandar e-mail de verdade pra um endereço
+// que não existe a cada `npm test` (aconteceu de verdade: um bounce
+// apareceu na caixa depois de rodar os testes com o .env já configurado).
+// Precisa vir DEPOIS do require('../src/server') acima — é o que dispara
+// o dotenv.config() que popula essas variáveis a partir do .env; apagar
+// antes não adiantaria (dotenv só define uma variável se ela ainda não
+// estiver setada, então apagar antes só faria ele setar de novo).
+// src/email.js lê essas variáveis a cada chamada, não cacheia no require,
+// então limpar depois já é suficiente.
 delete process.env.SMTP_HOST;
 delete process.env.SMTP_PORT;
 delete process.env.SMTP_SECURE;
@@ -37,6 +37,7 @@ delete process.env.SMTP_USER;
 delete process.env.SMTP_PASS;
 delete process.env.SMTP_FROM;
 const { closePool } = require('../src/reports/pdfWorkerPool');
+const { executarCicloRotina } = require('../src/notifications/participantNotifier');
 
 before(async () => {
   // Ao contrário do SQLite temporário de antes (1 arquivo novo por
@@ -45,7 +46,7 @@ before(async () => {
   // partir do mesmo estado. RESTART IDENTITY zera os ids (SERIAL) também,
   // pra `createdId`/expectativas de id não dependerem da execução anterior.
   await ready;
-  await pool.query('TRUNCATE TABLE metas, disc_respostas, meu_porque_respostas, lideres_empresa RESTART IDENTITY CASCADE');
+  await pool.query('TRUNCATE TABLE metas, disc_respostas, meu_porque_respostas RESTART IDENTITY CASCADE');
 });
 
 after(async () => {
@@ -344,13 +345,7 @@ describe('API /api/disc', () => {
     await request(app).delete(`/api/disc/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 
-  test('POST /api/disc não notifica sozinho — fica pendente (notificado_em NULL) até o botão "Notificar pendentes" ser usado', async () => {
-    const lider = await request(app)
-      .post('/api/lideres')
-      .set('x-admin-token', ADMIN_TOKEN)
-      .send({ empresa: 'Empresa Notificação', nome: 'Chefe Teste', email: 'chefe@example.com' });
-    assert.equal(lider.status, 201);
-
+  test('POST /api/disc não notifica sozinho — fica pendente (notificado_em NULL) até a rotina processar', async () => {
     const res = await request(app).post('/api/disc').send({
       nome_participante: 'Fulano Notificado',
       empresa: 'Empresa Notificação',
@@ -364,11 +359,58 @@ describe('API /api/disc', () => {
     assert.equal(row.notificado_em, null);
 
     await request(app).delete(`/api/disc/${res.body.id}`).set('x-admin-token', ADMIN_TOKEN);
-    await request(app).delete(`/api/lideres/${lider.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 
-describe('POST /api/disc/notificar-pendentes (botão "Notificar pendentes" do admin)', () => {
+describe('rotina de notificação (POST /api/rotina-notificacao/*)', () => {
+  // Garante que a rotina termina desligada depois desta suíte, mesmo se
+  // um teste falhar no meio — os testes de HTTP aqui só ligam/desligam
+  // via endpoint (nunca com setInterval de verdade rodando por perto,
+  // exceto no teste que explicitamente ativa e já desativa em seguida).
+  after(async () => {
+    await request(app).post('/api/rotina-notificacao/desativar').set('x-admin-token', ADMIN_TOKEN);
+  });
+
+  test('ativar sem token retorna 401', async () => {
+    const res = await request(app).post('/api/rotina-notificacao/ativar');
+    assert.equal(res.status, 401);
+  });
+
+  test('desativar sem token retorna 401', async () => {
+    const res = await request(app).post('/api/rotina-notificacao/desativar');
+    assert.equal(res.status, 401);
+  });
+
+  test('status sem token retorna 401', async () => {
+    const res = await request(app).get('/api/rotina-notificacao/status');
+    assert.equal(res.status, 401);
+  });
+
+  test('ativar liga a rotina, status reflete, desativar desliga', async () => {
+    const statusAntes = await request(app).get('/api/rotina-notificacao/status').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(statusAntes.body.ativa, false);
+
+    const ativar = await request(app).post('/api/rotina-notificacao/ativar').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(ativar.status, 200);
+    assert.equal(ativar.body.ativa, true);
+    assert.equal(ativar.body.jaEstavaAtiva, false);
+
+    const statusDepois = await request(app).get('/api/rotina-notificacao/status').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(statusDepois.body.ativa, true);
+
+    const ativarDeNovo = await request(app).post('/api/rotina-notificacao/ativar').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(ativarDeNovo.body.jaEstavaAtiva, true, 'ativar 2x seguidas deveria ser idempotente');
+
+    const desativar = await request(app).post('/api/rotina-notificacao/desativar').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(desativar.body.ativa, false);
+    assert.equal(desativar.body.jaEstavaInativa, false);
+
+    const statusFinal = await request(app).get('/api/rotina-notificacao/status').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(statusFinal.body.ativa, false);
+  });
+});
+
+describe('participantNotifier — processamento de pendentes agrupado por e-mail', () => {
   // 8 blocos com mais=1 (I), menos=0 (D) -> natural D=+8 — mesma
   // construção usada em describe('API /api/disc') acima, repetida aqui
   // porque é local àquele bloco (escopo de `describe`, não do arquivo).
@@ -377,120 +419,50 @@ describe('POST /api/disc/notificar-pendentes (botão "Notificar pendentes" do ad
     c: {},
   };
 
-  test('sem token retorna 401', async () => {
-    const res = await request(app).post('/api/disc/notificar-pendentes');
-    assert.equal(res.status, 401);
-  });
+  test('participante com pendências em 2 tabelas (mesmo e-mail) recebe 1 ciclo que marca as 2', async () => {
+    const email = 'multi.tabela@example.com';
 
-  test('processa uma linha pendente (com líder cadastrado), marca notificado_em e não reprocessa numa 2ª chamada', async () => {
-    const lider = await request(app)
-      .post('/api/lideres')
-      .set('x-admin-token', ADMIN_TOKEN)
-      .send({ empresa: 'Empresa Botão', nome: 'Chefe Botão', email: 'chefe.botao@example.com' });
-
+    const metas = await request(app).post('/api/metas').send({
+      nome_participante: 'Multi Tabela', empresa: 'Empresa X', email,
+      faturamento: 10000, crescimento_pct: 10, churn_pct: 2, meta_anual: 120000,
+    });
     const disc = await request(app).post('/api/disc').send({
-      nome_participante: 'Fulano Botão',
-      empresa: 'Empresa Botão',
-      email: 'fulano.botao@example.com',
+      nome_participante: 'Multi Tabela', empresa: 'Empresa X', email,
       respostas: respostasComDDominante,
     });
 
-    const proc1 = await request(app).post('/api/disc/notificar-pendentes').set('x-admin-token', ADMIN_TOKEN);
-    assert.equal(proc1.status, 200);
-    assert.equal(proc1.body.processadas, 1);
+    await executarCicloRotina();
 
-    const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
-    const row = list.body.find(r => r.id === disc.body.id);
-    assert.ok(row.notificado_em, 'notificado_em deveria estar preenchido depois de processar');
+    const listMetas = await request(app).get('/api/metas').set('x-admin-token', ADMIN_TOKEN);
+    const rowMetas = listMetas.body.find(r => r.id === metas.body.id);
+    assert.ok(rowMetas.notificado_em, 'metas deveria estar marcada como notificada');
 
-    const proc2 = await request(app).post('/api/disc/notificar-pendentes').set('x-admin-token', ADMIN_TOKEN);
-    assert.equal(proc2.body.processadas, 0);
+    const listDisc = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    const rowDisc = listDisc.body.find(r => r.id === disc.body.id);
+    assert.ok(rowDisc.notificado_em, 'disc deveria estar marcada como notificada');
 
+    await request(app).delete(`/api/metas/${metas.body.id}`).set('x-admin-token', ADMIN_TOKEN);
     await request(app).delete(`/api/disc/${disc.body.id}`).set('x-admin-token', ADMIN_TOKEN);
-    await request(app).delete(`/api/lideres/${lider.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 
-  test('DISC sem líder cadastrado pra empresa também é marcado como processado (não fica pendente pra sempre)', async () => {
+  test('2ª execução não reprocessa quem já foi notificado', async () => {
+    const email = 'sem.reprocesso@example.com';
     const disc = await request(app).post('/api/disc').send({
-      nome_participante: 'Fulano Sem Líder',
-      empresa: 'Empresa Sem Líder Nenhum',
-      email: 'sem.lider@example.com',
+      nome_participante: 'Sem Reprocesso', empresa: 'Empresa Y', email,
       respostas: respostasComDDominante,
     });
 
-    const proc = await request(app).post('/api/disc/notificar-pendentes').set('x-admin-token', ADMIN_TOKEN);
-    assert.equal(proc.body.processadas, 1);
+    await executarCicloRotina();
+    const antes = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    const notificadoEm1 = antes.body.find(r => r.id === disc.body.id).notificado_em;
+    assert.ok(notificadoEm1);
 
-    const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
-    const row = list.body.find(r => r.id === disc.body.id);
-    assert.ok(row.notificado_em);
+    await executarCicloRotina();
+    const depois = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    const notificadoEm2 = depois.body.find(r => r.id === disc.body.id).notificado_em;
+    assert.equal(notificadoEm1, notificadoEm2, 'não deveria ter reprocessado (mesmo timestamp)');
 
     await request(app).delete(`/api/disc/${disc.body.id}`).set('x-admin-token', ADMIN_TOKEN);
-  });
-});
-
-describe('API /api/lideres', () => {
-  let createdId;
-
-  test('POST sem empresa/email retorna 400', async () => {
-    const res = await request(app)
-      .post('/api/lideres')
-      .set('x-admin-token', ADMIN_TOKEN)
-      .send({ nome: 'Fulano' });
-    assert.equal(res.status, 400);
-    assert.match(res.body.error, /empresa e email/);
-  });
-
-  test('POST sem token retorna 401', async () => {
-    const res = await request(app).post('/api/lideres').send({ empresa: 'X', email: 'a@b.com' });
-    assert.equal(res.status, 401);
-  });
-
-  test('POST com dados válidos cadastra o líder', async () => {
-    const res = await request(app)
-      .post('/api/lideres')
-      .set('x-admin-token', ADMIN_TOKEN)
-      .send({ empresa: 'Empresa Y', nome: 'Chefe da Empresa Y', email: 'chefe.y@example.com' });
-    assert.equal(res.status, 201);
-    assert.ok(res.body.id);
-    createdId = res.body.id;
-  });
-
-  test('GET sem token retorna 401', async () => {
-    const res = await request(app).get('/api/lideres');
-    assert.equal(res.status, 401);
-  });
-
-  test('GET com token lista os líderes cadastrados', async () => {
-    const res = await request(app).get('/api/lideres').set('x-admin-token', ADMIN_TOKEN);
-    assert.equal(res.status, 200);
-    const row = res.body.find(r => r.id === createdId);
-    assert.ok(row);
-    assert.equal(row.empresa, 'Empresa Y');
-    assert.equal(row.email, 'chefe.y@example.com');
-  });
-
-  test('DELETE remove o registro (admin)', async () => {
-    const del = await request(app).delete(`/api/lideres/${createdId}`).set('x-admin-token', ADMIN_TOKEN);
-    assert.equal(del.status, 204);
-
-    const list = await request(app).get('/api/lideres').set('x-admin-token', ADMIN_TOKEN);
-    assert.ok(!list.body.some(r => r.id === createdId));
-  });
-
-  test('DELETE sem token retorna 401 e não apaga nada', async () => {
-    const create = await request(app)
-      .post('/api/lideres')
-      .set('x-admin-token', ADMIN_TOKEN)
-      .send({ empresa: 'Empresa Z', email: 'z@example.com' });
-
-    const del = await request(app).delete(`/api/lideres/${create.body.id}`);
-    assert.equal(del.status, 401);
-
-    const list = await request(app).get('/api/lideres').set('x-admin-token', ADMIN_TOKEN);
-    assert.ok(list.body.some(r => r.id === create.body.id));
-
-    await request(app).delete(`/api/lideres/${create.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 
