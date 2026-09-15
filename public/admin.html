@@ -21,11 +21,18 @@
     <span class="count" id="countGlobal"></span>
   </div>
 
+  <div class="toolbar" style="margin-bottom:16px;">
+    <button class="primary" id="rotinaToggleBtn">Ativar rotina de notificação</button>
+    <span class="count" id="rotinaStatus"></span>
+  </div>
+  <p class="sub">A rotina, quando ativa, verifica periodicamente as 3 ferramentas e manda
+    1 e-mail por participante (agrupado pelo e-mail que ele digitou) com todos os PDFs
+    pendentes anexados. Fica desligada de novo a cada reinício do servidor.</p>
+
   <div class="tabs">
     <button class="tab-btn active" data-tab="metas">Calculadora de Metas</button>
     <button class="tab-btn" data-tab="disc">Avaliação DISC</button>
     <button class="tab-btn" data-tab="porque">Meu Porquê</button>
-    <button class="tab-btn" data-tab="lideres">Líderes por Empresa</button>
   </div>
 
   <!-- ABA METAS -->
@@ -42,7 +49,7 @@
             <th class="num">Faturamento</th><th class="num">Meta mensal</th>
             <th class="num">Contratos/mês</th><th class="num">Contatos necess.</th>
             <th class="num">Hunter</th><th class="num">Farmer</th>
-            <th>Equipe</th><th></th>
+            <th>Equipe</th><th>Notificado</th><th></th>
           </tr>
         </thead>
         <tbody id="tbodyMetas"></tbody>
@@ -56,10 +63,8 @@
   <div class="tab-pane" id="tab-disc">
     <div class="toolbar" style="margin-bottom:16px;">
       <a class="btn" id="csvDiscLink" href="#" target="_blank"><button id="csvDiscBtn">Exportar CSV DISC</button></a>
-      <button class="primary" id="notificarPendentesBtn">Notificar pendentes</button>
       <span class="count" id="countDisc"></span>
     </div>
-    <p class="sub" id="notificarStatus"></p>
     <div class="scroll">
       <table id="tableDisc" style="display:none;">
         <thead>
@@ -91,39 +96,13 @@
           <tr>
             <th>Data</th><th>Nome</th><th>Empresa</th><th>E-mail</th>
             <th>Objetivo</th><th>Sonho</th><th>Mudança</th><th>Visão de futuro</th>
-            <th></th>
+            <th>Notificado</th><th></th>
           </tr>
         </thead>
         <tbody id="tbodyPorque"></tbody>
       </table>
       <div class="empty" id="emptyPorque" style="display:none;">Nenhuma resposta do Meu Porquê recebida ainda.</div>
       <div class="err" id="errPorque" style="display:none;"></div>
-    </div>
-  </div>
-
-  <!-- ABA LÍDERES -->
-  <div class="tab-pane" id="tab-lideres">
-    <p class="sub">Quem cadastrar aqui recebe um e-mail com o PDF do perfil DISC sempre que
-      alguém da mesma empresa preencher a avaliação. A empresa precisa bater
-      exatamente (mesma grafia) com o que os participantes digitam.</p>
-    <div class="toolbar" style="margin-bottom:16px;">
-      <input type="text" id="liderEmpresa" placeholder="Empresa (exatamente como os participantes digitam)">
-      <input type="text" id="liderNome" placeholder="Nome do líder">
-      <input type="email" id="liderEmail" placeholder="E-mail do líder">
-      <button class="primary" id="addLiderBtn">Cadastrar</button>
-      <span class="count" id="countLideres"></span>
-    </div>
-    <div class="scroll">
-      <table id="tableLideres" style="display:none;">
-        <thead>
-          <tr>
-            <th>Cadastrado em</th><th>Empresa</th><th>Nome</th><th>E-mail</th><th></th>
-          </tr>
-        </thead>
-        <tbody id="tbodyLideres"></tbody>
-      </table>
-      <div class="empty" id="emptyLideres" style="display:none;">Nenhum líder cadastrado ainda.</div>
-      <div class="err" id="errLideres" style="display:none;"></div>
     </div>
   </div>
 
@@ -158,27 +137,35 @@
     $('csvDiscLink').href = '/api/disc.csv?token=' + encodeURIComponent(t);
   });
 
-  $('notificarPendentesBtn').addEventListener('click', async () => {
-    const token = getToken();
-    const status = $('notificarStatus');
-    if (!token) { status.textContent = 'Informe o token de admin.'; return; }
+  function aplicarStatusRotina(ativa) {
+    $('rotinaToggleBtn').textContent = ativa ? 'Desativar rotina de notificação' : 'Ativar rotina de notificação';
+    $('rotinaStatus').textContent = ativa
+      ? 'Rotina ativa — verificando periodicamente'
+      : 'Rotina inativa';
+  }
 
-    status.textContent = 'Processando...';
+  async function atualizarStatusRotina(token) {
+    if (!token) return;
     try {
-      const resp = await fetch('/api/disc/notificar-pendentes', {
-        method: 'POST',
-        headers: { 'x-admin-token': token },
-      });
-      if (resp.status === 401) { status.textContent = 'Token inválido.'; return; }
-      if (!resp.ok) { status.textContent = 'Erro ao processar as notificações.'; return; }
-      const { processadas } = await resp.json();
-      status.textContent = processadas === 0
-        ? 'Nenhuma notificação pendente.'
-        : `${processadas} notificação(ões) processada(s).`;
-      loadDisc(token);
-    } catch (e) {
-      status.textContent = 'Não foi possível conectar ao servidor.';
-    }
+      const resp = await fetch('/api/rotina-notificacao/status', { headers: { 'x-admin-token': token } });
+      if (!resp.ok) return;
+      const { ativa } = await resp.json();
+      aplicarStatusRotina(ativa);
+    } catch (e) {}
+  }
+
+  $('rotinaToggleBtn').addEventListener('click', async () => {
+    const token = getToken();
+    if (!token) { alert('Informe o token de admin.'); return; }
+    const estaAtiva = $('rotinaToggleBtn').textContent.startsWith('Desativar');
+    const rota = estaAtiva ? '/api/rotina-notificacao/desativar' : '/api/rotina-notificacao/ativar';
+    try {
+      const resp = await fetch(rota, { method: 'POST', headers: { 'x-admin-token': token } });
+      if (resp.status === 401) { alert('Token inválido.'); return; }
+      if (!resp.ok) { alert('Erro ao mudar o estado da rotina.'); return; }
+      const { ativa } = await resp.json();
+      aplicarStatusRotina(ativa);
+    } catch (e) { alert('Não foi possível conectar ao servidor.'); }
   });
 
   $('csvPorqueBtn').addEventListener('click', (e) => {
@@ -190,7 +177,7 @@
   async function loadAll() {
     const token = getToken();
     if (!token) { showErrMetas('Informe o token de admin.'); return; }
-    await Promise.all([loadMetas(token), loadDisc(token), loadPorque(token), loadLideres(token)]);
+    await Promise.all([loadMetas(token), loadDisc(token), loadPorque(token), atualizarStatusRotina(token)]);
   }
 
   async function loadMetas(token) {
@@ -232,23 +219,13 @@
     } catch (e) { showErrPorque('Não foi possível conectar ao servidor.'); }
   }
 
-  async function loadLideres(token) {
-    $('errLideres').style.display = 'none';
-    $('emptyLideres').style.display = 'none';
-    $('tableLideres').style.display = 'none';
-    try {
-      const resp = await fetch('/api/lideres', { headers: { 'x-admin-token': token } });
-      if (resp.status === 401) { showErrLideres('Token inválido.'); return; }
-      if (!resp.ok) { showErrLideres('Erro ao carregar dados.'); return; }
-      const rows = await resp.json();
-      renderLideres(rows);
-    } catch (e) { showErrLideres('Não foi possível conectar ao servidor.'); }
-  }
-
   function showErrMetas(msg){ $('errMetas').textContent = msg; $('errMetas').style.display = 'block'; }
   function showErrDisc(msg){ $('errDisc').textContent = msg; $('errDisc').style.display = 'block'; }
   function showErrPorque(msg){ $('errPorque').textContent = msg; $('errPorque').style.display = 'block'; }
-  function showErrLideres(msg){ $('errLideres').textContent = msg; $('errLideres').style.display = 'block'; }
+
+  function fmtNotificado(r) {
+    return r.notificado_em ? '✓ ' + r.notificado_em : '—';
+  }
 
   function renderMetas(rows) {
     $('countMetas').textContent = rows.length + ' registro(s)';
@@ -270,6 +247,7 @@
         <td class="num">${fmtBRL(r.hunter_valor)}</td>
         <td class="num">${fmtBRL(r.farmer_valor)}</td>
         <td>${escapeHtml(equipeResumo) || '—'}</td>
+        <td>${fmtNotificado(r)}</td>
         <td><button class="del" data-id="${r.id}" data-tipo="metas">remover</button></td>
       `;
       tbody.appendChild(tr);
@@ -305,7 +283,7 @@
         <td class="num">${(r.i_intensidade||0).toFixed(1)}</td>
         <td class="num">${(r.s_intensidade||0).toFixed(1)}</td>
         <td class="num">${(r.c_intensidade||0).toFixed(1)}</td>
-        <td>${r.notificado_em ? '✓ ' + r.notificado_em : '—'}</td>
+        <td>${fmtNotificado(r)}</td>
         <td><button class="del" data-id="${r.id}" data-tipo="disc">remover</button></td>
       `;
       tbody.appendChild(tr);
@@ -337,6 +315,7 @@
         <td title="${escapeHtml(r.sonho)}">${escapeHtml(truncar(r.sonho, 60))}</td>
         <td title="${escapeHtml(r.mudanca)}">${escapeHtml(truncar(r.mudanca, 60))}</td>
         <td title="${escapeHtml(r.visao_futuro)}">${escapeHtml(truncar(r.visao_futuro, 60))}</td>
+        <td>${fmtNotificado(r)}</td>
         <td><button class="del" data-id="${r.id}" data-tipo="meu-porque">remover</button></td>
       `;
       tbody.appendChild(tr);
@@ -345,48 +324,6 @@
     bindDelBtns();
   }
 
-  function renderLideres(rows) {
-    $('countLideres').textContent = rows.length + ' registro(s)';
-    if (rows.length === 0) { $('emptyLideres').style.display = 'block'; return; }
-    const tbody = $('tbodyLideres');
-    tbody.innerHTML = '';
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.criado_em || ''}</td>
-        <td>${escapeHtml(r.empresa)}</td>
-        <td>${escapeHtml(r.nome)}</td>
-        <td>${escapeHtml(r.email)}</td>
-        <td><button class="del" data-id="${r.id}" data-tipo="lideres">remover</button></td>
-      `;
-      tbody.appendChild(tr);
-    });
-    $('tableLideres').style.display = 'table';
-    bindDelBtns();
-  }
-
-  $('addLiderBtn').addEventListener('click', async () => {
-    const token = getToken();
-    if (!token) { showErrLideres('Informe o token de admin.'); return; }
-    const empresa = $('liderEmpresa').value.trim();
-    const nome = $('liderNome').value.trim();
-    const email = $('liderEmail').value.trim();
-    if (!empresa || !email) { showErrLideres('Empresa e e-mail são obrigatórios.'); return; }
-
-    try {
-      const resp = await fetch('/api/lideres', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify({ empresa, nome, email }),
-      });
-      if (resp.status === 401) { showErrLideres('Token inválido.'); return; }
-      if (!resp.ok) { showErrLideres('Erro ao cadastrar o líder.'); return; }
-      $('liderEmpresa').value = '';
-      $('liderNome').value = '';
-      $('liderEmail').value = '';
-      loadLideres(token);
-    } catch (e) { showErrLideres('Não foi possível conectar ao servidor.'); }
-  });
 
   function bindDelBtns() {
     document.querySelectorAll('.del').forEach(btn => {
