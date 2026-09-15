@@ -1,19 +1,32 @@
-// Notifica o PRÓPRIO participante por e-mail com os PDFs de tudo que ele
-// preencheu (calculadora, DISC, Meu Porquê) que ainda não foi enviado.
-// Substitui a feature anterior de "líderes por empresa" (cadastro manual
-// de quem recebia notificação por empresa, removida por pedido explícito
-// do usuário — ver CLAUDE.md/CHANGELOG). Agrupa por `email` entre as 3
-// tabelas e manda **1 único e-mail** por pessoa, com todos os PDFs
-// pendentes anexados — não 1 e-mail por envio.
+// Notifica por e-mail quem preencheu "Meu Porquê" — essa tabela é a
+// REFERÊNCIA de destinatário válido (pedido explícito do usuário: "Sua
+// tabela de referências para email será a Meu Porquê"). Pra cada
+// (email, empresa) pendente em `meu_porque_respostas`, manda 1 e-mail
+// só com:
+//   1. o(s) PDF(s) do próprio Meu Porquê dessa pessoa (por e-mail);
+//   2. o(s) PDF(s) da própria Calculadora de Meta, SE ela também
+//      preencheu com o mesmo e-mail (por e-mail);
+//   3. os PDFs de DISC de TODOS os colaboradores da MESMA EMPRESA — não
+//      só os dela (por empresa, já que o DISC normalmente é preenchido
+//      pelo time, não por quem faz o Meu Porquê).
+// Substitui tanto a feature de "líderes por empresa" (cadastro manual,
+// removida) quanto o desenho anterior de "notifica quem preencheu
+// qualquer uma das 3, agrupado só por e-mail" — os 2 descartados por
+// pedido explícito do usuário, ver CHANGELOG.
 //
 // Roda como uma ROTINA que liga/desliga via botão em admin.html
 // (`iniciarRotina`/`pararRotina` abaixo, expostas em
-// POST /api/rotina-notificacao/{ativar,desativar}) — não é automática a
-// cada envio, nem um botão de disparo único (já passou pelos 2 formatos
-// antes deste, os 2 descartados por pedido explícito do usuário). Estado
-// (ativa/inativa) fica só em memória — reinicia desligada a cada boot do
-// servidor, de propósito (não persiste em banco, pra sempre exigir uma
-// ativação manual consciente depois de um deploy/restart).
+// POST /api/rotina-notificacao/{ativar,desativar}). Estado (ativa/
+// inativa) fica só em memória — reinicia desligada a cada boot.
+//
+// Limitação conhecida: como o destinatário só é identificado a partir de
+// linhas PENDENTES de `meu_porque_respostas`, depois que o Meu Porquê de
+// alguém já foi processado 1 vez, ela não é mais "descoberta" como
+// destinatário — novos DISCs da mesma empresa que chegarem depois disso
+// só seriam enviados se essa pessoa preencher o Meu Porquê de novo (ou
+// outra pessoa da mesma empresa preencher o dela pela 1ª vez). Não
+// resolvido de propósito — não foi pedido, e mudar isso significaria
+// rastrear notificação por (destinatário, linha) em vez de só por linha.
 const { pool } = require('../db');
 const { generatePdfAsync } = require('../reports/pdfWorkerPool');
 const { discFilename } = require('../reports/discReport');
@@ -21,25 +34,28 @@ const { metaComercialFilename } = require('../reports/metaComercialReport');
 const { meuPorqueFilename } = require('../reports/meuPorqueReport');
 const { enviarEmail } = require('../email');
 
-const NOMES_FERRAMENTA = {
-  metas: 'Calculadora de Meta Comercial',
-  disc: 'Avaliação DISC',
-  meuPorque: 'Meu Porquê',
-};
-
 // Texto do e-mail — base fornecida pelo usuário (texto-email.md, na raiz
-// do repo, não versionado — material de referência), incrementado a
-// pedido ("Incremente o texto e deixe mais elaborado"). Reescrito depois
-// pra tirar a 1ª pessoa de quem esteve na palestra — quem dispara o
-// e-mail (o usuário, via SMTP_FROM) não é necessariamente quem deu o
-// treinamento, então o texto fala da Tática/do treinamento de forma mais
-// geral, sem alegar presença pessoal na sala. A parte específica do
-// participante/PDFs fica no meio, listando dinamicamente quais
-// ferramentas ele completou (pode ser 1, 2 ou as 3).
-function montarTextoEmail(itens) {
-  const { nome_participante, empresa } = itens[0].row;
-  const ferramentas = [...new Set(itens.map((i) => NOMES_FERRAMENTA[i.tipo]))].join(', ');
-  const plural = itens.length > 1;
+// do repo, não versionado — material de referência), incrementado e
+// depois reescrito pra tirar a 1ª pessoa de quem esteve na palestra
+// (quem dispara o e-mail via SMTP_FROM não é necessariamente quem deu o
+// treinamento). A parte específica dos anexos descreve dinamicamente o
+// que foi incluído — pode ser só o Meu Porquê, ou também a Calculadora,
+// e/ou os DISCs da equipe.
+function montarTextoEmail(recipiente, itens) {
+  const { empresa } = recipiente;
+  const temMeuPorque = itens.some((i) => i.tipo === 'meuPorque');
+  const temMetas = itens.some((i) => i.tipo === 'metas');
+  const discs = itens.filter((i) => i.tipo === 'disc');
+
+  const partes = [];
+  if (temMeuPorque) partes.push('o seu Meu Porquê');
+  if (temMetas) partes.push('a sua Calculadora de Meta Comercial');
+  if (discs.length === 1) partes.push(`o perfil DISC de 1 colaborador da ${empresa}`);
+  else if (discs.length > 1) partes.push(`os perfis DISC de ${discs.length} colaboradores da ${empresa}`);
+
+  const listaAnexos = partes.length > 1
+    ? partes.slice(0, -1).join(', ') + ' e ' + partes[partes.length - 1]
+    : partes[0];
 
   return (
     'Foi uma alegria enorme ver o quanto vocês se engajaram no treinamento — ' +
@@ -53,9 +69,8 @@ function montarTextoEmail(itens) {
     'ferramenta com o time e comecem já na próxima segunda-feira a construir ' +
     'essa cultura comercial — passo a passo, sem pressa, mas com ' +
     'constância.\n\n' +
-    `Falando nisso: ${nome_participante}, da ${empresa}, acabou de concluir ` +
-    `${ferramentas}. ${plural ? 'Os relatórios completos estão anexados' : 'O relatório completo está anexado'} ` +
-    'a este e-mail.\n\n' +
+    `Falando nisso: segue anexado ${listaAnexos}. Os relatórios completos ` +
+    'estão anexados a este e-mail.\n\n' +
     'E se em algum momento vocês precisarem de uma mão, de trocar uma ideia ' +
     'ou tirar uma dúvida nessa jornada, podem contar com a gente. Ficamos à ' +
     'disposição pra colaborar com o crescimento de cada um.\n\n' +
@@ -131,58 +146,56 @@ async function gerarPdfItem({ tipo, row }) {
   };
 }
 
-// Nomes de tabela literais, nunca vindos de entrada externa — seguro
-// interpolar direto no SQL (não dá pra usar parâmetro posicional ($1)
-// pra nome de tabela/coluna, só pra valor).
-const TABELAS = [
-  { tabela: 'metas', tipo: 'metas' },
-  { tabela: 'disc_respostas', tipo: 'disc' },
-  { tabela: 'meu_porque_respostas', tipo: 'meuPorque' },
-];
-
-// Reivindica (UPDATE ... RETURNING) todas as linhas pendentes de 1 tabela
-// pra 1 e-mail, de forma atômica — um UPDATE comum já garante isso (as
-// linhas afetadas ficam bloqueadas até o commit implícito do próprio
-// `pool.query`), sem precisar de FOR UPDATE SKIP LOCKED (esse padrão
-// reivindicava 1 linha por vez de uma fila compartilhada; aqui cada
-// chamada já mira só as linhas de 1 e-mail específico).
-async function reivindicarPendentes(tabela, email) {
+// Reivindica (UPDATE ... RETURNING) atomicamente as linhas pendentes de 1
+// tabela que batem com `whereClause` — um UPDATE comum já garante isso
+// (as linhas afetadas ficam bloqueadas até o commit implícito do próprio
+// `pool.query`), sem precisar de FOR UPDATE SKIP LOCKED. Nome de tabela é
+// sempre um literal fixo no código (nunca vindo de entrada externa) —
+// seguro interpolar direto no SQL, já que não dá pra usar parâmetro
+// posicional ($1) pra nome de tabela/coluna, só pra valor.
+async function reivindicarPendentes(tabela, whereClause, params) {
   const { rows } = await pool.query(
     `UPDATE ${tabela}
      SET notificado_em = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
-     WHERE email = $1 AND notificado_em IS NULL
+     WHERE ${whereClause} AND notificado_em IS NULL
      RETURNING *`,
-    [email]
+    params
   );
   return rows;
 }
 
-// Lista os e-mails com pelo menos 1 registro pendente em qualquer das 3
-// tabelas — cada um vira 1 e-mail (não 1 por tabela).
-async function buscarEmailsPendentes() {
+// Lista os destinatários válidos: (email, empresa, nome) distintos com
+// pelo menos 1 Meu Porquê ainda não processado. Só quem tem uma linha
+// pendente em `meu_porque_respostas` vira destinatário — é a tabela de
+// referência, ver comentário no topo do arquivo.
+async function buscarRecipientesPendentes() {
   const { rows } = await pool.query(`
-    SELECT DISTINCT email FROM (
-      SELECT email FROM metas WHERE notificado_em IS NULL AND email IS NOT NULL AND email <> ''
-      UNION
-      SELECT email FROM disc_respostas WHERE notificado_em IS NULL AND email IS NOT NULL AND email <> ''
-      UNION
-      SELECT email FROM meu_porque_respostas WHERE notificado_em IS NULL AND email IS NOT NULL AND email <> ''
-    ) pendentes
-    ORDER BY email
+    SELECT DISTINCT ON (email, empresa) email, empresa, nome_participante
+    FROM meu_porque_respostas
+    WHERE notificado_em IS NULL AND email IS NOT NULL AND email <> ''
+    ORDER BY email, empresa, id
   `);
-  return rows.map((r) => r.email);
+  return rows;
 }
 
-// Processa 1 participante: reivindica os pendentes dele nas 3 tabelas,
-// gera 1 PDF por item e manda tudo junto num e-mail só. Retorna false se
-// não sobrou nada pra reivindicar (ex.: outro ciclo da rotina já processou
-// esse e-mail entre a listagem e agora).
-async function processarParticipante(email) {
+// Processa 1 destinatário: reivindica o(s) Meu Porquê dele (por e-mail +
+// empresa exatos), a Calculadora dele (por e-mail) e os DISCs de toda a
+// empresa (por empresa) — gera 1 PDF por item e manda tudo junto num
+// e-mail só. Retorna false se não sobrou nada pra reivindicar (ex.: outro
+// ciclo da rotina já processou esse destinatário entre a listagem e
+// agora).
+async function processarRecipiente(recipiente) {
+  const { email, empresa } = recipiente;
   const itens = [];
-  for (const { tabela, tipo } of TABELAS) {
-    const rows = await reivindicarPendentes(tabela, email);
-    rows.forEach((row) => itens.push({ tipo, row }));
-  }
+
+  const porques = await reivindicarPendentes('meu_porque_respostas', 'email = $1 AND empresa = $2', [email, empresa]);
+  porques.forEach((row) => itens.push({ tipo: 'meuPorque', row }));
+
+  const metas = await reivindicarPendentes('metas', 'email = $1', [email]);
+  metas.forEach((row) => itens.push({ tipo: 'metas', row }));
+
+  const discs = await reivindicarPendentes('disc_respostas', 'empresa = $1', [empresa]);
+  discs.forEach((row) => itens.push({ tipo: 'disc', row }));
 
   if (itens.length === 0) return false;
 
@@ -195,8 +208,8 @@ async function processarParticipante(email) {
 
   await enviarEmail({
     to: email,
-    subject: `Seus resultados do treinamento — ${itens[0].row.nome_participante}`,
-    text: montarTextoEmail(itens),
+    subject: `Materiais do treinamento — ${recipiente.nome_participante} (${empresa})`,
+    text: montarTextoEmail(recipiente, itens),
     attachments,
   });
 
@@ -204,17 +217,17 @@ async function processarParticipante(email) {
 }
 
 async function executarCicloRotina() {
-  let emails;
+  let recipientes;
   try {
-    emails = await buscarEmailsPendentes();
+    recipientes = await buscarRecipientesPendentes();
   } catch (err) {
     console.error('Falha ao buscar pendentes na rotina de notificação:', err.message);
     return;
   }
 
-  for (const email of emails) {
-    await processarParticipante(email).catch((err) => {
-      console.error(`Falha ao notificar participante ${email}:`, err.message);
+  for (const recipiente of recipientes) {
+    await processarRecipiente(recipiente).catch((err) => {
+      console.error(`Falha ao notificar ${recipiente.email} (${recipiente.empresa}):`, err.message);
     });
   }
 }
