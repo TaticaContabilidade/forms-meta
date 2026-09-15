@@ -220,14 +220,38 @@ o "correto".
 
 ### Notificação por e-mail ao próprio participante
 
-Cada participante recebe, por e-mail, os PDFs de tudo que ele mesmo
-preencheu (calculadora, DISC, Meu Porquê) — usando o `email` que ele
-digitou em cada ferramenta (ver seção "Campo de e-mail nas 3 ferramentas"
-acima), agrupado: se a mesma pessoa preencheu 2 ou 3 ferramentas com o
-mesmo e-mail, ela recebe **1 e-mail só**, com todos os PDFs pendentes
-anexados — não 1 e-mail por ferramenta. `src/notifications/participantNotifier.js`
+**`meu_porque_respostas` é a tabela de referência de destinatário
+válido** — reformulado depois que o desenho anterior (agrupar as 3
+tabelas por `email` exato) se mostrou errado na prática: "a aplicação não
+está fazendo o que foi [pedido]", reformulado pelo usuário — "Você irá
+pegar das 3 tabelas os colaboradores da mesma empresa. Sua tabela de
+referências para email será a Meu Porquê (...) o disc deve ser
+confluenciado [ao] colaborador da mesma empresa". O motivo: na prática o
+Meu Porquê costuma ser respondido pelo chefe/responsável da empresa,
+enquanto o DISC é respondido por cada colaborador do time — e-mails
+diferentes entre si, então bater por e-mail exato nas 3 tabelas nunca
+encontrava destinatário nenhum.
+
+Só quem tem uma linha **pendente** em `meu_porque_respostas` vira
+destinatário (`buscarRecipientesPendentes()`, `DISTINCT ON (email,
+empresa)`). Pra cada `(email, empresa)` pendente, `processarRecipiente()`
+reivindica: o(s) próprio(s) Meu Porquê (por `email` + `empresa`), a
+própria Calculadora **só por `email`** (se ela também preencheu com o
+mesmo e-mail) e **todos** os DISCs da **mesma empresa** — não só os dela,
+por `empresa`, não por `email`, já que o DISC normalmente é preenchido
+pelo time, não por quem faz o Meu Porquê — gera 1 PDF por item e manda
+tudo junto num e-mail só. `src/notifications/participantNotifier.js`
 concentra essa lógica; `generatePdfAsync()`/os `*Filename()` de cada
 relatório são os mesmos já usados nas rotas `/pdf`.
+
+**Limitação conhecida, não resolvida de propósito**: como o destinatário
+só é descoberto a partir de linhas pendentes de `meu_porque_respostas`,
+depois que o Meu Porquê de alguém já foi processado 1 vez ela deixa de
+ser "descoberta" como destinatário — novos DISCs da mesma empresa
+enviados depois disso só disparam e-mail se essa pessoa preencher o Meu
+Porquê de novo (ou outra pessoa da mesma empresa preencher o dela pela
+1ª vez). Não foi pedido; corrigir isso exigiria rastrear notificação por
+(destinatário, linha) em vez de só por linha.
 
 **Isso substituiu uma feature anterior de "líderes por empresa"**
 (cadastro manual de quem recebia notificação por empresa, quando um
@@ -253,21 +277,18 @@ boot/deploy, de propósito (exige uma ativação manual consciente depois de
 qualquer restart, em vez de assumir que devia continuar rodando).
 
 `metas`/`disc_respostas`/`meu_porque_respostas` têm `notificado_em`
-(coluna `TEXT`, `NULL` = pendente) cada uma. A cada ciclo:
-`buscarEmailsPendentes()` lista os e-mails distintos com pelo menos 1
-pendência em qualquer das 3 tabelas; pra cada um, `processarParticipante()`
-reivindica (via `UPDATE ... WHERE email = $1 AND notificado_em IS NULL
-RETURNING *`) todas as pendências desse e-mail nas 3 tabelas — um `UPDATE`
-comum já é atômico o bastante aqui (não precisa de `FOR UPDATE SKIP
-LOCKED`, que fazia sentido no desenho anterior por reivindicar 1 linha de
-uma fila compartilhada; aqui cada chamada já mira só as linhas de 1
-e-mail específico) — gera 1 PDF por pendência e manda tudo junto num
-e-mail só. Erros de envio (SMTP fora do ar, credencial errada etc.) só
-são logados — as linhas já foram marcadas como processadas no momento em
-que foram reivindicadas, então um erro não trava as outras nem faz a
-mesma pendência ser reprocessada sozinha depois (sem retry automático;
-reprocessar manualmente exigiria zerar `notificado_em` direto no banco,
-não existe UI pra isso).
+(coluna `TEXT`, `NULL` = pendente) cada uma. `reivindicarPendentes(tabela,
+whereClause, params)` faz o `UPDATE ... WHERE <whereClause> AND
+notificado_em IS NULL RETURNING *` — um `UPDATE` comum já é atômico o
+bastante aqui (não precisa de `FOR UPDATE SKIP LOCKED`, que fazia sentido
+num desenho de fila compartilhada; aqui cada chamada já mira as linhas de
+1 destinatário específico, por e-mail+empresa, só e-mail, ou só empresa,
+conforme a tabela). Erros de envio (SMTP fora do ar, credencial errada
+etc.) só são logados — as linhas já foram marcadas como processadas no
+momento em que foram reivindicadas, então um erro não trava outros
+destinatários nem faz a mesma pendência ser reprocessada sozinha depois
+(sem retry automático; reprocessar manualmente exigiria zerar
+`notificado_em` direto no banco, não existe UI pra isso).
 
 Rotas: `POST /api/rotina-notificacao/ativar`, `POST
 /api/rotina-notificacao/desativar`, `GET /api/rotina-notificacao/status`

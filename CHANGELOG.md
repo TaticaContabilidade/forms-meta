@@ -1342,3 +1342,56 @@ seguem só no histórico do `git log`.
     contra o servidor real (sem ferramenta de navegador disponível nesta
     sessão) — login, carregar, toggle da rotina, coluna "Notificado"
     atualizando depois do ciclo, tudo conferido.
+
+- **Reformulado de novo: o agrupamento "por e-mail exato entre as 3
+  tabelas" estava errado — o usuário relatou "a aplicação não está
+  fazendo o que foi [pedido]"** e reformulou o desenho: "Você irá pegar
+  das 3 tabelas os colaboradores da mesma empresa. Sua tabela de
+  referências para email será a Meu Porquê (...) o disc deve ser
+  confluenciado [ao] colaborador da mesma empresa". Ou seja: `email`
+  exato batendo nas 3 tabelas ao mesmo tempo não reflete como as
+  ferramentas são de fato preenchidas — o Meu Porquê normalmente é
+  respondido pelo chefe/responsável da empresa, enquanto o DISC é
+  respondido por cada colaborador do time, com e-mails diferentes entre
+  si. Restaurei o entendimento por `AskUserQuestion` antes de mexer no
+  código (histórico de 2 leituras erradas seguidas nesta mesma feature);
+  confirmado "Sim, exatamente isso".
+  - **`meu_porque_respostas` vira a tabela de referência de
+    destinatário válido** — só quem tem uma linha pendente ali entra
+    como destinatário (`buscarRecipientesPendentes()`, `DISTINCT ON
+    (email, empresa)`). Sem isso, DISC/Calculadora ficam pendentes
+    indefinidamente (comportamento esperado, não um bug — documentado
+    como limitação conhecida no topo do arquivo).
+  - Pra cada destinatário `(email, empresa)`, `processarRecipiente()`
+    reivindica: o(s) próprio(s) Meu Porquê (email + empresa), a própria
+    Calculadora **só por e-mail** (mesmo se a empresa salva divergir —
+    não deveria, mas o match é só por e-mail, de propósito, igual à
+    Meu Porquê) e **todos** os DISCs da mesma empresa (por empresa, não
+    por e-mail — é o comportamento novo central desta reformulação,
+    reflete que o DISC é preenchido pelo time, não por quem responde o
+    Meu Porquê).
+  - `montarTextoEmail()` reescrito pra descrever dinamicamente 1, 2 ou 3
+    itens (Meu Porquê / Calculadora / "perfil(is) DISC de N
+    colaborador(es) da {empresa}").
+  - `reivindicarPendentes(tabela, whereClause, params)` generaliza o
+    antigo `UPDATE ... RETURNING` pra aceitar uma cláusula `WHERE`
+    arbitrária (email+empresa, só email, ou só empresa) em vez de sempre
+    filtrar por e-mail.
+  - `tests/server.test.js`: describe renomeado e reescrito com 4 testes —
+    destinatário recebe Meu Porquê + Calculadora (mesmo e-mail) + DISCs
+    de toda a empresa (outros e-mails); sem ninguém ter preenchido Meu
+    Porquê, DISC/Calculadora ficam pendentes (sem destinatário); a
+    Calculadora com e-mail diferente do Meu Porquê não é incluída (prova
+    que ela bate só por e-mail, não por empresa); 2ª execução não
+    reprocessa quem já foi notificado.
+  - Testado: `npm test` (109/109). Investigação à parte: um smoke test ao
+    vivo (servidor real, SMTP real) mostrou os 4 `notificado_em` bem
+    espalhados no tempo (~15s de diferença) em vez de praticamente
+    simultâneos — script isolado (`timing-test.js`, sem SMTP configurado,
+    bypassando HTTP) reproduziu o mesmo cenário de dados e confirmou os 4
+    timestamps **idênticos**, ciclo completo em ~250ms — a lógica de
+    reivindicação está correta; o espalhamento observado no smoke test ao
+    vivo foi artefato daquele envio real via SMTP do Gmail (latência de
+    rede do envio em si), não um bug em `participantNotifier.js`.
+  - `admin.html` não mudou nesta reformulação (o toggle/coluna
+    "Notificado" já cobriam o novo desenho sem alteração de UI).
