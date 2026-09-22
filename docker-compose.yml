@@ -35,5 +35,29 @@ services:
       # numa arquitetura/SO diferente da imagem do container).
       - /app/node_modules
 
+  # Django REST (migração incremental — ver CLAUDE.md/CHANGELOG.md) fala
+  # com o mesmo banco `forms_meta` que o `app` (Node) já usa, pelo nome do
+  # serviço `db`. Pacotes Python do pip ficam fora de /app (em
+  # site-packages da imagem), então — ao contrário do node_modules acima —
+  # não precisa de volume anônimo pra não ser sobrescrito pelo bind mount.
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/forms_meta
+      DJANGO_SECRET_KEY: dev-secret-troque-isto
+      DJANGO_DEBUG: "true"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DJANGO_CORS_ALLOWED_ORIGINS: http://localhost:5173
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+
 volumes:
   forms-meta-dev-db:
