@@ -7,3 +7,16 @@ _*
 
 # PDFs gerados/baixados localmente (relatórios de exemplo, exports) — nunca versionar
 *.pdf
+
+# backend/ (Django) — ver CLAUDE.md, migração incremental pra Django REST + React
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/.pytest_cache/
+backend/staticfiles/
+backend/db.sqlite3
+
+# frontend/ (React + Vite)
+frontend/node_modules/
+frontend/dist/
