@@ -4,6 +4,24 @@ node_modules/
 
 # Arquivos/diretórios de uso local — nunca versionar (ver CLAUDE.md)
 _*
+# ...mas não `__init__.py` (Python) — também começa com "_" e cairia na
+# regra acima por acidente; é obrigatório pro Django reconhecer os
+# pacotes em backend/apps/ (__pycache__ continua ignorado normalmente,
+# tem sua própria regra explícita mais abaixo, não precisa de exceção).
+!**/__init__.py
 
 # PDFs gerados/baixados localmente (relatórios de exemplo, exports) — nunca versionar
 *.pdf
+
+# backend/ (Django) — ver CLAUDE.md, migração incremental pra Django REST + React
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/.pytest_cache/
+backend/staticfiles/
+backend/db.sqlite3
+
+# frontend/ (React + Vite)
+frontend/node_modules/
+frontend/dist/

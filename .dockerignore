@@ -8,3 +8,8 @@ db/
 # material de referência solto na raiz (ver convenção em CLAUDE.md) —
 # não faz parte da aplicação, não precisa ir pro contexto de build
 _*
+
+# backend/ (Django) e frontend/ (React) têm seus próprios Dockerfiles —
+# o Dockerfile do Node (raiz) não precisa empacotá-los
+backend/
+frontend/

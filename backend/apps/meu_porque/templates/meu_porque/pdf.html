@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: A4;
+    margin: 50px 50px 60px 50px;
+    @bottom-center {
+      content: "Gerado automaticamente pela dinâmica Meu Porquê";
+      font-family: Helvetica, sans-serif;
+      font-size: 8pt;
+      color: #8891A6;
+    }
+    @bottom-right {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: Helvetica, sans-serif;
+      font-size: 8pt;
+      color: #8891A6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    color: #171B24;
+    margin: 0;
+  }
+  .header-band {
+    background: #171B24;
+    color: #ffffff;
+    padding: 22px 28px;
+    border-radius: 4px;
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    color: #AEB8CC;
+    font-size: 9pt;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 6px 0;
+  }
+  .title {
+    font-size: 20pt;
+    font-weight: bold;
+    margin: 0 0 6px 0;
+  }
+  .subtitle {
+    color: #AEB8CC;
+    font-size: 10pt;
+    margin: 0;
+  }
+  .section {
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #171B24;
+    margin: 0 0 2px 0;
+  }
+  .section-subtitle {
+    font-size: 9pt;
+    color: #4B5568;
+    margin: 0 0 8px 0;
+  }
+  .answer {
+    font-size: 10.5pt;
+    line-height: 1.4;
+    color: #171B24;
+  }
+  .answer.empty {
+    font-style: italic;
+    color: #8891A6;
+  }
+</style>
+</head>
+<body>
+  <div class="header-band">
+    <p class="eyebrow">RELATÓRIO &middot; MEU PORQUÊ</p>
+    <p class="title">{% if resposta.empresa %}Meu Porquê &mdash; {{ resposta.empresa }}{% else %}Meu Porquê{% endif %}</p>
+    <p class="subtitle">
+      {% if resposta.nome_participante %}Preparado para {{ resposta.nome_participante }} &middot; {{ data_formatada }}{% else %}Gerado em {{ data_formatada }}{% endif %}
+    </p>
+  </div>
+
+  {% for pergunta in perguntas %}
+  <div class="section">
+    <p class="section-title">{{ pergunta.titulo }}</p>
+    <p class="section-subtitle">{{ pergunta.subtitulo }}</p>
+    {% if pergunta.resposta %}
+      <p class="answer">{{ pergunta.resposta }}</p>
+    {% else %}
+      <p class="answer empty">Não respondida.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</body>
+</html>

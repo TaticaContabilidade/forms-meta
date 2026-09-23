@@ -1395,3 +1395,63 @@ seguem só no histórico do `git log`.
     rede do envio em si), não um bug em `participantNotifier.js`.
   - `admin.html` não mudou nesta reformulação (o toggle/coluna
     "Notificado" já cobriam o novo desenho sem alteração de UI).
+## Alterações branch feat/django-react-meu-porque
+
+### 2026-09-22
+
+- **Início da migração incremental Node/Express → Django REST + React**,
+  pedido explícito do usuário: o projeto vai virar produto B2B vendido
+  pra empresas clientes, precisa de mais robustez e de uma hierarquia
+  real de contas (hoje as 3 ferramentas são só formulários anônimos).
+  Decisão confirmada: migração incremental (Django+React rodando ao lado
+  do Node, mesmo Postgres, até cada ferramenta migrar), começando pela
+  base de autenticação + a ferramenta "Meu Porquê" (a mais simples). Ver
+  a nova seção "Migração incremental: Django REST + React" no
+  `CLAUDE.md` pra todos os detalhes técnicos (schema, auth, CORS,
+  docker-compose, deploy) — aqui só o resumo do que foi entregue.
+  - **`backend/`** (Django 6.1 + DRF): apps `contas` (models `Empresa`,
+    `Setor`, `Usuario` — custom user model com `AUTH_USER_MODEL`, login
+    por e-mail, `papel` GERENTE/COLABORADOR) e `meu_porque`
+    (`MeuPorqueResposta`, `managed=False`, apontando pra
+    `meu_porque_respostas` já existente — o Node continua dono do DDL).
+  - Nova coluna `usuario_id` (FK) em `meu_porque_respostas`, adicionada
+    por uma migration Django (`RunSQL` idempotente, mesmo estilo `IF NOT
+    EXISTS` que o Node já usa) — confirmado que o boot do Node
+    (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) continua rodando sem
+    erro depois.
+  - Auth via `djangorestframework-simplejwt`: `POST
+    /api/auth/cadastro/colaborador/` (self-service, escolhe empresa+setor
+    de listas públicas `GET /api/contas/empresas/`/`/setores/`), `POST
+    /api/auth/login/`, `POST /api/auth/refresh/`, `GET /api/auth/me/`.
+    Gerente só é criado via Django admin (não self-service — evita
+    escalonamento de privilégio).
+  - `POST /api/meu-porque/respostas/` (cria, identidade vem do usuário
+    logado, nunca do body — diferente do Node, que confiava em
+    nome/empresa/email digitados), `GET /api/meu-porque/respostas/`
+    (escopo: colaborador só as próprias, gerente as do seu setor), `GET
+    /api/meu-porque/respostas/{id}/pdf/` (PDF com WeasyPrint, mesmo
+    layout do relatório Node — faixa de cabeçalho escura, 4 seções,
+    rodapé numerado — reescrito em HTML/CSS num template Django).
+  - CORS (`django-cors-headers`) liberado pro React (`http://localhost:5173`
+    em dev) — o Node nunca precisou disso.
+  - `docker-compose.yml`: novo serviço `backend`, mesmo banco `forms_meta`
+    que o `app` (Node) já usa — `docker compose up` sobe os 3 juntos
+    (testado: os 2 backends respondem, cada um na sua porta, sem conflito).
+  - `frontend/` (React + Vite): `Login`, `CadastroColaborador` (dropdown
+    empresa → dropdown setor dependente), `Menu`, `MeuPorque` (4
+    perguntas + histórico + baixar PDF). JWT em `localStorage` (não
+    cookie httpOnly — origens diferentes em produção, evita CSRF/
+    `SameSite`), com refresh automático num interceptor Axios.
+  - Testado: `cd backend && pytest` (18/18 — cadastro, login/refresh/me,
+    escopo de listagem por setor, geração de PDF e seu escopo). `npm
+    run build` do frontend sem erros. Fluxo manual end-to-end via curl
+    contra os 2 servidores locais reais (cadastro → login → responder →
+    listar → baixar PDF) e confirmado que um gerente só vê as respostas
+    do próprio setor (não a empresa toda, não outro setor). `npm test`
+    do Node (107/107) confirmado intacto — nada em `src/`/`public/`/
+    `tests/` foi tocado por esta migração.
+  - Pendente (fora do escopo desta fatia): decidir quando desligar
+    `public/meu-porque.html` (formulário anônimo do Node), migrar
+    Calculadora/DISC/admin pro Django, e configurar o deploy manual no
+    Render (novo Web Service + Static Site, sem `render.yaml`, mesmo
+    Postgres `forms-meta-db` já existente).
