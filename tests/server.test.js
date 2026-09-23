@@ -410,7 +410,7 @@ describe('rotina de notificação (POST /api/rotina-notificacao/*)', () => {
   });
 });
 
-describe('participantNotifier — processamento de pendentes agrupado por e-mail', () => {
+describe('participantNotifier — Meu Porquê como referência, DISC agrupado por empresa', () => {
   // 8 blocos com mais=1 (I), menos=0 (D) -> natural D=+8 — mesma
   // construção usada em describe('API /api/disc') acima, repetida aqui
   // porque é local àquele bloco (escopo de `describe`, não do arquivo).
@@ -419,50 +419,99 @@ describe('participantNotifier — processamento de pendentes agrupado por e-mail
     c: {},
   };
 
-  test('participante com pendências em 2 tabelas (mesmo e-mail) recebe 1 ciclo que marca as 2', async () => {
-    const email = 'multi.tabela@example.com';
+  test('destinatário vem do Meu Porquê: recebe o próprio Meu Porquê + a própria Calculadora (mesmo e-mail) + os DISCs de TODA a empresa (outros e-mails)', async () => {
+    const emailChefe = 'chefe.referencia@example.com';
+    const empresa = 'Empresa Referência';
 
+    const porque = await request(app).post('/api/meu-porque').send({
+      nome_participante: 'Chefe Referência', empresa, email: emailChefe,
+      objetivo: 'a', sonho: 'b', mudanca: 'c', visao_futuro: 'd',
+    });
     const metas = await request(app).post('/api/metas').send({
-      nome_participante: 'Multi Tabela', empresa: 'Empresa X', email,
+      nome_participante: 'Chefe Referência', empresa, email: emailChefe,
       faturamento: 10000, crescimento_pct: 10, churn_pct: 2, meta_anual: 120000,
     });
-    const disc = await request(app).post('/api/disc').send({
-      nome_participante: 'Multi Tabela', empresa: 'Empresa X', email,
+    // 2 colaboradores DIFERENTES da mesma empresa, e-mails diferentes do
+    // chefe — devem ser incluídos por bater a EMPRESA, não o e-mail.
+    const disc1 = await request(app).post('/api/disc').send({
+      nome_participante: 'Colaborador 1', empresa, email: 'colab1@example.com',
       respostas: respostasComDDominante,
+    });
+    const disc2 = await request(app).post('/api/disc').send({
+      nome_participante: 'Colaborador 2', empresa, email: 'colab2@example.com',
+      respostas: respostasComDDominante,
+    });
+
+    await executarCicloRotina();
+
+    const listPorque = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    assert.ok(listPorque.body.find(r => r.id === porque.body.id).notificado_em);
+
+    const listMetas = await request(app).get('/api/metas').set('x-admin-token', ADMIN_TOKEN);
+    assert.ok(listMetas.body.find(r => r.id === metas.body.id).notificado_em, 'a própria calculadora (mesmo e-mail) deveria ser incluída');
+
+    const listDisc = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    assert.ok(listDisc.body.find(r => r.id === disc1.body.id).notificado_em, 'DISC do colaborador 1 (mesma empresa) deveria ser incluído');
+    assert.ok(listDisc.body.find(r => r.id === disc2.body.id).notificado_em, 'DISC do colaborador 2 (mesma empresa) deveria ser incluído');
+
+    await request(app).delete(`/api/meu-porque/${porque.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+    await request(app).delete(`/api/metas/${metas.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+    await request(app).delete(`/api/disc/${disc1.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+    await request(app).delete(`/api/disc/${disc2.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+  });
+
+  test('sem ninguém da empresa ter preenchido Meu Porquê, DISC/Calculadora ficam pendentes (não tem destinatário)', async () => {
+    const disc = await request(app).post('/api/disc').send({
+      nome_participante: 'Sem Referência', empresa: 'Empresa Sem Referência', email: 'sem.referencia@example.com',
+      respostas: respostasComDDominante,
+    });
+
+    await executarCicloRotina();
+
+    const list = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
+    assert.equal(list.body.find(r => r.id === disc.body.id).notificado_em, null);
+
+    await request(app).delete(`/api/disc/${disc.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+  });
+
+  test('calculadora com e-mail DIFERENTE do Meu Porquê não é incluída (só bate por e-mail, não por empresa)', async () => {
+    const empresa = 'Empresa Email Diferente';
+    const porque = await request(app).post('/api/meu-porque').send({
+      nome_participante: 'Chefe X', empresa, email: 'chefe.x@example.com',
+      objetivo: 'a', sonho: 'b', mudanca: 'c', visao_futuro: 'd',
+    });
+    const metas = await request(app).post('/api/metas').send({
+      nome_participante: 'Outra Pessoa', empresa, email: 'outra.pessoa@example.com',
+      faturamento: 10000, crescimento_pct: 10, churn_pct: 2, meta_anual: 120000,
     });
 
     await executarCicloRotina();
 
     const listMetas = await request(app).get('/api/metas').set('x-admin-token', ADMIN_TOKEN);
-    const rowMetas = listMetas.body.find(r => r.id === metas.body.id);
-    assert.ok(rowMetas.notificado_em, 'metas deveria estar marcada como notificada');
+    assert.equal(listMetas.body.find(r => r.id === metas.body.id).notificado_em, null, 'calculadora de e-mail diferente não deveria ser incluída');
 
-    const listDisc = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
-    const rowDisc = listDisc.body.find(r => r.id === disc.body.id);
-    assert.ok(rowDisc.notificado_em, 'disc deveria estar marcada como notificada');
-
+    await request(app).delete(`/api/meu-porque/${porque.body.id}`).set('x-admin-token', ADMIN_TOKEN);
     await request(app).delete(`/api/metas/${metas.body.id}`).set('x-admin-token', ADMIN_TOKEN);
-    await request(app).delete(`/api/disc/${disc.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 
   test('2ª execução não reprocessa quem já foi notificado', async () => {
-    const email = 'sem.reprocesso@example.com';
-    const disc = await request(app).post('/api/disc').send({
-      nome_participante: 'Sem Reprocesso', empresa: 'Empresa Y', email,
-      respostas: respostasComDDominante,
+    const empresa = 'Empresa Sem Reprocesso';
+    const porque = await request(app).post('/api/meu-porque').send({
+      nome_participante: 'Sem Reprocesso', empresa, email: 'sem.reprocesso@example.com',
+      objetivo: 'a', sonho: 'b', mudanca: 'c', visao_futuro: 'd',
     });
 
     await executarCicloRotina();
-    const antes = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
-    const notificadoEm1 = antes.body.find(r => r.id === disc.body.id).notificado_em;
+    const antes = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    const notificadoEm1 = antes.body.find(r => r.id === porque.body.id).notificado_em;
     assert.ok(notificadoEm1);
 
     await executarCicloRotina();
-    const depois = await request(app).get('/api/disc').set('x-admin-token', ADMIN_TOKEN);
-    const notificadoEm2 = depois.body.find(r => r.id === disc.body.id).notificado_em;
+    const depois = await request(app).get('/api/meu-porque').set('x-admin-token', ADMIN_TOKEN);
+    const notificadoEm2 = depois.body.find(r => r.id === porque.body.id).notificado_em;
     assert.equal(notificadoEm1, notificadoEm2, 'não deveria ter reprocessado (mesmo timestamp)');
 
-    await request(app).delete(`/api/disc/${disc.body.id}`).set('x-admin-token', ADMIN_TOKEN);
+    await request(app).delete(`/api/meu-porque/${porque.body.id}`).set('x-admin-token', ADMIN_TOKEN);
   });
 });
 
