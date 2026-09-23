@@ -10,5 +10,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
+# Gera os estáticos (CSS/JS do admin etc.) em build time — não precisa de
+# DATABASE_URL/SECRET_KEY reais pra isso (settings.py já tem fallback pros
+# dois), só precisa que os pacotes instalados acima já estejam presentes.
+RUN python manage.py collectstatic --noinput
+
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

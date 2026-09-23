@@ -38,6 +38,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serve os estáticos (inclusive o CSS/JS do Django admin) direto pelo
+    # próprio processo gunicorn — com DEBUG=False o Django não serve mais
+    # estáticos sozinho (só o runserver de dev faz isso), e este projeto
+    # não tem Nginx/S3/CDN na frente. Precisa vir logo depois do
+    # SecurityMiddleware, e STORAGES abaixo precisa de `collectstatic`
+    # rodado no build (ver backend/Dockerfile).
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -98,6 +105,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
