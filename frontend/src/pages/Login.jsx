@@ -25,25 +25,35 @@ export default function Login() {
   }
 
   return (
-    <main>
-      <h1>Entrar</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          E-mail
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          Senha
-          <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
-        </label>
-        {erro && <p role="alert">{erro}</p>}
-        <button type="submit" disabled={enviando}>
-          {enviando ? 'Entrando…' : 'Entrar'}
-        </button>
+    <div className="wrap">
+      <header className="hero">
+        <p className="eyebrow">Treinamento comercial · Acesso</p>
+        <h1>Entrar</h1>
+        <p className="hero-sub">Use o e-mail e a senha do seu cadastro de colaborador.</p>
+      </header>
+
+      <form className="form-block" onSubmit={handleSubmit}>
+        <div className="form-fields">
+          <label>
+            E-mail
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+          <label>
+            Senha
+            <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
+          </label>
+        </div>
+        {erro && <p className="callout state-alert" role="alert">{erro}</p>}
+        <div className="footer-actions">
+          <button type="submit" className="btn-primary" disabled={enviando}>
+            {enviando ? 'Entrando…' : 'Entrar'}
+          </button>
+        </div>
       </form>
-      <p>
+
+      <p className="footer-note">
         Ainda não tem conta? <Link to="/cadastro">Cadastre-se</Link>
       </p>
-    </main>
+    </div>
   );
 }
