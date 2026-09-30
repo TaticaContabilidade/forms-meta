@@ -1,5 +1,5 @@
-// Envio de e-mail (notificação de líder quando um colaborador preenche o
-// DISC — ver src/notifications/discNotifier.js). Ao contrário do Postgres
+// Envio de e-mail (notificação ao próprio participante — ver
+// src/notifications/participantNotifier.js). Ao contrário do Postgres
 // (DATABASE_URL, obrigatório — o app não sobe sem banco), SMTP é opcional:
 // se não estiver configurado, a aplicação continua funcionando normalmente
 // pra tudo (metas, disc, meu-porque, PDFs) — só a notificação por e-mail
