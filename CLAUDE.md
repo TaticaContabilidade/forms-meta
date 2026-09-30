@@ -561,6 +561,116 @@ também por este ângulo antes de implementar — não só "melhora a
 experiência", mas "o que isso muda pra 2k pessoas preenchendo ao mesmo
 tempo".
 
+## Migração incremental: Django REST + React
+
+O projeto está migrando de Node/Express (backend + HTML estático em
+`public/`) pra **Django REST Framework + React**, pedido explícito do
+usuário pra dar robustez à plataforma e viabilizar vender como produto
+B2B pra empresas clientes. A migração é **incremental**: `backend/`
+(Django) e `frontend/` (React) sobem como serviços novos, rodando ao lado
+do Node/Express (`src/`, `public/`) — mesmo Postgres compartilhado — até
+cada ferramenta ser migrada. Nada em `src/`/`public/` foi removido ou
+alterado por essa migração; o Node continua a única coisa em produção até
+uma fatia nova ser explicitamente promovida.
+
+**Hierarquia de contas nova** (não existia antes — as 3 ferramentas
+sempre foram anônimas, identificadas só por texto livre
+nome/empresa/email): `Empresa` (conta do cliente, cadastrada no Django
+admin) → `Setor` (setores dentro da empresa) → `Usuario` (login; campo
+`papel` = `GERENTE` ou `COLABORADOR`, cada um com FK pra 1 empresa + 1
+setor). **1 único model `Usuario`**, não Gerente/Colaborador em tabelas
+separadas — decisão explícita do usuário, mais simples pra JWT/login.
+**Gerente administra o setor dele, não a empresa inteira** — por isso tem
+FK pra `Setor` igual o Colaborador (não é um "admin geral" da empresa).
+**Gerente só é criado via Django admin, não self-service** — dar a
+qualquer um a opção de se auto-declarar gerente de um setor existente
+seria escalonamento de privilégio (gerente vê os dados agregados do
+setor). Cadastro de Colaborador é self-service, escolhendo Empresa e
+depois Setor (dropdown dependente) em `POST
+/api/auth/cadastro/colaborador/`.
+
+**Primeira fatia migrada: "Meu Porquê"** (a ferramenta mais simples) —
+inclui a base de auth acima porque a versão nova fica **atrás de login**
+(diferente do Node, que é público/anônimo). `nome_participante`/
+`empresa`/`email` continuam sendo gravados como TEXT na tabela (pra não
+quebrar `src/notifications/participantNotifier.js` e `admin.html`, que
+dependem dessas colunas e não migraram), mas agora vêm do `Usuario`
+logado, nunca digitados/do body. `POST /api/meu-porque/pdf` do Node
+(gera PDF de qualquer payload solto, sem login, sem salvar) **não foi
+replicado 1:1** — a versão Django só gera PDF de uma resposta já salva e
+autenticada (`GET /api/meu-porque/respostas/{id}/pdf/`); a rota antiga
+continua no Node normalmente, então nada quebrou, mas a UX de "pré-
+visualizar antes de enviar" não existe na versão nova.
+
+**Onde o código novo mora**: `backend/` (Django) e `frontend/` (React +
+Vite) são irmãos de `src/`/`public/`, cada um com seu próprio
+gerenciador de dependência (venv/pip, npm) — zero conflito com o Node.
+Ambos excluídos do `.dockerignore` da raiz (o `Dockerfile` do Node faz
+`COPY . .`).
+
+**Tabelas existentes (Node) viram models Django com `managed = False`.**
+`apps/meu_porque/models.py::MeuPorqueResposta` aponta pra
+`meu_porque_respostas` sem o Django nunca tentar criar/dropar essa
+tabela — o Node continua dono do `CREATE TABLE IF NOT EXISTS`/`ALTER
+TABLE ADD COLUMN IF NOT EXISTS` em `src/db.js`. A única coluna nova
+(`usuario_id`, FK pra `usuarios`) foi adicionada por uma migration Django
+escrita à mão (`0002_usuario_fk.py`) com `RunSQL` **idempotente**
+(`ADD COLUMN IF NOT EXISTS` + um bloco `DO $$ ... $$` verificando
+`pg_constraint` antes de criar a FK, já que Postgres não tem `ADD
+CONSTRAINT IF NOT EXISTS` nativo) — espelha o mesmo estilo que o Node já
+usa, pra nunca conflitar com o boot dele. Essa mesma migration também tem
+um `CREATE TABLE IF NOT EXISTS` com o schema completo da tabela (mesma
+DDL do Node) — é um no-op no banco de dev/prod real (onde o Node já
+criou a tabela), mas necessário pro banco de teste efêmero do
+pytest-django, que nasce vazio e nunca teve o Node rodando nele. **Se
+migrar outra tabela existente (`metas`/`disc_respostas`) mais pra
+frente, repita esse padrão** (`managed=False` + migration `RunSQL`
+idempotente com `CREATE TABLE IF NOT EXISTS` + `ADD COLUMN IF NOT
+EXISTS`), não crie o model como `managed=True` normal.
+
+**`criado_em` usa `db_default`, não um default calculado em Python.** A
+coluna já tem um `DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')` no
+Postgres (criado pelo Node); se o Django mandasse `''`/`NULL` explícito
+no INSERT (comportamento padrão de um `CharField` sem valor), isso
+mascararia silenciosamente esse `DEFAULT`. `db_default=ToCharNow()`
+(`django.db.models.Func` com o mesmo `to_char(...)`) faz o Django omitir
+o valor Python e deixar o Postgres calcular — confirmado manualmente
+(criar uma resposta pelo Django e conferir no banco que o formato bate
+com o que o Node grava).
+
+**Autenticação**: `djangorestframework-simplejwt` — access token 15min,
+refresh 7 dias com rotação + blacklist. JWT vai no header
+`Authorization: Bearer`, guardado em `localStorage` no React (não
+cookie httpOnly) — backend e frontend são origens diferentes
+(domínios distintos no Render), cookie cross-site exigiria
+`SameSite=None; Secure` + CSRF token + mais acoplamento nos dois lados;
+o Bearer token evita isso, com o risco de XSS mitigado pela vida curta
+do access token + rotação do refresh.
+
+**CORS via `django-cors-headers`** — o Node nunca precisou disso (tudo
+same-origin); aqui é obrigatório porque o React é uma origem separada.
+`DJANGO_CORS_ALLOWED_ORIGINS` no `.env`/Render precisa incluir o domínio
+real do frontend.
+
+**`docker-compose.yml`** ganhou um serviço `backend` (Django), reaproveitando
+o mesmo serviço `db`/banco `forms_meta` que o `app` (Node) já usa —
+`docker compose up` sobe os 3 juntos. Diferente do `node_modules` (que
+precisa de um volume anônimo pra não ser sobrescrito pelo bind mount),
+pacotes Python do `pip` ficam fora de `/app` (em `site-packages` da
+imagem) — não precisa de volume equivalente.
+
+**Testes do backend**: `pytest-django` + `factory-boy`
+(`apps/contas/factories.py`), banco de teste próprio (`test_forms_meta`,
+criado/dropado automaticamente pelo pytest-django no mesmo Postgres dev
+`localhost:5434`) — não colide com `forms_meta` (dev) nem
+`forms_meta_test` (porta 5433, gerenciado manualmente pelo Node com
+`TRUNCATE`). Rodar com `cd backend && source venv/bin/activate && pytest`.
+
+**Deploy**: sem `render.yaml` (mesma convenção do Node, ver "Deploy
+(Render)" acima) — o serviço Django é adicionado manualmente no
+dashboard do Render, reaproveitando o `forms-meta-db` (Postgres) já
+existente, nunca provisionando um banco novo.
+
 ## Backlog: features novas (não são bugs)
 
 A seção "05 — Como seria a plataforma" de `reteste-e-plataforma-ideal.md`
