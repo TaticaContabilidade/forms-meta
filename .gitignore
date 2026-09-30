@@ -1,6 +1,7 @@
 node_modules/
 .env
 .vscode/
+.idea
 
 # Arquivos/diretórios de uso local — nunca versionar (ver CLAUDE.md)
 _*
