@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import RequireAuth from './auth/RequireAuth';
 import CadastroColaborador from './pages/CadastroColaborador';
+import Ferramentas from './pages/Ferramentas';
 import Login from './pages/Login';
 import MeuPorque from './pages/MeuPorque';
-import Menu from './pages/Menu';
 
 export default function AppRoutes() {
   return (
@@ -12,10 +12,10 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/cadastro" element={<CadastroColaborador />} />
       <Route
-        path="/menu"
+        path="/ferramentas"
         element={
           <RequireAuth>
-            <Menu />
+            <Ferramentas />
           </RequireAuth>
         }
       />

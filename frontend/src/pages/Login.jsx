@@ -16,7 +16,7 @@ export default function Login() {
     setEnviando(true);
     try {
       await login(email, senha);
-      navigate('/menu');
+      navigate('/ferramentas');
     } catch {
       setErro('E-mail ou senha inválidos.');
     } finally {

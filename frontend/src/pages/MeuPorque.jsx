@@ -59,7 +59,7 @@ export default function MeuPorque() {
   return (
     <div className="wrap">
       <nav>
-        <Link to="/menu">← Voltar ao menu</Link>
+        <Link to="/ferramentas">← Voltar às ferramentas</Link>
       </nav>
 
       <header className="hero">
