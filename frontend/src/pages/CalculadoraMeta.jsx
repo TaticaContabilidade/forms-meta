@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../api/client';
 
@@ -11,6 +11,31 @@ const CAMPOS_INICIAIS = {
   contatos_mes_passado: '',
   hunter_valor: '',
 };
+
+// Mesmas regras de public/calculadora.html (REGRAS_CAMPO) — obrigatório,
+// teto de percentual e "precisa ser maior que zero" por campo.
+const REGRAS_CAMPO = {
+  faturamento: { obrigatorio: true, maiorQueZero: true },
+  crescimento_pct: { obrigatorio: true, max: 500, percentual: true },
+  churn_pct: { obrigatorio: true, max: 100, percentual: true },
+  ticket: { obrigatorio: true, maiorQueZero: true },
+  conversao_pct: { obrigatorio: true, max: 100, percentual: true, maiorQueZero: true },
+  contatos_mes_passado: { obrigatorio: false },
+  hunter_valor: { obrigatorio: false },
+};
+
+// Mesma ordem/rótulos do CAMPOS_OBRIGATORIOS do Node — validarObrigatorios()
+// exige > 0 nos 5, mesmo em crescimento_pct/churn_pct (onde 0 é um valor
+// válido pro cálculo, mas o Node nunca deixou enviar com eles zerados).
+const CAMPOS_OBRIGATORIOS = [
+  { campo: 'faturamento', rotulo: 'Faturamento mensal atual' },
+  { campo: 'crescimento_pct', rotulo: 'Crescimento desejado no ano' },
+  { campo: 'churn_pct', rotulo: 'Perda estimada por churn no ano' },
+  { campo: 'ticket', rotulo: 'Ticket médio mensal' },
+  { campo: 'conversao_pct', rotulo: 'Taxa de conversão' },
+];
+
+const CAMPOS_PREVIEW_MOEDA = ['faturamento', 'ticket', 'hunter_valor'];
 
 // pt-BR: "." é sempre separador de milhar, "," é sempre separador decimal
 // (mesma convenção de public/calculadora.html) — sem nenhum separador, o
@@ -26,6 +51,36 @@ function parseBRNumber(str) {
 
 function fmtBRL(v) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+}
+
+function fmtBRLComCentavos(v) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+// Mesmo filtro de digitação de public/calculadora.html — restringe o que
+// pode ir pro campo a dígitos/"."/","/"-" (não valida, só limpa o que a
+// pessoa digitou antes de guardar no estado).
+function filtrarDigitacaoNumerica(valor) {
+  return valor.replace(/[^0-9.,-]/g, '');
+}
+
+// Mesma lógica/mensagens de validarCampo() em public/calculadora.html.
+function validarCampo(campo, valorStr, { mostrarObrigatorio }) {
+  const regra = REGRAS_CAMPO[campo];
+  if (!regra) return '';
+  const bruto = (valorStr ?? '').trim();
+  const unidade = regra.percentual ? '%' : '';
+  if (!bruto) {
+    if (regra.obrigatorio && mostrarObrigatorio) return 'Obrigatório para calcular a meta.';
+    return '';
+  }
+  const valor = parseBRNumber(valorStr);
+  if (valor < 0) return 'Não aceita valor negativo — usamos 0 no cálculo.';
+  if (regra.max !== undefined && valor > regra.max) {
+    return `Máximo é ${regra.max}${unidade} — usamos esse limite no cálculo.`;
+  }
+  if (regra.maiorQueZero && valor === 0) return 'Precisa ser maior que zero para calcular a meta.';
+  return '';
 }
 
 // Preview só cosmético — mesma matemática de backend/apps/metas/calculo.py,
@@ -68,11 +123,13 @@ function calcularPreview(form) {
 
 export default function CalculadoraMeta() {
   const [form, setForm] = useState(CAMPOS_INICIAIS);
+  const [avisos, setAvisos] = useState({});
   const [equipe, setEquipe] = useState([{ nome: '', tipo: 'Hunter', meta: '' }]);
   const [respostas, setRespostas] = useState([]);
   const [erros, setErros] = useState({});
   const [status, setStatus] = useState({ texto: '', tipo: null });
   const [enviando, setEnviando] = useState(false);
+  const inputRefs = useRef({});
 
   const preview = useMemo(() => calcularPreview(form), [form]);
 
@@ -82,12 +139,17 @@ export default function CalculadoraMeta() {
 
   useEffect(carregarRespostas, []);
 
-  function atualizarCampo(campo, valor) {
+  function atualizarCampo(campo, valorBruto, { mostrarObrigatorio }) {
+    const valor = REGRAS_CAMPO[campo] ? filtrarDigitacaoNumerica(valorBruto) : valorBruto;
     setForm((f) => ({ ...f, [campo]: valor }));
+    if (REGRAS_CAMPO[campo]) {
+      setAvisos((a) => ({ ...a, [campo]: validarCampo(campo, valor, { mostrarObrigatorio }) }));
+    }
   }
 
   function atualizarEquipe(idx, campo, valor) {
-    setEquipe((e) => e.map((p, i) => (i === idx ? { ...p, [campo]: valor } : p)));
+    const valorFiltrado = campo === 'meta' ? filtrarDigitacaoNumerica(valor) : valor;
+    setEquipe((e) => e.map((p, i) => (i === idx ? { ...p, [campo]: valorFiltrado } : p)));
   }
 
   function adicionarLinha() {
@@ -98,10 +160,36 @@ export default function CalculadoraMeta() {
     setEquipe((e) => (e.length <= 1 ? e : e.filter((_, i) => i !== idx)));
   }
 
+  // Mesma lógica de validarObrigatorios() do Node: acende o aviso de "faltando"
+  // nos 5 campos de uma vez (não só no primeiro) e devolve o primeiro que
+  // ainda está <= 0, pra focar e mostrar a mensagem de bloqueio do envio.
+  function validarObrigatorios() {
+    const novosAvisos = {};
+    CAMPOS_OBRIGATORIOS.forEach(({ campo }) => {
+      novosAvisos[campo] = validarCampo(campo, form[campo], { mostrarObrigatorio: true });
+    });
+    setAvisos((a) => ({ ...a, ...novosAvisos }));
+    for (const item of CAMPOS_OBRIGATORIOS) {
+      if (parseBRNumber(form[item.campo]) <= 0) return item;
+    }
+    return null;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setErros({});
     setStatus({ texto: '', tipo: null });
+
+    const faltando = validarObrigatorios();
+    if (faltando) {
+      setStatus({
+        texto: `Preencha "${faltando.rotulo}" antes de enviar — sem esse número a meta não fecha.`,
+        tipo: 'alert',
+      });
+      inputRefs.current[faltando.campo]?.focus();
+      return;
+    }
+
     setEnviando(true);
     try {
       const payload = {
@@ -119,6 +207,7 @@ export default function CalculadoraMeta() {
       await client.post('/api/metas/respostas/', payload);
       setStatus({ texto: 'Meta enviada com sucesso.', tipo: 'ok' });
       setForm(CAMPOS_INICIAIS);
+      setAvisos({});
       setEquipe([{ nome: '', tipo: 'Hunter', meta: '' }]);
       carregarRespostas();
     } catch (err) {
@@ -143,6 +232,29 @@ export default function CalculadoraMeta() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  function campo(id, rotulo, { opcional = false } = {}) {
+    const mensagem = avisos[id] || erros[id];
+    return (
+      <label className={mensagem ? 'tem-alerta' : undefined}>
+        {rotulo}
+        {opcional && ' (opcional)'}
+        <input
+          ref={(el) => {
+            inputRefs.current[id] = el;
+          }}
+          inputMode="decimal"
+          value={form[id]}
+          onChange={(e) => atualizarCampo(id, e.target.value, { mostrarObrigatorio: false })}
+          onBlur={(e) => atualizarCampo(id, e.target.value, { mostrarObrigatorio: true })}
+        />
+        {CAMPOS_PREVIEW_MOEDA.includes(id) && (
+          <p className="field-preview">{form[id].trim() ? `= ${fmtBRLComCentavos(parseBRNumber(form[id]))}` : ''}</p>
+        )}
+        {mensagem && <span className="question-pending-msg">{mensagem}</span>}
+      </label>
+    );
   }
 
   return (
@@ -178,63 +290,13 @@ export default function CalculadoraMeta() {
       <form onSubmit={handleSubmit}>
         <div className="form-block">
           <div className="form-fields two-col">
-            <label>
-              Faturamento mensal atual (R$)
-              <input
-                inputMode="decimal"
-                value={form.faturamento}
-                onChange={(e) => atualizarCampo('faturamento', e.target.value)}
-              />
-              {erros.faturamento && <span className="question-pending-msg">{erros.faturamento}</span>}
-            </label>
-            <label>
-              Crescimento desejado no ano (%)
-              <input
-                inputMode="decimal"
-                value={form.crescimento_pct}
-                onChange={(e) => atualizarCampo('crescimento_pct', e.target.value)}
-              />
-              {erros.crescimento_pct && <span className="question-pending-msg">{erros.crescimento_pct}</span>}
-            </label>
-            <label>
-              Perda estimada por churn no ano (%)
-              <input
-                inputMode="decimal"
-                value={form.churn_pct}
-                onChange={(e) => atualizarCampo('churn_pct', e.target.value)}
-              />
-              {erros.churn_pct && <span className="question-pending-msg">{erros.churn_pct}</span>}
-            </label>
-            <label>
-              Ticket médio mensal (R$)
-              <input inputMode="decimal" value={form.ticket} onChange={(e) => atualizarCampo('ticket', e.target.value)} />
-              {erros.ticket && <span className="question-pending-msg">{erros.ticket}</span>}
-            </label>
-            <label>
-              Taxa de conversão (%)
-              <input
-                inputMode="decimal"
-                value={form.conversao_pct}
-                onChange={(e) => atualizarCampo('conversao_pct', e.target.value)}
-              />
-              {erros.conversao_pct && <span className="question-pending-msg">{erros.conversao_pct}</span>}
-            </label>
-            <label>
-              Contatos feitos no mês passado (opcional)
-              <input
-                inputMode="decimal"
-                value={form.contatos_mes_passado}
-                onChange={(e) => atualizarCampo('contatos_mes_passado', e.target.value)}
-              />
-            </label>
-            <label>
-              Meta de clientes novos — hunter (R$, opcional)
-              <input
-                inputMode="decimal"
-                value={form.hunter_valor}
-                onChange={(e) => atualizarCampo('hunter_valor', e.target.value)}
-              />
-            </label>
+            {campo('faturamento', 'Faturamento mensal atual (R$)')}
+            {campo('crescimento_pct', 'Crescimento desejado no ano (%)')}
+            {campo('churn_pct', 'Perda estimada por churn no ano (%)')}
+            {campo('ticket', 'Ticket médio mensal (R$)')}
+            {campo('conversao_pct', 'Taxa de conversão (%)')}
+            {campo('contatos_mes_passado', 'Contatos feitos no mês passado', { opcional: true })}
+            {campo('hunter_valor', 'Meta de clientes novos — hunter (R$)', { opcional: true })}
           </div>
 
           {preview.calloutContatos && (
@@ -261,7 +323,7 @@ export default function CalculadoraMeta() {
           </thead>
           <tbody>
             {equipe.map((pessoa, idx) => (
-              <tr key={idx}>
+              <tr key={idx} className={!pessoa.nome.trim() && parseBRNumber(pessoa.meta) > 0 ? 'incompleta' : undefined}>
                 <td>
                   <input value={pessoa.nome} onChange={(e) => atualizarEquipe(idx, 'nome', e.target.value)} />
                 </td>
