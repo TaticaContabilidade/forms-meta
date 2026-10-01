@@ -17,7 +17,7 @@ const FERRAMENTAS = [
     rotulo: 'Dinâmica 2',
     titulo: 'Avaliação DISC',
     descricao: '40 questões em 2 partes que revelam seu perfil natural, adaptado e a intensidade de cada traço.',
-    href: null,
+    href: '/disc',
   },
   {
     variante: 'porque',
