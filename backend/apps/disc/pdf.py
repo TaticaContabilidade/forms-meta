@@ -92,7 +92,11 @@ def gerar_pdf(resposta):
     if not perfil['empatado']:
         hero_descricao = infos[0]['descricao']
     else:
-        gap = perfil['gap']
+        # natural é sempre uma contagem inteira (0-28), mas chega como
+        # float do Django (FloatField) -- sem o int(), "1.0 ponto"
+        # apareceria com ponto em vez de vírgula, quebrando a convenção
+        # pt-BR (ver CLAUDE.md).
+        gap = int(perfil['gap'])
         plural = '' if gap == 1 else 's'
         hero_descricao = (
             f"Empate técnico entre {perfil['traits'][0]} e {perfil['traits'][1]} — diferença de só {gap} "
