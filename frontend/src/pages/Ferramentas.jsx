@@ -9,7 +9,7 @@ const FERRAMENTAS = [
     titulo: 'Calculadora de metas',
     descricao:
       'Transforme o faturamento desejado em meta da área, número de contratos e volume de contatos necessários por mês.',
-    href: null,
+    href: '/calculadora-meta',
   },
   {
     variante: 'disc',
