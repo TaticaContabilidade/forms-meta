@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.contas',
     'apps.meu_porque',
+    'apps.disc',
 ]
 
 MIDDLEWARE = [
