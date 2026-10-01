@@ -1455,3 +1455,74 @@ seguem só no histórico do `git log`.
     Calculadora/DISC/admin pro Django, e configurar o deploy manual no
     Render (novo Web Service + Static Site, sem `render.yaml`, mesmo
     Postgres `forms-meta-db` já existente).
+
+## Alterações branch feat/django-react-disc
+
+### 2026-10-01
+
+- **Terceira fatia da migração incremental Django REST + React: Avaliação
+  DISC** (`public/disc.html` + `src/discScoring.js` +
+  `src/reports/discReport.js` → Django/DRF + React), mesmo padrão já
+  usado por Meu Porquê e Calculadora de Meta: login obrigatório
+  (identidade vem do `Usuario` autenticado, não de um formulário), servidor
+  recalcula tudo a partir das respostas cruas (nunca confia em escore
+  pronto do cliente), e sem PDF "preview sem salvar" (só gera PDF de uma
+  resposta já salva e autenticada — mesma simplificação já aceita nas 2
+  fatias anteriores).
+  - **`backend/apps/disc/`**: `scoring.py` isola os dados (`BLOCOS_A` — 28
+    blocos de escolha forçada, `INTENSIDADE_C` — 12 afirmações,
+    `ARQUETIPO_MAP` — os 4 arquétipos) e o cálculo puro
+    (`calc_natural`/`calc_adaptado`/`calc_intensidade`,
+    `resolver_perfil_dominante`, mesmo `LIMIAR_EMPATE_TRACOS = 2` do Node)
+    sem dependência de Django, testável sem banco. `pdf.py` gera o
+    relatório em WeasyPrint com as mesmas seções do PDF do Node (hero do
+    arquétipo, barras de perfil natural/adaptado/intensidade em HTML/CSS,
+    os 4 cards de traço, insights de performance/derail, aviso de
+    "respostas pouco diferenciadas" quando a intensidade sai pouco
+    diferenciada entre os 4 traços).
+  - `DiscResposta` (`managed=False`, aponta pra `disc_respostas` — Node
+    continua dono do DDL) + migration `0002_usuario_fk` (mesmo padrão
+    idempotente `RunSQL` já usado por `metas`/`meu_porque_respostas`).
+    Rotas: `POST/GET /api/disc/respostas/`, `GET
+    /api/disc/respostas/{id}/pdf/`.
+  - **`frontend/src/discData.js`**: mesmos dados + cálculo puro
+    (`calcNatural`/`calcAdaptado`/`calcIntensidade`,
+    `resolverPerfilDominante`) portados pra JS, usados só pro preview ao
+    vivo da tela de resultado — o valor persistido vem sempre da resposta
+    do `POST`.
+  - **`frontend/src/pages/Disc.jsx`**: porta a navegação em 2 rodadas da
+    Parte A (Mais depois Menos — opção já escolhida como Mais vem
+    desabilitada na rodada Menos, com a tag "Já é sua Mais", igual ao
+    Node) + as 12 afirmações de intensidade + a tela de resultado (hero do
+    arquétipo com texto de empate quando aplicável, 2 seções de barra, os
+    4 cards, 2 blocos de insight). Modelo de estado colapsa o `part` ×
+    `faseA` 2D do Node num enum só (`tela`:
+    `'mais'|'menos'|'intensidade'|'resultado'`), evitando estado
+    impossível. Progresso persiste em `localStorage` (chave por usuário,
+    `disc_progress_<id>`) — ao contrário de Meu Porquê/Calculadora (forms
+    curtos sem essa persistência), são 40 perguntas, perder tudo num
+    reload acidental seria um problema real.
+  - **Mudança de comportamento explícita vs. Node**: como não existe mais
+    PDF sem salvar, "Salvar PDF" só fica disponível depois que "Enviar meu
+    perfil" for clicado com sucesso (precisa do `id` da resposta salva) —
+    diferente do Node, onde os 2 botões eram independentes.
+  - Bug pego testando manualmente o cenário de empate via `docker compose`
+    + PDF real (não coberto pelos testes automatizados, que não checam o
+    texto do hero de empate): o "gap" do empate aparecia como "1.0 ponto"
+    (ponto em vez de vírgula) porque vem de campo `FloatField` — corrigido
+    com `int(gap)` (natural/adaptado são sempre contagens inteiras).
+  - Testado: `cd backend && pytest apps/disc` (25/25 — 14 de scoring + 11
+    de API/PDF/escopo) e a suíte completa do backend (43/43). `npm run
+    build`/`npm run lint` do frontend sem erros novos. Fluxo manual
+    end-to-end via `docker compose` + `curl` contra o backend real
+    (cadastro → login → enviar respostas → ver escore recalculado →
+    baixar PDF, nos 2 cenários — traço único e empate técnico).
+  - Pendente (fora do escopo desta fatia): frontend não testado num
+    navegador de verdade (sem ferramenta de browser disponível nesta
+    sessão) — só build/lint/revisão de lógica linha a linha contra o Node
+    original, vale um teste manual antes de mergear. `MIGRACAO-DJANGO-
+    REACT.md` não foi atualizado nesta branch porque esse arquivo só
+    existe na branch ainda não mergeada da Calculadora de Meta
+    (`feat/django-react-calculadora-meta`) — atualizar depois que uma das
+    2 mergear na `main`, pra não gerar conflito garantido entre as 2
+    branches editando o mesmo arquivo a partir de bases diferentes.
