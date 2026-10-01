@@ -292,6 +292,44 @@ nav a:hover { color: var(--primary); }
 .question-block.pending textarea { border-color: var(--alert); }
 .question-pending-msg { font-size: 12.5px; color: var(--alert); margin: 8px 0 0; }
 
+/* STAT CARDS (preview ao vivo da calculadora de meta) */
+.stat-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+.stat-card { background: var(--card); border: 1px solid var(--border-solid); border-radius: var(--radius-sm); padding: 16px; }
+.stat-card.destaque { border-color: var(--primary); }
+.stat-label { font-size: 11px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 6px; }
+.stat-value { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--fg); margin: 0; }
+
+/* TABELA DE EQUIPE (hunter/farmer) */
+.team-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.team-table th { text-align: left; font-size: 12px; color: var(--fg-faint); padding: 8px 10px; font-weight: 600; }
+.team-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-solid); }
+.team-table td input,
+.team-table td select {
+  width: 100%;
+  font-family: var(--body);
+  font-size: 14px;
+  color: var(--fg);
+  background: var(--input-bg);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+.team-table td input:focus,
+.team-table td select:focus { outline: none; border-color: var(--primary); }
+.team-table tr.incompleta td { background: var(--alert-bg); }
+.team-del-btn {
+  background: transparent;
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius-sm);
+  color: var(--fg-faint);
+  cursor: pointer;
+  padding: 6px 10px;
+}
+.team-del-btn:hover { border-color: var(--alert); color: var(--alert); }
+.team-del-btn:disabled { opacity: 0.4; cursor: default; }
+.team-del-btn:disabled:hover { border-color: var(--border-solid); color: var(--fg-faint); }
+.team-actions { margin: 8px 0 20px; }
+
 /* CALLOUTS / STATUS */
 .callout {
   margin: 8px 0 0 0;
