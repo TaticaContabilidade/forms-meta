@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: A4;
+    margin: 50px 50px 60px 50px;
+    @bottom-center {
+      content: "Gerado automaticamente pela avaliação DISC";
+      font-family: Helvetica, sans-serif;
+      font-size: 8pt;
+      color: #8891A6;
+    }
+    @bottom-right {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: Helvetica, sans-serif;
+      font-size: 8pt;
+      color: #8891A6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    color: #171B24;
+    margin: 0;
+  }
+  .header-band {
+    background: #171B24;
+    color: #ffffff;
+    padding: 22px 28px;
+    border-radius: 4px;
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    color: #AEB8CC;
+    font-size: 9pt;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 6px 0;
+  }
+  .title { font-size: 20pt; font-weight: bold; margin: 0 0 6px 0; }
+  .subtitle { color: #AEB8CC; font-size: 10pt; margin: 0; }
+
+  .hero-box {
+    border: 1px solid #E2E5EC;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 22px;
+  }
+  .hero-eyebrow { font-size: 8pt; letter-spacing: 1px; text-transform: uppercase; color: #8891A6; margin: 0 0 6px 0; }
+  .hero-nome { font-size: 16pt; font-weight: bold; margin: 0 0 6px 0; }
+  .hero-desc { font-size: 10pt; color: #4B5568; margin: 0; }
+
+  .section { margin-bottom: 20px; }
+  .section-title { font-size: 12pt; font-weight: bold; color: #171B24; margin: 0 0 2px 0; }
+  .section-subtitle { font-size: 9pt; color: #4B5568; margin: 0 0 10px 0; }
+
+  .bar-row { display: flex; align-items: center; margin-bottom: 8px; }
+  .bar-label { width: 110pt; font-size: 9pt; font-weight: bold; }
+  .bar-track { flex: 1; height: 9pt; background: #EEF0F4; border-radius: 5pt; overflow: hidden; margin: 0 8pt; }
+  .bar-fill { height: 100%; border-radius: 5pt; }
+  .bar-value { width: 30pt; font-size: 9pt; font-weight: bold; text-align: right; }
+
+  .callout {
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 9.5pt;
+    color: #4B5568;
+    background: #F1F2F6;
+    border: 1px solid #E2E5EC;
+    margin-top: 10px;
+  }
+  .callout.alert { background: #FBEAEA; border-color: #F0C9C9; color: #8A2E2E; }
+
+  .cards-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .card {
+    width: 48%;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .card-own { border: 2px solid; }
+  .card-trait { font-size: 12pt; font-weight: bold; margin: 0 0 2px 0; }
+  .card-nome { font-size: 10.5pt; font-weight: bold; margin: 0 0 4px 0; color: #171B24; }
+  .card-resumo { font-size: 9pt; color: #4B5568; margin: 0; }
+  .card-tag {
+    display: inline-block;
+    font-size: 7pt;
+    font-weight: bold;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+
+  .insight-block { margin-bottom: 12px; }
+  .insight-nome { font-size: 10.5pt; font-weight: bold; margin: 0 0 4px 0; }
+</style>
+</head>
+<body>
+  <div class="header-band">
+    <p class="eyebrow">RELATÓRIO &middot; AVALIAÇÃO DISC PROFUNDA</p>
+    <p class="title">{{ titulo }}</p>
+    <p class="subtitle">
+      {% if resposta.nome_participante %}Preparado para {{ resposta.nome_participante }} &middot; {{ data_formatada }}{% else %}Gerado em {{ data_formatada }}{% endif %}
+    </p>
+  </div>
+
+  <div class="hero-box">
+    <p class="hero-eyebrow">SEU PERFIL COMPORTAMENTAL</p>
+    <p class="hero-nome">{{ arquetipo_nome }}</p>
+    <p class="hero-desc">{{ hero_descricao }}</p>
+  </div>
+
+  <div class="section">
+    <p class="section-title">Perfil natural</p>
+    <p class="section-subtitle">O que exige menos esforço de você — seu estilo em repouso, sem pressão do ambiente.</p>
+    {% for bar in bars_natural %}
+    <div class="bar-row">
+      <span class="bar-label" style="color:{{ bar.color }};">{{ bar.trait }} &middot; {{ bar.label }}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:{{ bar.pct }}%; background:{{ bar.color }};"></div></div>
+      <span class="bar-value">{{ bar.valor }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section">
+    <p class="section-title">Perfil adaptado</p>
+    <p class="section-subtitle">O que você mostra mais quando o ambiente pede um comportamento diferente do natural.</p>
+    {% for bar in bars_adaptado %}
+    <div class="bar-row">
+      <span class="bar-label" style="color:{{ bar.color }};">{{ bar.trait }} &middot; {{ bar.label }}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:{{ bar.pct }}%; background:{{ bar.color }};"></div></div>
+      <span class="bar-value">{{ bar.valor }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section">
+    <p class="section-title">Intensidade por traço</p>
+    <p class="section-subtitle">Força de cada traço, numa escala de 1 a 5.</p>
+    {% for bar in bars_intensidade %}
+    <div class="bar-row">
+      <span class="bar-label" style="color:{{ bar.color }};">{{ bar.trait }} &middot; {{ bar.label }}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:{{ bar.pct }}%; background:{{ bar.color }};"></div></div>
+      <span class="bar-value">{{ bar.valor }}</span>
+    </div>
+    {% endfor %}
+    {% if intensidade_aviso %}
+    <div class="callout alert">{{ intensidade_aviso }}</div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <p class="section-title">Os quatro perfis DISC</p>
+    <div class="cards-grid">
+      {% for card in cards %}
+      <div class="card{% if card.is_own %} card-own{% endif %}" style="background:{{ card.bg }};{% if card.is_own %} border-color:{{ card.color }};{% endif %}">
+        {% if card.is_own %}<span class="card-tag" style="background:{{ card.color }};">SEU PERFIL</span>{% endif %}
+        <p class="card-trait" style="color:{{ card.color }};">{{ card.trait }}</p>
+        <p class="card-nome">{{ card.nome }}</p>
+        <p class="card-resumo">{{ card.resumo }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% for insight in insights_performa %}
+  <div class="section">
+    <p class="section-title">{{ insight.nome }} em ação</p>
+    <div class="callout">{{ insight.texto }}</div>
+  </div>
+  {% endfor %}
+
+  {% for insight in insights_derail %}
+  <div class="section">
+    <p class="section-title">O que pode derrubar a performance de {{ insight.nome }}</p>
+    <div class="callout alert">{{ insight.texto }}</div>
+  </div>
+  {% endfor %}
+</body>
+</html>

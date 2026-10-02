@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'apps.contas',
     'apps.meu_porque',
     'apps.metas',
+    'apps.disc',
 ]
 
 MIDDLEWARE = [

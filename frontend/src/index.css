@@ -332,6 +332,116 @@ nav a:hover { color: var(--primary); }
 .team-del-btn:disabled:hover { border-color: var(--border-solid); color: var(--fg-faint); }
 .team-actions { margin: 8px 0 20px; }
 
+/* DISC — ESCOLHA FORÇADA (Parte A, 2 rodadas) */
+.choice-block {
+  background: var(--card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s;
+}
+.choice-block.pending { border-color: var(--alert); }
+.choice-block-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.block-num { font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--accent); }
+.block-instruction { font-size: 14px; color: var(--fg-soft); }
+.choice-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choice-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--card-2);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--fg-soft);
+}
+.choice-card:has(input:checked) { border-color: var(--primary); color: var(--fg); }
+.choice-card.indisponivel { opacity: 0.45; cursor: default; }
+.choice-card input { margin-top: 3px; flex-shrink: 0; }
+.choice-card-text { flex: 1; }
+.choice-card-tag { font-size: 10px; font-weight: 700; color: var(--alert); white-space: nowrap; }
+.pending-msg { font-size: 12.5px; color: var(--alert); margin: 10px 0 0; display: none; }
+.choice-block.pending .pending-msg { display: block; }
+
+.progress-wrap { margin: 16px 0 20px; }
+.progress-label { font-size: 12.5px; color: var(--fg-faint); margin-bottom: 6px; }
+.progress-bar { height: 6px; background: var(--card-2); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--primary); transition: width 0.2s; }
+
+.nav-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
+
+/* DISC — INTENSIDADE (Parte B) */
+.intensity-item {
+  background: var(--card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.intensity-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.intensity-tag { font-family: var(--display); font-weight: 700; font-size: 12px; padding: 2px 9px; border-radius: 999px; flex-shrink: 0; }
+.intensity-tag.tag-d { background: rgba(214, 69, 69, 0.15); color: #D64545; }
+.intensity-tag.tag-i { background: rgba(201, 132, 35, 0.15); color: #C98423; }
+.intensity-tag.tag-s { background: rgba(30, 154, 102, 0.15); color: #1E9A66; }
+.intensity-tag.tag-c { background: rgba(62, 118, 214, 0.15); color: #3E76D6; }
+.intensity-text { font-size: 14.5px; color: var(--fg); font-weight: 600; }
+.intensity-scale { display: flex; gap: 8px; }
+.intensity-scale label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--fg-soft);
+  background: var(--card-2);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius-sm);
+  padding: 10px 0;
+  cursor: pointer;
+}
+.intensity-scale label:has(input:checked) { border-color: var(--primary); color: var(--fg); }
+.scale-hint { display: flex; justify-content: space-between; font-size: 11px; color: var(--fg-faint); margin-top: 6px; }
+
+/* DISC — RESULTADO */
+.profiles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.profile-card { background: var(--card); border: 1px solid var(--border-solid); border-radius: var(--radius); padding: 18px 20px; }
+.profile-card-title { font-family: var(--display); font-weight: 700; font-size: 14px; margin: 0 0 4px; }
+.profile-card-sub { font-size: 12.5px; color: var(--fg-faint); margin: 0 0 14px; }
+
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.bar-label { width: 120px; font-size: 12.5px; font-weight: 700; flex-shrink: 0; }
+.bar-track { flex: 1; height: 9px; background: var(--card-2); border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; }
+.bar-value { width: 32px; text-align: right; font-size: 12.5px; font-weight: 700; }
+
+.disc-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.disc-card {
+  background: var(--card);
+  border: 2px solid var(--border-solid);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  position: relative;
+}
+.disc-card-trait { font-family: var(--display); font-weight: 700; font-size: 16px; margin: 0 0 4px; }
+.disc-card-nome { font-weight: 700; font-size: 14px; margin: 0 0 6px; color: var(--fg); }
+.disc-card-resumo { font-size: 12.5px; color: var(--fg-soft); margin: 0; }
+.disc-card-tag {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #ffffff;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.confirm-box { background: var(--card-2); border: 1px solid var(--alert); border-radius: var(--radius); padding: 16px 18px; margin-top: 16px; }
+
 /* CALLOUTS / STATUS */
 .callout {
   margin: 8px 0 0 0;
@@ -412,4 +522,10 @@ nav a:hover { color: var(--primary); }
   .hero { padding: 28px 24px; }
   .form-fields.two-col { grid-template-columns: 1fr; }
   .tools-grid { grid-template-columns: 1fr; }
+  .choice-cards { grid-template-columns: 1fr; }
+  .choice-card { flex-wrap: wrap; }
+  .choice-card-tag { flex-basis: 100%; }
+  .profiles-grid { grid-template-columns: 1fr; }
+  .disc-cards { grid-template-columns: 1fr; }
+  .intensity-scale { flex-wrap: wrap; }
 }

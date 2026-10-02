@@ -6,4 +6,5 @@ urlpatterns = [
     path('api/', include('apps.contas.urls')),
     path('api/meu-porque/', include('apps.meu_porque.urls')),
     path('api/metas/', include('apps.metas.urls')),
+    path('api/disc/', include('apps.disc.urls')),
 ]
