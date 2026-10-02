@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import RequireAuth from './auth/RequireAuth';
 import CadastroColaborador from './pages/CadastroColaborador';
+import CalculadoraMeta from './pages/CalculadoraMeta';
 import Disc from './pages/Disc';
 import Ferramentas from './pages/Ferramentas';
 import Login from './pages/Login';
@@ -25,6 +26,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <MeuPorque />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/calculadora-meta"
+        element={
+          <RequireAuth>
+            <CalculadoraMeta />
           </RequireAuth>
         }
       />

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: A4;
+    margin: 50px 50px 60px 50px;
+    @bottom-center {
+      content: "Gerado automaticamente pela calculadora de meta comercial";
+      font-family: Helvetica, sans-serif;
+      font-size: 8pt;
+      color: #8891A6;
+    }
+    @bottom-right {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: Helvetica, sans-serif;
+      font-size: 8pt;
+      color: #8891A6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    color: #171B24;
+    margin: 0;
+  }
+  .header-band {
+    background: #171B24;
+    color: #ffffff;
+    padding: 22px 28px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .eyebrow {
+    color: #AEB8CC;
+    font-size: 9pt;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 6px 0;
+  }
+  .title {
+    font-size: 20pt;
+    font-weight: bold;
+    margin: 0 0 6px 0;
+  }
+  .subtitle {
+    color: #AEB8CC;
+    font-size: 10pt;
+    margin: 0;
+  }
+
+  .section-title {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #171B24;
+    margin: 18px 0 8px 0;
+  }
+
+  .stat-cards { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat-card { flex: 1; border: 1px solid #DCE0E8; border-radius: 6px; padding: 12px; background: #F6F7FA; }
+  .stat-card.destaque { background: #EEF7DF; }
+  .stat-label { font-size: 8pt; color: #8891A6; text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 6px 0; }
+  .stat-value { font-size: 15pt; font-weight: bold; color: #171B24; margin: 0; }
+  .stat-card.destaque .stat-value { font-size: 19pt; color: #2F5A12; }
+
+  .fact-list { margin-bottom: 8px; }
+  .fact-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 0.5px solid #DCE0E8; font-size: 10.5pt; }
+  .fact-row .label { color: #4B5568; }
+  .fact-row .value { color: #171B24; }
+  .fact-row.destaque .value { font-weight: bold; color: #2F5A12; }
+
+  .callout { border-radius: 4px; padding: 12px 16px; margin: 8px 0 16px; font-size: 10pt; border-left: 4px solid; }
+  .callout.state-ok { background: #E4F5EC; border-color: #1E8F5F; color: #146443; }
+  .callout.state-alert { background: #FBEAEA; border-color: #B23A3A; color: #7A2323; }
+
+  .team-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .team-table th { background: #171B24; color: #fff; font-size: 9pt; text-align: left; padding: 8px 12px; }
+  .team-table th.col-meta { text-align: right; }
+  .team-table td { padding: 8px 12px; font-size: 10pt; border-bottom: 0.5px solid #DCE0E8; }
+  .team-table tr:nth-child(even) td { background: #F6F7FA; }
+  .team-table td.col-meta { text-align: right; font-weight: bold; }
+  .team-table tfoot td { font-weight: bold; border-top: 1px solid #171B24; }
+</style>
+</head>
+<body>
+  <div class="header-band">
+    <p class="eyebrow">RELATÓRIO &middot; EXERCÍCIO PRÁTICO DE TREINAMENTO COMERCIAL</p>
+    <p class="title">{% if resposta.empresa %}Meta comercial &mdash; {{ resposta.empresa }}{% else %}Meta comercial{% endif %}</p>
+    <p class="subtitle">
+      {% if resposta.nome_participante %}Preparado para {{ resposta.nome_participante }} &middot; {{ data_formatada }}{% else %}Gerado em {{ data_formatada }}{% endif %}
+    </p>
+  </div>
+
+  <div class="stat-cards">
+    {% for card in stat_cards %}
+      <div class="stat-card{% if card.destaque %} destaque{% endif %}">
+        <p class="stat-label">{{ card.label }}</p>
+        <p class="stat-value">{{ card.value }}</p>
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="section-title">A meta da empresa</p>
+  <div class="fact-list">
+    {% for item in fatos_empresa %}
+      <div class="fact-row{% if item.destaque %} destaque{% endif %}">
+        <span class="label">{{ item.label }}</span><span class="value">{{ item.value }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="section-title">Da meta aos contatos necessários</p>
+  <div class="fact-list">
+    {% for item in fatos_contatos %}
+      <div class="fact-row">
+        <span class="label">{{ item.label }}</span><span class="value">{{ item.value }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% if callout_contatos %}
+    <p class="callout state-{{ callout_contatos.tone }}">{{ callout_contatos.texto }}</p>
+  {% endif %}
+
+  <p class="section-title">Meta por pessoa</p>
+  <div class="fact-list">
+    {% for item in fatos_pessoa %}
+      <div class="fact-row">
+        <span class="label">{{ item.label }}</span><span class="value">{{ item.value }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% if callout_hunter %}
+    <p class="callout state-alert">{{ callout_hunter }}</p>
+  {% endif %}
+
+  {% if equipe %}
+  <p class="section-title">Distribuição da equipe</p>
+  <table class="team-table">
+    <thead>
+      <tr><th>Nome</th><th>Papel</th><th class="col-meta">Meta mensal</th></tr>
+    </thead>
+    <tbody>
+      {% for pessoa in equipe %}
+        <tr><td>{{ pessoa.nome }}</td><td>{{ pessoa.tipo }}</td><td class="col-meta">{{ pessoa.meta }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="2">Total distribuído</td><td class="col-meta">{{ soma_equipe }}</td></tr>
+    </tfoot>
+  </table>
+  {% if callout_equipe %}
+    <p class="callout state-{{ callout_equipe.tone }}">{{ callout_equipe.texto }}</p>
+  {% endif %}
+  {% endif %}
+</body>
+</html>
