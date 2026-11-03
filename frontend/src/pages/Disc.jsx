@@ -204,6 +204,8 @@ export default function Disc() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+    } catch {
+      setStatus({ texto: 'Não foi possível gerar o PDF agora. Tente de novo.', tipo: 'alert' });
     } finally {
       setPdfBaixando(false);
     }
