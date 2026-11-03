@@ -225,6 +225,23 @@ nav a:hover { color: var(--primary); }
   border: 1px solid var(--border-solid);
 }
 
+/* PLACEHOLDER "EM BREVE" (ferramenta ainda não disponível) */
+.em-breve {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 64px 24px;
+  margin-top: 24px;
+  background: var(--card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius-lg);
+}
+.em-breve-icone { width: 140px; height: 140px; font-size: 48px; line-height: 1; }
+.em-breve p { margin: 0; max-width: 420px; color: var(--fg-faint); font-size: 15px; }
+
 /* CARD / BLOCO DE FORMULÁRIO (login, cadastro, identidade) */
 .form-block {
   background: var(--card);

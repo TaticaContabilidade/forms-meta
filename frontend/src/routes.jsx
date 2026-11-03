@@ -8,6 +8,7 @@ import MeuPorque from './pages/MeuPorque';
 import Perfil from './pages/Perfil';
 import Index from "./pages/landing_page.jsx";
 import Gestao from "./pages/gestao.jsx";
+import Financeiro from "./pages/financeiro.jsx";
 
 export default function AppRoutes() {
   return (
@@ -52,6 +53,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Perfil />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/financeiro"
+        element={
+          <RequireAuth>
+            <Financeiro />
           </RequireAuth>
         }
       />
