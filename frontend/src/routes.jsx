@@ -5,6 +5,7 @@ import CalculadoraMeta from './pages/CalculadoraMeta';
 import Disc from './pages/Disc';
 import Login from './pages/Login';
 import MeuPorque from './pages/MeuPorque';
+import Perfil from './pages/Perfil';
 import Index from "./pages/landing_page.jsx";
 import Gestao from "./pages/gestao.jsx";
 
@@ -43,6 +44,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Gestao />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/perfil"
+        element={
+          <RequireAuth>
+            <Perfil />
           </RequireAuth>
         }
       />
