@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 
 const CAMPOS_INICIAIS = {
   faturamento: '',
@@ -122,6 +123,9 @@ function calcularPreview(form) {
 }
 
 export default function CalculadoraMeta() {
+  const { usuario } = useAuth();
+  const progressKey = `calculadora_progress_${usuario.id}`;
+
   const [form, setForm] = useState(CAMPOS_INICIAIS);
   const [avisos, setAvisos] = useState({});
   const [equipe, setEquipe] = useState([{ nome: '', tipo: 'Hunter', meta: '' }]);
@@ -129,6 +133,7 @@ export default function CalculadoraMeta() {
   const [erros, setErros] = useState({});
   const [status, setStatus] = useState({ texto: '', tipo: null });
   const [enviando, setEnviando] = useState(false);
+  const [carregado, setCarregado] = useState(false);
   const inputRefs = useRef({});
 
   const preview = useMemo(() => calcularPreview(form), [form]);
@@ -138,6 +143,32 @@ export default function CalculadoraMeta() {
   }
 
   useEffect(carregarRespostas, []);
+
+  // Rascunho persistido -- mesmo padrão de Disc.jsx, pra não perder o que
+  // já foi digitado se a página recarregar (ex. logout por inatividade).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(progressKey);
+      if (raw) {
+        const salvo = JSON.parse(raw);
+        if (salvo.form) setForm(salvo.form);
+        if (salvo.equipe) setEquipe(salvo.equipe);
+      }
+    } catch {
+      // localStorage indisponível -- segue sem rascunho restaurado
+    }
+    setCarregado(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!carregado) return;
+    try {
+      localStorage.setItem(progressKey, JSON.stringify({ form, equipe }));
+    } catch {
+      // localStorage indisponível -- rascunho só sobrevive nesta sessão
+    }
+  }, [progressKey, carregado, form, equipe]);
 
   function atualizarCampo(campo, valorBruto, { mostrarObrigatorio }) {
     const valor = REGRAS_CAMPO[campo] ? filtrarDigitacaoNumerica(valorBruto) : valorBruto;
@@ -210,6 +241,11 @@ export default function CalculadoraMeta() {
       setAvisos({});
       setEquipe([{ nome: '', tipo: 'Hunter', meta: '' }]);
       carregarRespostas();
+      try {
+        localStorage.removeItem(progressKey);
+      } catch {
+        // nada a fazer -- sem localStorage não havia rascunho salvo mesmo
+      }
     } catch (err) {
       if (err.response?.status === 400) setErros(err.response.data);
       else setStatus({ texto: 'Não foi possível enviar agora. Tente de novo.', tipo: 'alert' });
