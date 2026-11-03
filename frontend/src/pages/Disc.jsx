@@ -290,7 +290,7 @@ export default function Disc() {
   return (
     <div className="wrap wide">
       <nav>
-        <Link to="/ferramentas">← Voltar às ferramentas</Link>
+        <Link to="/">← Voltar à página inicial</Link>
       </nav>
 
       <header className="hero">

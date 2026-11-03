@@ -260,7 +260,7 @@ export default function CalculadoraMeta() {
   return (
     <div className="wrap">
       <nav>
-        <Link to="/ferramentas">← Voltar às ferramentas</Link>
+        <Link to="/">← Voltar à página inicial</Link>
       </nav>
 
       <header className="hero">
