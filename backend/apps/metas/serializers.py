@@ -13,10 +13,12 @@ class EquipeItemSerializer(serializers.Serializer):
 class MetaComercialSerializer(serializers.ModelSerializer):
     equipe = EquipeItemSerializer(many=True, required=False, write_only=True)
 
+    usuario_id = serializers.PrimaryKeyRelatedField(source='usuario', read_only=True)
+
     class Meta:
         model = MetaComercial
         fields = (
-            'id', 'criado_em',
+            'id', 'criado_em', 'nome_participante', 'usuario_id',
             'faturamento', 'crescimento_pct', 'churn_pct',
             'ticket', 'conversao_pct', 'contatos_mes_passado', 'hunter_valor',
             'equipe',
@@ -24,7 +26,7 @@ class MetaComercialSerializer(serializers.ModelSerializer):
             'contratos_mes', 'contatos_necessarios', 'farmer_valor',
         )
         read_only_fields = (
-            'id', 'criado_em',
+            'id', 'criado_em', 'nome_participante', 'usuario_id',
             'meta_anual', 'meta_trimestral', 'meta_mensal',
             'contratos_mes', 'contatos_necessarios', 'farmer_valor',
         )
