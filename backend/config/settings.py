@@ -126,3 +126,11 @@ CORS_ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get('DJANGO_CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',') if o.strip()
 ]
 CORS_ALLOW_CREDENTIALS = False  # JWT vai no header Authorization, não em cookie
+
+# Sem isso, Content-Disposition não está na lista de "response headers
+# simples" do CORS — o axios do React recebe a resposta, mas
+# resp.headers['content-disposition'] vem sempre vazio (não é erro de
+# rede, o header só não é visível a JS cross-origin). As 3 rotas /pdf
+# dependem desse header pro nome de arquivo (ver *Filename() de cada
+# app) — sem isso, todo download no React cai no fallback genérico.
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
