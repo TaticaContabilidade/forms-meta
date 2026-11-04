@@ -18,6 +18,8 @@
   --primary-fg:   #162318;
   --accent:       #E8A838;
   --coral:        #E8737A;
+  --blue:         #6EA8FE;
+  --teal:         #2DD4BF;
 
   --ok:           #50D090;
   --ok-bg:        rgba(80, 208, 144, 0.12);
@@ -154,9 +156,11 @@ nav a:hover { color: var(--primary); }
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 .tool-card:not(.disabled):hover::before { transform: scaleX(1); }
-.tool-card.meta   { --card-accent: var(--primary); }
-.tool-card.disc   { --card-accent: var(--accent); }
-.tool-card.porque { --card-accent: var(--coral); grid-column: 1 / -1; }
+.tool-card.meta       { --card-accent: var(--primary); }
+.tool-card.disc       { --card-accent: var(--accent); }
+.tool-card.porque     { --card-accent: var(--coral); grid-column: 1 / -1; }
+.tool-card.pessoal    { --card-accent: var(--blue); }
+.tool-card.financeiro { --card-accent: var(--teal); }
 .tool-card.disabled { cursor: default; opacity: 0.6; }
 
 .tool-icon {
@@ -169,9 +173,11 @@ nav a:hover { color: var(--primary); }
   font-size: 20px;
   background: rgba(255, 255, 255, 0.06);
 }
-.tool-card.meta .tool-icon   { background: rgba(170, 220, 78, 0.12); }
-.tool-card.disc .tool-icon   { background: rgba(232, 168, 56, 0.12); }
-.tool-card.porque .tool-icon { background: rgba(232, 115, 122, 0.12); }
+.tool-card.meta .tool-icon       { background: rgba(170, 220, 78, 0.12); }
+.tool-card.disc .tool-icon       { background: rgba(232, 168, 56, 0.12); }
+.tool-card.porque .tool-icon     { background: rgba(232, 115, 122, 0.12); }
+.tool-card.pessoal .tool-icon    { background: rgba(110, 168, 254, 0.12); }
+.tool-card.financeiro .tool-icon { background: rgba(45, 212, 191, 0.12); }
 
 .tool-label {
   font-size: 10px;
@@ -181,9 +187,11 @@ nav a:hover { color: var(--primary); }
   margin: 0 0 4px;
   color: var(--fg-faint);
 }
-.tool-card.meta .tool-label   { color: var(--primary); }
-.tool-card.disc .tool-label   { color: var(--accent); }
-.tool-card.porque .tool-label { color: var(--coral); }
+.tool-card.meta .tool-label       { color: var(--primary); }
+.tool-card.disc .tool-label       { color: var(--accent); }
+.tool-card.porque .tool-label     { color: var(--coral); }
+.tool-card.pessoal .tool-label    { color: var(--blue); }
+.tool-card.financeiro .tool-label { color: var(--teal); }
 
 .tool-title {
   font-family: var(--display);
@@ -194,7 +202,6 @@ nav a:hover { color: var(--primary); }
   margin: 0 0 6px;
 }
 .tool-desc { font-size: 14px; color: var(--fg-soft); line-height: 1.6; margin: 0; flex: 1; }
-
 .tool-cta {
   display: inline-flex;
   align-items: center;
@@ -206,14 +213,34 @@ nav a:hover { color: var(--primary); }
   border-radius: 999px;
   width: fit-content;
 }
-.tool-card.meta .tool-cta   { background: var(--primary); color: var(--primary-fg); }
-.tool-card.disc .tool-cta   { background: var(--accent); color: #1A1000; }
-.tool-card.porque .tool-cta { background: var(--coral); color: #2A0A0C; }
+
+.tool-card.meta .tool-cta       { background: var(--primary); color: var(--primary-fg); }
+.tool-card.disc .tool-cta       { background: var(--accent); color: #1A1000; }
+.tool-card.porque .tool-cta     { background: var(--coral); color: #2A0A0C; }
+.tool-card.pessoal .tool-cta    { background: var(--blue); color: #0B1A33; }
+.tool-card.financeiro .tool-cta { background: var(--teal); color: #042F2B; }
 .tool-card.disabled .tool-cta {
   background: var(--card-2);
   color: var(--fg-faint);
   border: 1px solid var(--border-solid);
 }
+
+/* PLACEHOLDER "EM BREVE" (ferramenta ainda não disponível) */
+.em-breve {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 64px 24px;
+  margin-top: 24px;
+  background: var(--card);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius-lg);
+}
+.em-breve-icone { width: 140px; height: 140px; font-size: 48px; line-height: 1; }
+.em-breve p { margin: 0; max-width: 420px; color: var(--fg-faint); font-size: 15px; }
 
 /* CARD / BLOCO DE FORMULÁRIO (login, cadastro, identidade) */
 .form-block {
@@ -347,20 +374,56 @@ nav a:hover { color: var(--primary); }
 .block-instruction { font-size: 14px; color: var(--fg-soft); }
 .choice-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .choice-card {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   background: var(--card-2);
   border: 1px solid var(--border-solid);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 11px 14px;
   cursor: pointer;
   font-size: 13.5px;
   color: var(--fg-soft);
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
 }
-.choice-card:has(input:checked) { border-color: var(--primary); color: var(--fg); }
+.choice-card:hover { border-color: rgba(255, 255, 255, 0.28); }
+.choice-card:has(input:checked) {
+  border-color: var(--primary);
+  background: rgba(170, 220, 78, 0.1);
+  color: var(--fg);
+}
+.choice-card:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
 .choice-card.indisponivel { opacity: 0.45; cursor: default; }
-.choice-card input { margin-top: 3px; flex-shrink: 0; }
+/* o radio nativo some visualmente (destoava do resto do design) mas
+   continua focável/acessível — o indicador customizado é o ::before
+   logo abaixo, e o foco por teclado aparece como outline no card
+   inteiro (:has(input:focus-visible) acima), não no input escondido. */
+.choice-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.choice-card::before {
+  content: '';
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 2px solid var(--border-solid);
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+.choice-card:hover::before { border-color: rgba(255, 255, 255, 0.4); }
+.choice-card:has(input:checked)::before {
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: inset 0 0 0 3px var(--card-2);
+}
+.choice-card.indisponivel::before { border-color: var(--border-solid) !important; background: none !important; box-shadow: none !important; }
 .choice-card-text { flex: 1; }
 .choice-card-tag { font-size: 10px; font-weight: 700; color: var(--alert); white-space: nowrap; }
 .pending-msg { font-size: 12.5px; color: var(--alert); margin: 10px 0 0; display: none; }
@@ -388,22 +451,40 @@ nav a:hover { color: var(--primary); }
 .intensity-tag.tag-s { background: rgba(30, 154, 102, 0.15); color: #1E9A66; }
 .intensity-tag.tag-c { background: rgba(62, 118, 214, 0.15); color: #3E76D6; }
 .intensity-text { font-size: 14.5px; color: var(--fg); font-weight: 600; }
-.intensity-scale { display: flex; gap: 8px; }
+.intensity-scale { display: flex; gap: 10px; }
 .intensity-scale label {
+  position: relative;
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
+  justify-content: center;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
   color: var(--fg-soft);
   background: var(--card-2);
   border: 1px solid var(--border-solid);
-  border-radius: var(--radius-sm);
-  padding: 10px 0;
+  border-radius: 999px;
+  padding: 12px 0;
   cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
 }
-.intensity-scale label:has(input:checked) { border-color: var(--primary); color: var(--fg); }
+.intensity-scale label:hover { border-color: rgba(255, 255, 255, 0.28); }
+.intensity-scale label:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+.intensity-scale label:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* radio nativo escondido visualmente, mesmo racional do .choice-card acima */
+.intensity-scale input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 .scale-hint { display: flex; justify-content: space-between; font-size: 11px; color: var(--fg-faint); margin-top: 6px; }
 
 /* DISC — RESULTADO */

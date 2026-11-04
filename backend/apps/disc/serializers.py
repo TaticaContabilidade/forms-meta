@@ -12,18 +12,19 @@ class DiscRespostaSerializer(serializers.ModelSerializer):
     # só é defensivo campo a campo dentro do cálculo (ver scoring.py). Não
     # inventamos validação mais estrita que o original.
     respostas = serializers.JSONField(write_only=True)
+    usuario_id = serializers.PrimaryKeyRelatedField(source='usuario', read_only=True)
 
     class Meta:
         model = DiscResposta
         fields = (
-            'id', 'criado_em', 'respostas',
+            'id', 'criado_em', 'nome_participante', 'usuario_id', 'respostas',
             'd_natural', 'i_natural', 's_natural', 'c_natural',
             'd_adaptado', 'i_adaptado', 's_adaptado', 'c_adaptado',
             'd_intensidade', 'i_intensidade', 's_intensidade', 'c_intensidade',
             'perfil_dominante', 'arquetipo',
         )
         read_only_fields = (
-            'id', 'criado_em',
+            'id', 'criado_em', 'nome_participante', 'usuario_id',
             'd_natural', 'i_natural', 's_natural', 'c_natural',
             'd_adaptado', 'i_adaptado', 's_adaptado', 'c_adaptado',
             'd_intensidade', 'i_intensidade', 's_intensidade', 'c_intensidade',

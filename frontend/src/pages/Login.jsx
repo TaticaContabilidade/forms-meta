@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export default function Login() {
+  const location = useLocation()
+  const from = location.state?.from
+  const destino = from ? `${from.pathname}${from.search}${from.hash}` : '/'
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -16,7 +19,7 @@ export default function Login() {
     setEnviando(true);
     try {
       await login(email, senha);
-      navigate('/ferramentas');
+      navigate(destino, {replace: true});
     } catch {
       setErro('E-mail ou senha inválidos.');
     } finally {
@@ -51,6 +54,9 @@ export default function Login() {
         </div>
       </form>
 
+      <p className="footer-note">
+        <Link to="/esqueci-senha">Esqueci minha senha</Link>
+      </p>
       <p className="footer-note">
         Ainda não tem conta? <Link to="/cadastro">Cadastre-se</Link>
       </p>

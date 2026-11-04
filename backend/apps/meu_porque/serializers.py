@@ -4,10 +4,12 @@ from .models import MeuPorqueResposta
 
 
 class MeuPorqueRespostaSerializer(serializers.ModelSerializer):
+    usuario_id = serializers.PrimaryKeyRelatedField(source='usuario', read_only=True)
+
     class Meta:
         model = MeuPorqueResposta
-        fields = ('id', 'objetivo', 'sonho', 'mudanca', 'visao_futuro', 'criado_em')
-        read_only_fields = ('id', 'criado_em')
+        fields = ('id', 'objetivo', 'sonho', 'mudanca', 'visao_futuro', 'criado_em', 'nome_participante', 'usuario_id')
+        read_only_fields = ('id', 'criado_em', 'nome_participante', 'usuario_id')
         extra_kwargs = {
             'objetivo': {'required': True, 'allow_blank': False, 'max_length': 4000},
             'sonho': {'required': True, 'allow_blank': False, 'max_length': 4000},

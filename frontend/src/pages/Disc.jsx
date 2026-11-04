@@ -204,6 +204,8 @@ export default function Disc() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+    } catch {
+      setStatus({ texto: 'Não foi possível gerar o PDF agora. Tente de novo.', tipo: 'alert' });
     } finally {
       setPdfBaixando(false);
     }
@@ -290,7 +292,7 @@ export default function Disc() {
   return (
     <div className="wrap wide">
       <nav>
-        <Link to="/ferramentas">← Voltar às ferramentas</Link>
+        <Link to="/">← Voltar à página inicial</Link>
       </nav>
 
       <header className="hero">

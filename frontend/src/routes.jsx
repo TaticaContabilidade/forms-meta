@@ -1,26 +1,25 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import RequireAuth from './auth/RequireAuth';
 import CadastroColaborador from './pages/CadastroColaborador';
 import CalculadoraMeta from './pages/CalculadoraMeta';
 import Disc from './pages/Disc';
-import Ferramentas from './pages/Ferramentas';
+import EsqueciSenha from './pages/EsqueciSenha';
 import Login from './pages/Login';
 import MeuPorque from './pages/MeuPorque';
+import RedefinirSenha from './pages/RedefinirSenha';
+import Perfil from './pages/Perfil';
+import Index from "./pages/landing_page.jsx";
+import Gestao from "./pages/gestao.jsx";
+import Financeiro from "./pages/financeiro.jsx";
 
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
       <Route path="/cadastro" element={<CadastroColaborador />} />
-      <Route
-        path="/ferramentas"
-        element={
-          <RequireAuth>
-            <Ferramentas />
-          </RequireAuth>
-        }
-      />
+      <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route
         path="/meu-porque"
         element={
@@ -42,6 +41,30 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Disc />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/gestao"
+        element={
+          <RequireAuth>
+            <Gestao />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/perfil"
+        element={
+          <RequireAuth>
+            <Perfil />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/financeiro"
+        element={
+          <RequireAuth>
+            <Financeiro />
           </RequireAuth>
         }
       />

@@ -126,3 +126,43 @@ CORS_ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get('DJANGO_CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',') if o.strip()
 ]
 CORS_ALLOW_CREDENTIALS = False  # JWT vai no header Authorization, não em cookie
+
+# Sem isso, Content-Disposition não está na lista de "response headers
+# simples" do CORS — o axios do React recebe a resposta, mas
+# resp.headers['content-disposition'] vem sempre vazio (não é erro de
+# rede, o header só não é visível a JS cross-origin). As 3 rotas /pdf
+# dependem desse header pro nome de arquivo (ver *Filename() de cada
+# app) — sem isso, todo download no React cai no fallback genérico.
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
+
+# E-mail (redefinição de senha) — mesmas variáveis SMTP_* que o Node já usa
+# (ver .env.example na raiz / src/email.js), pra não duplicar configuração
+# de SMTP entre os dois backends que rodam lado a lado. Sem SMTP_HOST
+# configurado, cai no backend "console" (imprime o e-mail no terminal do
+# `runserver`) — dá pra testar o fluxo de redefinição localmente sem SMTP
+# de verdade, só olhando o console.
+SMTP_HOST = os.environ.get('SMTP_HOST')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+SMTP_SECURE = os.environ.get('SMTP_SECURE', 'false').lower() == 'true'
+SMTP_USER = os.environ.get('SMTP_USER')
+SMTP_PASS = os.environ.get('SMTP_PASS')
+SMTP_FROM = os.environ.get('SMTP_FROM') or SMTP_USER or 'no-reply@taticacontabilidade.com'
+
+if SMTP_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = SMTP_HOST
+    EMAIL_PORT = SMTP_PORT
+    EMAIL_HOST_USER = SMTP_USER
+    EMAIL_HOST_PASSWORD = SMTP_PASS
+    # SMTP_SECURE=true -> SSL direto (porta 465); false -> STARTTLS (587),
+    # mesma semântica que o nodemailer já usa pro Node (ver .env.example).
+    EMAIL_USE_SSL = SMTP_SECURE
+    EMAIL_USE_TLS = not SMTP_SECURE
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = SMTP_FROM
+
+# Base do React, pra montar o link de redefinição de senha mandado por
+# e-mail (FRONTEND_URL + "/redefinir-senha?uid=...&token=...").
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')

@@ -1,14 +1,20 @@
 services:
   db:
     image: postgres:16-alpine
+    ports:
+      # Host 5434 -> container 5432 (onde o Postgres realmente escuta).
+      # 5432 direto bate com o Postgres nativo do sistema (systemd
+      # `postgresql`, já ocupando 127.0.0.1:5432) — por isso o mapeamento
+      # pro host é 5434, não 5432:5432. 5434 é o mesmo número que o
+      # container manual `forms-meta-pg` usa (ver seção "Deploy" no
+      # CLAUDE.md), mas não tem conflito real: só um dos dois estará de pé
+      # por vez na prática (ou o `docker compose up`, ou o container
+      # manual avulso) — exposto só pra inspecionar com um cliente externo
+      # (pgAdmin), o app sempre fala com o serviço pelo nome `db`.
+      - "5434:5432"
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: forms_meta
-    # Sem publicar porta pro host de propósito — evita bater com os
-    # containers Postgres já usados manualmente neste projeto
-    # (forms-meta-pg na 5434, forms-meta-pg-test na 5433). O serviço `app`
-    # fala com este banco pelo nome do serviço (`db`) dentro da rede
-    # interna do compose, não precisa de porta exposta pro host.
     volumes:
       - forms-meta-dev-db:/var/lib/postgresql/data
     healthcheck:
@@ -17,29 +23,6 @@ services:
       timeout: 5s
       retries: 10
 
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      PORT: 3000
-      ADMIN_TOKEN: ${ADMIN_TOKEN:-troque-isto}
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/forms_meta
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      # volume anônimo só pra node_modules: evita que o bind mount acima
-      # sobrescreva com o node_modules do host (pode ter sido instalado
-      # numa arquitetura/SO diferente da imagem do container).
-      - /app/node_modules
-
-  # Django REST (migração incremental — ver CLAUDE.md/CHANGELOG.md) fala
-  # com o mesmo banco `forms_meta` que o `app` (Node) já usa, pelo nome do
-  # serviço `db`. Pacotes Python do pip ficam fora de /app (em
-  # site-packages da imagem), então — ao contrário do node_modules acima —
-  # não precisa de volume anônimo pra não ser sobrescrito pelo bind mount.
   backend:
     build: ./backend
     ports:
@@ -50,6 +33,7 @@ services:
       DJANGO_DEBUG: "true"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
       DJANGO_CORS_ALLOWED_ORIGINS: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
     depends_on:
@@ -58,6 +42,21 @@ services:
     volumes:
       - ./backend:/app
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      target: build
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 5173
 
 volumes:
   forms-meta-dev-db:
