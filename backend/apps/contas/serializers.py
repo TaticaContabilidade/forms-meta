@@ -57,6 +57,16 @@ class SetorSerializer(serializers.ModelSerializer):
         fields = ('id', 'nome')
 
 
+class SolicitarRedefinicaoSenhaSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class RedefinirSenhaSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    nova_senha = serializers.CharField(min_length=8)
+
+
 class UsuarioMeSerializer(serializers.ModelSerializer):
     empresa = EmpresaSerializer(read_only=True)
     setor = SetorSerializer(read_only=True)
