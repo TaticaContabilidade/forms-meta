@@ -1,14 +1,20 @@
 services:
   db:
     image: postgres:16-alpine
+    ports:
+      # Host 5434 -> container 5432 (onde o Postgres realmente escuta).
+      # 5432 direto bate com o Postgres nativo do sistema (systemd
+      # `postgresql`, já ocupando 127.0.0.1:5432) — por isso o mapeamento
+      # pro host é 5434, não 5432:5432. 5434 é o mesmo número que o
+      # container manual `forms-meta-pg` usa (ver seção "Deploy" no
+      # CLAUDE.md), mas não tem conflito real: só um dos dois estará de pé
+      # por vez na prática (ou o `docker compose up`, ou o container
+      # manual avulso) — exposto só pra inspecionar com um cliente externo
+      # (pgAdmin), o app sempre fala com o serviço pelo nome `db`.
+      - "5434:5432"
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: forms_meta
-    # Sem publicar porta pro host de propósito — evita bater com os
-    # containers Postgres já usados manualmente neste projeto
-    # (forms-meta-pg na 5434, forms-meta-pg-test na 5433). O serviço `app`
-    # fala com este banco pelo nome do serviço (`db`) dentro da rede
-    # interna do compose, não precisa de porta exposta pro host.
     volumes:
       - forms-meta-dev-db:/var/lib/postgresql/data
     healthcheck:
@@ -27,6 +33,7 @@ services:
       DJANGO_DEBUG: "true"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
       DJANGO_CORS_ALLOWED_ORIGINS: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
     depends_on:
