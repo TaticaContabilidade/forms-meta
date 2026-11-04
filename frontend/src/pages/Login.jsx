@@ -55,6 +55,9 @@ export default function Login() {
       </form>
 
       <p className="footer-note">
+        <Link to="/esqueci-senha">Esqueci minha senha</Link>
+      </p>
+      <p className="footer-note">
         Ainda não tem conta? <Link to="/cadastro">Cadastre-se</Link>
       </p>
     </div>

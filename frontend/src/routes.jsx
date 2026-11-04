@@ -3,8 +3,10 @@ import RequireAuth from './auth/RequireAuth';
 import CadastroColaborador from './pages/CadastroColaborador';
 import CalculadoraMeta from './pages/CalculadoraMeta';
 import Disc from './pages/Disc';
+import EsqueciSenha from './pages/EsqueciSenha';
 import Login from './pages/Login';
 import MeuPorque from './pages/MeuPorque';
+import RedefinirSenha from './pages/RedefinirSenha';
 import Perfil from './pages/Perfil';
 import Index from "./pages/landing_page.jsx";
 import Gestao from "./pages/gestao.jsx";
@@ -16,6 +18,8 @@ export default function AppRoutes() {
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
       <Route path="/cadastro" element={<CadastroColaborador />} />
+      <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route
         path="/meu-porque"
         element={
