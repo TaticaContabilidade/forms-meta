@@ -589,6 +589,10 @@ setor). Cadastro de Colaborador é self-service, escolhendo Empresa e
 depois Setor (dropdown dependente) em `POST
 /api/auth/cadastro/colaborador/`.
 
+> **Este modelo vai mudar** — ver "Redesenho do login (planejado, ainda
+> não implementado)" no fim desta seção. O texto acima descreve o código
+> como ele está hoje.
+
 **Primeira fatia migrada: "Meu Porquê"** (a ferramenta mais simples) —
 inclui a base de auth acima porque a versão nova fica **atrás de login**
 (diferente do Node, que é público/anônimo). `nome_participante`/
@@ -670,6 +674,87 @@ criado/dropado automaticamente pelo pytest-django no mesmo Postgres dev
 (Render)" acima) — o serviço Django é adicionado manualmente no
 dashboard do Render, reaproveitando o `forms-meta-db` (Postgres) já
 existente, nunca provisionando um banco novo.
+
+### Redesenho do login (planejado, ainda não implementado)
+
+Decidido com o usuário em 2026-11-05, durante o desenho do módulo
+Financeiro (repo separado `TaticaContabilidade/dashboard-financeiro`, que
+consome o JWT emitido aqui). **Nada disto está no código ainda** — o
+modelo descrito em "Hierarquia de contas nova" acima continua sendo o que
+roda. Detalhe completo e histórico das decisões na wiki daquele repo
+(páginas Autenticação, Papéis, Convite, Validação do JWT e Registro de
+Decisões, D-08 a D-27): https://github.com/TaticaContabilidade/dashboard-financeiro/wiki
+
+**Por que muda:** o cadastro aberto atual expõe a lista de empresas
+clientes a qualquer visitante e deixa qualquer pessoa entrar em qualquer
+empresa (`EmpresaListView`/`SetorListView`/`CadastroColaboradorView` são
+`AllowAny`) — o mesmo problema já registrado no backlog B2B de
+`MIGRACAO-DJANGO-REACT.md`. Além disso, o Financeiro precisa de níveis de
+acesso que o modelo atual não tem.
+
+**Papéis** (`Usuario.papel`, continua 1 model só):
+
+| Papel | Quem | Alcance |
+|-------|------|---------|
+| `ADM` | Desenvolvedor e donos da Tática | Plataforma inteira (master): todas as empresas, ferramentas, o Financeiro e os colaboradores de todos os setores |
+| `DIRETOR` | Responsável de cada empresa cliente (1 ou mais por empresa) | Empresa inteira: convida, gerencia setores/papéis, desativa usuários, vê todos os setores da própria empresa. Nunca outras empresas, nunca o Financeiro |
+| `GERENTE` | Responsável de um setor | O próprio setor (como hoje) |
+| `COLABORADOR` | Membro de um setor | Os próprios dados (como hoje) |
+
+- **ADM só é criado pelo Django admin**, por um superusuário — nunca por
+  convite nem self-service (escalonamento de privilégio).
+  `is_superuser` fica só com o desenvolvedor; os donos são ADM na
+  aplicação, sem precisar do Django admin.
+- **Marcadores fixos no cadastro**, nunca comparação por nome:
+  `Empresa.empresa_interna` (a Tática) e `Setor.setor_financeiro`.
+  Renomear empresa/setor não pode mudar quem acessa o quê.
+- **Acesso ao Financeiro:** ADM (vê e altera), Gerente do setor
+  financeiro da empresa interna (vê e altera), Colaborador desse setor
+  (só vê). Mais ninguém.
+
+**Entrada só por convite** — o cadastro aberto
+(`POST /api/auth/cadastro/colaborador/` + listas públicas de
+empresas/setores) deixa de existir:
+
+- Model novo `Convite(empresa, setor, papel, email, token, criado_por,
+  criado_em, expira_em, aceito_em, revogado_em)`.
+- Link enviado por e-mail, **uso único, válido por 7 dias**; o convite já
+  define **empresa, setor e papel** — o convidado só preenche nome e
+  senha.
+- Mesmo mecanismo de token stateless da redefinição de senha
+  (`default_token_generator`), sem reinventar.
+- Quem convida quem: ADM → qualquer papel abaixo de ADM, em qualquer
+  empresa (inclusive o 1º Diretor de uma empresa nova); Diretor →
+  Diretor, Gerente e Colaborador, só na própria empresa; Gerente e
+  Colaborador não convidam.
+- SMTP deixa de ser "opcional" na prática pra esse fluxo: convite que não
+  chega bloqueia a entrada (ver RNF 4 do backlog B2B).
+
+**JWT** — continua o mesmo simplejwt (access 15min, refresh 7 dias com
+rotação + blacklist, `Authorization: Bearer`, mesmo fluxo no React). O
+que muda:
+
+- **Algoritmo HS256 → RS256.** O forms-meta assina com a chave privada
+  (`SIGNING_KEY`); o dashboard-financeiro só tem a pública
+  (`VERIFYING_KEY`) — um vazamento lá não permite emitir token. Chaves só
+  em variável de ambiente. A troca invalida todos os tokens já emitidos
+  (1 login novo por usuário depois do deploy).
+- **Claims novas** (via `TokenObtainPairSerializer.get_token`): `papel`,
+  `empresa_id`, `setor_id`, `empresa_interna`, `setor_financeiro`.
+- **No refresh, reler o usuário no banco e regravar as claims** — por
+  padrão o simplejwt copia as claims do refresh antigo, então uma mudança
+  de papel/setor só valeria em até 7 dias. Usuário desativado já não
+  renova: o simplejwt 5.5.1 checa `is_active` no refresh
+  (`CHECK_USER_IS_ACTIVE`, padrão `True`).
+
+**Usuários existentes**: a mudança é aditiva (papéis novos, campos
+novos, tabela nova) — `GERENTE`/`COLABORADOR` existentes continuam
+válidos. Produção tinha 2 usuários em 2026-11-05 (ids começando em 3 —
+pode ser só buraco de sequência por insert que falhou, não
+necessariamente exclusão; checar `django_admin_log` antes de concluir).
+**Usuário real nunca é apagado, é desativado** (`is_active = False`):
+apagar zera o `usuario_id` das respostas (FK `SET_NULL`) — nome/e-mail
+em texto continuam nas tabelas, mas o vínculo se perde.
 
 ## Backlog: features novas (não são bugs)
 
