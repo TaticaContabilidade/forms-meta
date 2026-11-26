@@ -1,7 +1,14 @@
+import jwt
 import pytest
+from django.conf import settings
 from rest_framework.test import APIClient
 
-from apps.contas.factories import UsuarioFactory
+from apps.contas.factories import EmpresaFactory, SetorFactory, UsuarioAdmFactory, UsuarioFactory
+from apps.contas.models import Usuario
+
+
+def decodificar(token):
+    return jwt.decode(token, settings.JWT_PUBLIC_KEY, algorithms=['RS256'])
 
 
 @pytest.mark.django_db
@@ -24,6 +31,33 @@ class TestLogin:
 
         assert resp.status_code == 401
 
+    def test_token_e_assinado_com_rs256_e_carrega_as_claims(self):
+        setor = SetorFactory(setor_financeiro=True, empresa=EmpresaFactory(empresa_interna=True))
+        usuario = UsuarioFactory(email='claims@example.com', senha='senha12345', papel=Usuario.Papel.GERENTE, setor=setor, empresa=setor.empresa)
+        client = APIClient()
+
+        resp = client.post('/api/auth/login/', {'email': usuario.email, 'password': 'senha12345'})
+
+        payload = decodificar(resp.data['access'])
+        assert payload['papel'] == Usuario.Papel.GERENTE
+        assert payload['empresa_id'] == usuario.empresa_id
+        assert payload['setor_id'] == usuario.setor_id
+        assert payload['empresa_interna'] is True
+        assert payload['setor_financeiro'] is True
+
+    def test_claims_do_adm_sao_null(self):
+        UsuarioAdmFactory(email='adm@example.com', senha='senha12345')
+        client = APIClient()
+
+        resp = client.post('/api/auth/login/', {'email': 'adm@example.com', 'password': 'senha12345'})
+
+        payload = decodificar(resp.data['access'])
+        assert payload['papel'] == Usuario.Papel.ADM
+        assert payload['empresa_id'] is None
+        assert payload['setor_id'] is None
+        assert payload['empresa_interna'] is False
+        assert payload['setor_financeiro'] is False
+
     def test_refresh_gera_novo_access_token(self):
         UsuarioFactory(email='login3@example.com', senha='senha12345')
         client = APIClient()
@@ -33,6 +67,39 @@ class TestLogin:
 
         assert resp.status_code == 200
         assert 'access' in resp.data
+
+    def test_refresh_releva_mudanca_de_papel_e_setor(self):
+        """O access token do login antigo não pode mais influenciar o que
+        vem no refresh — mudar o papel/setor do usuário no banco entre o
+        login e o refresh tem que valer no access token novo (CLAUDE.md,
+        "No refresh, reler o usuário no banco e regravar as claims")."""
+        usuario = UsuarioFactory(email='promovido@example.com', senha='senha12345', papel=Usuario.Papel.COLABORADOR)
+        client = APIClient()
+        login = client.post('/api/auth/login/', {'email': usuario.email, 'password': 'senha12345'})
+        assert decodificar(login.data['access'])['papel'] == Usuario.Papel.COLABORADOR
+
+        novo_setor = SetorFactory(empresa=usuario.empresa)
+        usuario.papel = Usuario.Papel.GERENTE
+        usuario.setor = novo_setor
+        usuario.save()
+
+        resp = client.post('/api/auth/refresh/', {'refresh': login.data['refresh']})
+
+        payload = decodificar(resp.data['access'])
+        assert payload['papel'] == Usuario.Papel.GERENTE
+        assert payload['setor_id'] == novo_setor.id
+
+    def test_refresh_de_usuario_desativado_e_recusado(self):
+        usuario = UsuarioFactory(email='desativado@example.com', senha='senha12345')
+        client = APIClient()
+        login = client.post('/api/auth/login/', {'email': usuario.email, 'password': 'senha12345'})
+
+        usuario.is_active = False
+        usuario.save()
+
+        resp = client.post('/api/auth/refresh/', {'refresh': login.data['refresh']})
+
+        assert resp.status_code == 401
 
 
 @pytest.mark.django_db
