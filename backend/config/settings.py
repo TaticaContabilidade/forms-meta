@@ -113,11 +113,23 @@ REST_FRAMEWORK = {
     ),
 }
 
+# RS256, não mais HS256 (CLAUDE.md, "Redesenho do login") — o
+# forms-meta assina com a chave PRIVADA; o dashboard-financeiro só
+# recebe a PÚBLICA (um vazamento lá não permite emitir token). As
+# chaves vêm como uma única linha de env var com "\n" literal no lugar
+# da quebra de linha real (jeito portável de guardar PEM numa env var —
+# ver .env.example); desfeito aqui na leitura.
+JWT_PRIVATE_KEY = os.environ.get('JWT_PRIVATE_KEY', '').replace('\\n', '\n')
+JWT_PUBLIC_KEY = os.environ.get('JWT_PUBLIC_KEY', '').replace('\\n', '\n')
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'RS256',
+    'SIGNING_KEY': JWT_PRIVATE_KEY,
+    'VERIFYING_KEY': JWT_PUBLIC_KEY,
 }
 
 # CORS — o Node não tem CORS nenhum (tudo same-origin); aqui é

@@ -48,13 +48,13 @@ class CadastroColaboradorSerializer(serializers.ModelSerializer):
 class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Empresa
-        fields = ('id', 'nome')
+        fields = ('id', 'nome', 'empresa_interna')
 
 
 class SetorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setor
-        fields = ('id', 'nome')
+        fields = ('id', 'nome', 'setor_financeiro')
 
 
 class SolicitarRedefinicaoSenhaSerializer(serializers.Serializer):
