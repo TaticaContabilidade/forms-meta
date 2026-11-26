@@ -692,16 +692,34 @@ https://github.com/TaticaContabilidade/dashboard-financeiro/wiki
   Gerente/Colaborador os dois); `Empresa.empresa_interna` e
   `Setor.setor_financeiro` (cada um com constraint de unicidade —
   só 1 empresa interna, só 1 setor financeiro por empresa); model
-  `Convite` (validação de regras no `clean()`, ver abaixo); JWT em
-  RS256 com as claims novas, recalculadas no refresh a partir do
-  usuário relido no banco. Tudo coberto por teste
-  (`apps/contas/tests/test_models.py`, `test_auth.py`).
-- ⬜ **Falta**: endpoints de criar/aceitar convite; travar o cadastro
-  aberto atual (`CadastroColaboradorView`/`EmpresaListView`/
-  `SetorListView`, hoje `AllowAny`); tela de convite no React; e revisar
-  o escopo de listagem das 3 ferramentas (DISC/Metas/MeuPorque) e do
-  Perfil pra reconhecer ADM (vê tudo) e Diretor (vê a empresa inteira,
-  não só um setor) — hoje só diferenciam Gerente/Colaborador.
+  `Convite`; JWT em RS256 com as claims novas, recalculadas no refresh a
+  partir do usuário relido no banco.
+- ✅ **Feito (26/11, 2ª fatia)**: cadastro aberto **removido de
+  verdade** — `CadastroColaboradorView`/`CadastroColaboradorSerializer`
+  não existem mais, rota `auth/cadastro/colaborador/` tirada do
+  `urls.py` (`/cadastro` some do React também, `CadastroColaborador.jsx`
+  apagado). `EmpresaListView`/`SetorListView` agora exigem login e
+  escopam por tenant: quem não é ADM só vê a própria empresa/setores da
+  própria empresa, mesmo pedindo outra via `?empresa_id=` — nunca confia
+  nisso vindo do cliente (mesmo princípio do `EscopoEmpresaMixin` do
+  dashboard-financeiro). Endpoints de convite em
+  `apps/contas/{views,serializers,permissions}.py`:
+  - `POST auth/convites/` — cria (só ADM/Diretor, `PodeConvidar`; Diretor
+    nunca confia em `empresa_id` do body, é sempre forçado pra própria
+    empresa) e manda o e-mail com o link.
+  - `GET auth/convites/lista/` — ADM vê de qualquer empresa, Diretor só
+    da própria.
+  - `POST auth/convites/<id>/revogar/` — idem escopo por empresa.
+  - `POST auth/convites/aceitar/` — público, valida o token
+    (`Convite.pendente`), cria o `Usuario` com papel/empresa/setor do
+    convite (nunca do body) e marca `aceito_em`.
+  Testado também ao vivo (convite → e-mail → aceitar → login).
+- ⬜ **Falta**: tela de convite no React (criar/listar/revogar — hoje só
+  existe a API); tela de "aceitar convite" no React (rota pública que
+  lê `?token=` e cria a conta); revisar o escopo de listagem das 3
+  ferramentas (DISC/Metas/MeuPorque) e do Perfil pra reconhecer ADM (vê
+  tudo) e Diretor (vê a empresa inteira, não só um setor) — hoje só
+  diferenciam Gerente/Colaborador.
 
 O modelo descrito em "Hierarquia de contas nova" acima ficou
 desatualizado nos papéis/obrigatoriedade de empresa-setor — o que vale
@@ -750,14 +768,15 @@ desatualizado — é Diretor, igual o dono de qualquer outra empresa.
 
 **Entrada só por convite** — o cadastro aberto
 (`POST /api/auth/cadastro/colaborador/` + listas públicas de
-empresas/setores) deixa de existir:
+empresas/setores) **já deixou de existir** (26/11):
 
 - Model `Convite(empresa, setor, papel, email, token, criado_por,
-  criado_em, expira_em, aceito_em, revogado_em)` — já implementado.
+  criado_em, expira_em, aceito_em, revogado_em)`.
 - Link enviado por e-mail, **uso único, válido por 7 dias**; o convite já
   define **empresa, setor e papel** — o convidado só preenche nome e
-  senha. (Endpoints de criar/enviar/aceitar ainda não existem — só o
-  model.)
+  senha. Endpoints: `POST auth/convites/` (criar, só ADM/Diretor), `GET
+  auth/convites/lista/`, `POST auth/convites/<id>/revogar/`, `POST
+  auth/convites/aceitar/` (público) — ver status acima.
 - **Token aleatório simples** (`secrets.token_urlsafe`), não o
   `default_token_generator` que a redefinição de senha usa: aquele
   gerador deriva o hash de um `Usuario` que já existe (pk, senha,
