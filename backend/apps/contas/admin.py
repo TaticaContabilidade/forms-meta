@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-from .models import Empresa, Setor, Usuario
+from .models import Convite, Empresa, Setor, Usuario
 
 
 class UsuarioCreationForm(UserCreationForm):
@@ -21,14 +21,15 @@ class UsuarioChangeForm(UserChangeForm):
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'cnpj', 'criado_em')
+    list_display = ('nome', 'cnpj', 'empresa_interna', 'criado_em')
+    list_filter = ('empresa_interna',)
     search_fields = ('nome', 'cnpj')
 
 
 @admin.register(Setor)
 class SetorAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'empresa', 'criado_em')
-    list_filter = ('empresa',)
+    list_display = ('nome', 'empresa', 'setor_financeiro', 'criado_em')
+    list_filter = ('empresa', 'setor_financeiro')
     search_fields = ('nome', 'empresa__nome')
 
 
@@ -54,3 +55,11 @@ class UsuarioAdmin(UserAdmin):
             'fields': ('email', 'nome', 'papel', 'empresa', 'setor', 'password1', 'password2', 'is_staff', 'is_active'),
         }),
     )
+
+
+@admin.register(Convite)
+class ConviteAdmin(admin.ModelAdmin):
+    list_display = ('email', 'papel', 'empresa', 'setor', 'criado_por', 'criado_em', 'expira_em', 'aceito_em', 'revogado_em')
+    list_filter = ('papel', 'empresa')
+    search_fields = ('email', 'empresa__nome')
+    readonly_fields = ('token', 'criado_em')

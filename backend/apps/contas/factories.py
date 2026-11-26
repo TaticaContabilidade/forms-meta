@@ -43,3 +43,14 @@ class UsuarioFactory(factory.django.DjangoModelFactory):
         self.set_password(extracted or 'senha12345')
         if create:
             self.save()
+
+
+class UsuarioAdmFactory(UsuarioFactory):
+    papel = Usuario.Papel.ADM
+    empresa = None
+    setor = None
+
+
+class UsuarioDiretorFactory(UsuarioFactory):
+    papel = Usuario.Papel.DIRETOR
+    setor = None
