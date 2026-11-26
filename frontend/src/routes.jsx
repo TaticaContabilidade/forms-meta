@@ -1,6 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
 import RequireAuth from './auth/RequireAuth';
-import CadastroColaborador from './pages/CadastroColaborador';
 import CalculadoraMeta from './pages/CalculadoraMeta';
 import Disc from './pages/Disc';
 import EsqueciSenha from './pages/EsqueciSenha';
@@ -17,7 +16,6 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/cadastro" element={<CadastroColaborador />} />
       <Route path="/esqueci-senha" element={<EsqueciSenha />} />
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route
