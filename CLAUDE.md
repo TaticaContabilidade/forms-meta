@@ -675,15 +675,37 @@ criado/dropado automaticamente pelo pytest-django no mesmo Postgres dev
 dashboard do Render, reaproveitando o `forms-meta-db` (Postgres) já
 existente, nunca provisionando um banco novo.
 
-### Redesenho do login (planejado, ainda não implementado)
+### Redesenho do login (em andamento — parte já implementada)
 
 Decidido com o usuário em 2026-11-05, durante o desenho do módulo
 Financeiro (repo separado `TaticaContabilidade/dashboard-financeiro`, que
-consome o JWT emitido aqui). **Nada disto está no código ainda** — o
-modelo descrito em "Hierarquia de contas nova" acima continua sendo o que
-roda. Detalhe completo e histórico das decisões na wiki daquele repo
-(páginas Autenticação, Papéis, Convite, Validação do JWT e Registro de
-Decisões, D-08 a D-27): https://github.com/TaticaContabilidade/dashboard-financeiro/wiki
+consome o JWT emitido aqui). Detalhe completo e histórico das decisões na
+wiki daquele repo (páginas Autenticação, Papéis, Convite, Validação do
+JWT e Registro de Decisões, D-08 em diante):
+https://github.com/TaticaContabilidade/dashboard-financeiro/wiki
+
+**Status (26/11):**
+
+- ✅ **Feito**: papéis `ADM`/`DIRETOR` novos em `Usuario.papel`;
+  `empresa`/`setor` nullable com a obrigatoriedade por papel movida pra
+  `Usuario.clean()` (ADM sem nenhum dos dois, Diretor só empresa,
+  Gerente/Colaborador os dois); `Empresa.empresa_interna` e
+  `Setor.setor_financeiro` (cada um com constraint de unicidade —
+  só 1 empresa interna, só 1 setor financeiro por empresa); model
+  `Convite` (validação de regras no `clean()`, ver abaixo); JWT em
+  RS256 com as claims novas, recalculadas no refresh a partir do
+  usuário relido no banco. Tudo coberto por teste
+  (`apps/contas/tests/test_models.py`, `test_auth.py`).
+- ⬜ **Falta**: endpoints de criar/aceitar convite; travar o cadastro
+  aberto atual (`CadastroColaboradorView`/`EmpresaListView`/
+  `SetorListView`, hoje `AllowAny`); tela de convite no React; e revisar
+  o escopo de listagem das 3 ferramentas (DISC/Metas/MeuPorque) e do
+  Perfil pra reconhecer ADM (vê tudo) e Diretor (vê a empresa inteira,
+  não só um setor) — hoje só diferenciam Gerente/Colaborador.
+
+O modelo descrito em "Hierarquia de contas nova" acima ficou
+desatualizado nos papéis/obrigatoriedade de empresa-setor — o que vale
+agora é o que está descrito nesta seção.
 
 **Por que muda:** o cadastro aberto atual expõe a lista de empresas
 clientes a qualquer visitante e deixa qualquer pessoa entrar em qualquer
@@ -696,33 +718,54 @@ acesso que o modelo atual não tem.
 
 | Papel | Quem | Alcance |
 |-------|------|---------|
-| `ADM` | Desenvolvedor e donos da Tática | Plataforma inteira (master): todas as empresas, ferramentas, o Financeiro e os colaboradores de todos os setores |
-| `DIRETOR` | Responsável de cada empresa cliente (1 ou mais por empresa) | Empresa inteira: convida, gerencia setores/papéis, desativa usuários, vê todos os setores da própria empresa. Nunca outras empresas, nunca o Financeiro |
+| `ADM` | Só o desenvolvedor do sistema (D-31, wiki do dashboard-financeiro) | Plataforma inteira (master): todas as empresas, ferramentas, o Financeiro de qualquer empresa e os colaboradores de todos os setores |
+| `DIRETOR` | Donos de cada empresa cliente, **inclusive da Tática** (D-30) — 1 ou mais por empresa | Empresa inteira: convida, gerencia setores/papéis, desativa usuários, vê todos os setores da própria empresa — **inclusive o Financeiro da própria empresa**. Nunca outras empresas |
 | `GERENTE` | Responsável de um setor | O próprio setor (como hoje) |
 | `COLABORADOR` | Membro de um setor | Os próprios dados (como hoje) |
 
+**Atenção, ADM não é mais "desenvolvedor e donos da Tática"** — essa era
+a definição inicial (05/11), revista por duas decisões subsequentes:
+D-30 (06/11, os donos de qualquer empresa viram Diretor, inclusive os da
+Tática) e D-31 (09/11, ADM vira só o desenvolvedor). Se algo neste
+arquivo ou no código ainda tratar "dono da Tática" como ADM, está
+desatualizado — é Diretor, igual o dono de qualquer outra empresa.
+
 - **ADM só é criado pelo Django admin**, por um superusuário — nunca por
   convite nem self-service (escalonamento de privilégio).
-  `is_superuser` fica só com o desenvolvedor; os donos são ADM na
-  aplicação, sem precisar do Django admin.
+  `is_superuser` fica só com o desenvolvedor; os donos (de qualquer
+  empresa) são Diretor na aplicação, sem precisar do Django admin.
 - **Marcadores fixos no cadastro**, nunca comparação por nome:
   `Empresa.empresa_interna` (a Tática) e `Setor.setor_financeiro`.
   Renomear empresa/setor não pode mudar quem acessa o quê.
-- **Acesso ao Financeiro:** ADM (vê e altera), Gerente do setor
-  financeiro da empresa interna (vê e altera), Colaborador desse setor
-  (só vê). Mais ninguém.
+  `empresa_interna` identifica a Tática mas **não decide mais** o acesso
+  ao Financeiro (ver linha abaixo) — isso mudou quando o Financeiro
+  virou multiempresa de verdade (D-32, cada empresa cliente com o
+  próprio Omie, conta/credencial separada).
+- **Acesso ao Financeiro** (módulo multiempresa — cada empresa acessa só
+  o próprio Omie, ver repo `dashboard-financeiro`): ADM vê/altera o de
+  **qualquer** empresa; Diretor vê/altera o da **própria** empresa
+  (qualquer empresa, não só a Tática); Gerente do setor financeiro da
+  própria empresa vê/altera (quando a operação for possível no Omie);
+  Colaborador desse setor só vê. Mais ninguém.
 
 **Entrada só por convite** — o cadastro aberto
 (`POST /api/auth/cadastro/colaborador/` + listas públicas de
 empresas/setores) deixa de existir:
 
-- Model novo `Convite(empresa, setor, papel, email, token, criado_por,
-  criado_em, expira_em, aceito_em, revogado_em)`.
+- Model `Convite(empresa, setor, papel, email, token, criado_por,
+  criado_em, expira_em, aceito_em, revogado_em)` — já implementado.
 - Link enviado por e-mail, **uso único, válido por 7 dias**; o convite já
   define **empresa, setor e papel** — o convidado só preenche nome e
-  senha.
-- Mesmo mecanismo de token stateless da redefinição de senha
-  (`default_token_generator`), sem reinventar.
+  senha. (Endpoints de criar/enviar/aceitar ainda não existem — só o
+  model.)
+- **Token aleatório simples** (`secrets.token_urlsafe`), não o
+  `default_token_generator` que a redefinição de senha usa: aquele
+  gerador deriva o hash de um `Usuario` que já existe (pk, senha,
+  last_login) — no convite ainda não existe usuário nenhum até ele ser
+  aceito. Como o próprio `Convite` já é uma linha de banco com estado
+  (`aceito_em`/`revogado_em`/`expira_em`), validar um token aleatório
+  contra esse estado é mais natural do que forçar o gerador de senha a
+  caber nesse formato.
 - Quem convida quem: ADM → qualquer papel abaixo de ADM, em qualquer
   empresa (inclusive o 1º Diretor de uma empresa nova); Diretor →
   Diretor, Gerente e Colaborador, só na própria empresa; Gerente e
@@ -732,20 +775,30 @@ empresas/setores) deixa de existir:
 
 **JWT** — continua o mesmo simplejwt (access 15min, refresh 7 dias com
 rotação + blacklist, `Authorization: Bearer`, mesmo fluxo no React). O
-que muda:
+que mudou (implementado, `apps/contas/jwt.py`):
 
 - **Algoritmo HS256 → RS256.** O forms-meta assina com a chave privada
   (`SIGNING_KEY`); o dashboard-financeiro só tem a pública
-  (`VERIFYING_KEY`) — um vazamento lá não permite emitir token. Chaves só
-  em variável de ambiente. A troca invalida todos os tokens já emitidos
-  (1 login novo por usuário depois do deploy).
-- **Claims novas** (via `TokenObtainPairSerializer.get_token`): `papel`,
-  `empresa_id`, `setor_id`, `empresa_interna`, `setor_financeiro`.
-- **No refresh, reler o usuário no banco e regravar as claims** — por
-  padrão o simplejwt copia as claims do refresh antigo, então uma mudança
-  de papel/setor só valeria em até 7 dias. Usuário desativado já não
-  renova: o simplejwt 5.5.1 checa `is_active` no refresh
-  (`CHECK_USER_IS_ACTIVE`, padrão `True`).
+  (`VERIFYING_KEY`) — um vazamento lá não permite emitir token. Chaves
+  vêm de `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` (env var, PEM com `\n`
+  literal no lugar da quebra de linha real — jeito portável de guardar
+  PEM numa única variável; `settings.py` desfaz na leitura), nunca no
+  git. A troca já invalidou todos os tokens emitidos antes dela (1 login
+  novo por usuário).
+- **Claims novas** — `TokenObtainPairComClaimsSerializer.get_token`
+  acrescenta `papel`, `empresa_id`, `setor_id`, `empresa_interna`,
+  `setor_financeiro` ao token emitido no login.
+- **No refresh, relê o usuário no banco e regrava as claims** —
+  `TokenRefreshComClaimsSerializer` (não o `TokenRefreshSerializer`
+  padrão do simplejwt, que só copia as claims que já estavam no refresh
+  antigo — uma mudança de papel/setor só valeria depois que o refresh
+  token expirasse). Usuário desativado (`is_active=False`) já não
+  renova: mesma checagem de usuário (`USER_AUTHENTICATION_RULE`) que o
+  simplejwt já fazia, reaproveitada em vez de consultar o banco 2 vezes.
+- `LoginView`/`RefreshView` (mesmas rotas `auth/login/`/`auth/refresh/`)
+  só trocam o `serializer_class` pelas versões com claims — o resto
+  (`TokenObtainPairView`/`TokenRefreshView` do simplejwt) é reaproveitado
+  sem alteração.
 
 **Usuários existentes**: a mudança é aditiva (papéis novos, campos
 novos, tabela nova) — `GERENTE`/`COLABORADOR` existentes continuam
